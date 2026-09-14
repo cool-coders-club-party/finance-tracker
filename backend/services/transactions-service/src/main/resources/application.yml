@@ -7,7 +7,9 @@ spring:
     password: ""
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:liquibase/db.changelog.yaml
 server:
   port: 8082
 management:
