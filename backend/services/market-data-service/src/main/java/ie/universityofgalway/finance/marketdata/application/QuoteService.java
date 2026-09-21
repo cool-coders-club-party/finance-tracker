@@ -1,6 +1,5 @@
 package ie.universityofgalway.finance.marketdata.application;
 
-import ie.universityofgalway.finance.marketdata.MarketDataServiceApplication;
 import ie.universityofgalway.finance.marketdata.domain.MarketDataProvider;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
 
