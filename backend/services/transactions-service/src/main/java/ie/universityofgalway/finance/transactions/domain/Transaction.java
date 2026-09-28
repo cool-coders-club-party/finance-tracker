@@ -27,6 +27,7 @@ public class Transaction {
     TransactionCategory transactionCategory;
     BigDecimal amount;
     String description;
+    LocalDateTime occurredAt;
 
     @CreationTimestamp
     LocalDateTime createdAt;
