@@ -9,4 +9,3 @@ CREATE TABLE transactions (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_transactions_amount_positive CHECK (amount > 0)
 );
-
