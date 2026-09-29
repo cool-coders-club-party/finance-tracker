@@ -13,7 +13,7 @@ import Transactions from "./pages/Transactions";
 const router = createBrowserRouter([
     { path: "/", element: <Landing /> },
 //     { path: "/home", element: <Home /> },
-//     { path: "/dashboard", element: <Dashboard /> },
+     { path: "/dashboard", element: <Dashboard /> },
 //     { path: "/transactions", element: <Transactions /> },
 ]);
 
