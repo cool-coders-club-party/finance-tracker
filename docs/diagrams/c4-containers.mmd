@@ -1,0 +1,40 @@
+C4Container
+    title Finance Tracker - Container View
+
+    Person(user, "User", "Finance Tracker user")
+    Container(frontend, "Frontend1", "React", "Web UI for authentication, transactions, portfolio, insights, and reports")
+
+    System_Boundary(finance, "Finance Tracker backend") {
+        Container(users, "Users Service", "Spring Boot / Maven", "User accounts, profiles, and authentication")
+        ContainerDb(users_db, "Users Database", "H2/PostgreSQL", "Users service data")
+        Container(transactions, "Transactions Service", "Spring Boot / Gradle", "Income, expenses, categories, and transaction history")
+        ContainerDb(transactions_db, "Transactions Database", "H2/PostgreSQL", "Transactions service data and Liquibase migrations")
+        Container(portfolio, "Portfolio Service", "Spring Boot / Maven", "Holdings and portfolio calculations")
+        ContainerDb(portfolio_db, "Portfolio Database", "H2/PostgreSQL", "Portfolio service data")
+        Container(market_data, "Market Data Service", "Spring Boot / Maven", "Quotes, symbols, and market-data cache")
+        ContainerDb(market_data_db, "Market Data Database", "H2/PostgreSQL", "Cached market data")
+        Container(insights, "Insights Service", "Spring Boot / Maven", "Derived financial insights and recommendations")
+        ContainerDb(insights_db, "Insights Database", "H2/PostgreSQL", "Insights service data")
+        Container(reporting, "Reporting Service", "Spring Boot / Maven", "Reports and exports")
+        ContainerDb(reporting_db, "Reporting Database", "H2/PostgreSQL", "Reporting service data")
+    }
+
+    System_Ext(market_provider, "Market Data Provider", "External prices and market information")
+
+    Rel(user, frontend, "Uses")
+    Rel(frontend, users, "Authenticates and manages profile", "HTTPS/JSON")
+    Rel(frontend, transactions, "Creates and reads transactions", "HTTPS/JSON")
+    Rel(frontend, portfolio, "Reads portfolio", "HTTPS/JSON")
+    Rel(frontend, insights, "Reads insights", "HTTPS/JSON")
+    Rel(frontend, reporting, "Requests reports", "HTTPS/JSON")
+    Rel(users, users_db, "Reads/writes")
+    Rel(transactions, transactions_db, "Reads/writes")
+    Rel(portfolio, portfolio_db, "Reads/writes")
+    Rel(market_data, market_data_db, "Reads/writes cache")
+    Rel(insights, insights_db, "Reads/writes")
+    Rel(reporting, reporting_db, "Reads/writes")
+    Rel(portfolio, market_data, "Requests current prices", "HTTPS/JSON")
+    Rel(insights, transactions, "Reads transaction data", "HTTPS/JSON")
+    Rel(insights, market_data, "Reads current prices", "HTTPS/JSON")
+    Rel(reporting, transactions, "Reads transaction data", "HTTPS/JSON")
+    Rel(market_data, market_provider, "Retrieves quotes", "HTTPS")

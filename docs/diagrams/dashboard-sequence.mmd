@@ -1,0 +1,41 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant Frontend1 as Frontend1 (React)
+    participant Users as Users Service
+    participant Transactions as Transactions Service
+    participant Portfolio as Portfolio Service
+    participant MarketData as Market Data Service
+    participant Insights as Insights Service
+    participant Reporting as Reporting Service
+
+    User->>Frontend1: Sign in and open dashboard
+    Frontend1->>Users: Authenticate user
+    Users-->>Frontend1: Access token and user profile
+    User->>Frontend1: Submit income or expense
+    Frontend1->>Transactions: POST /api/v1/transactions
+    Transactions->>Transactions: Validate request
+    Transactions->>Transactions: Save transaction
+    Transactions-->>Frontend1: 201 Created
+    par Refresh transaction history
+        Frontend1->>Transactions: GET transaction history
+        Transactions-->>Frontend1: Transactions
+    and Refresh portfolio
+        Frontend1->>Portfolio: GET portfolio summary
+        Portfolio->>MarketData: GET current prices
+        MarketData-->>Portfolio: Quotes
+        Portfolio-->>Frontend1: Portfolio summary
+    and Refresh insights
+        Frontend1->>Insights: GET financial insights
+        Insights->>Transactions: Read transaction data
+        Transactions-->>Insights: Transaction data
+        Insights->>MarketData: Read current prices
+        MarketData-->>Insights: Quotes
+        Insights-->>Frontend1: Insights
+    and Refresh report data
+        Frontend1->>Reporting: GET report data
+        Reporting->>Transactions: Read transaction data
+        Transactions-->>Reporting: Transaction data
+        Reporting-->>Frontend1: Report data
+    end
+    Frontend1-->>User: Updated dashboard
