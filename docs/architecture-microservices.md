@@ -1,5 +1,7 @@
 # Microservices architecture
 
+See the [system-wide C4 and sequence diagrams](architecture-diagrams.md) for Frontend1 and all backend services.
+
 The original backend was one Spring Boot application with feature packages. It is now six independent services.
 
 | Service | Port | Owns | Build tool |
