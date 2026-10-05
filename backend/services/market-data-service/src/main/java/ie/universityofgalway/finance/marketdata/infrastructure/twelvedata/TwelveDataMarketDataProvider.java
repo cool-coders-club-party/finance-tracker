@@ -6,6 +6,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -33,15 +36,27 @@ public class TwelveDataMarketDataProvider implements MarketDataProvider {
 
     @Override
     public Optional<Quote> findQuote(String symbol) {
-        // Request the latest quote for the supplied ticker.
-        TwelveDataQuoteResponse response = restClient
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/quote")
-                        .queryParam("symbol", symbol)
-                        .build())
-                .retrieve()
-                .body(TwelveDataQuoteResponse.class);
+        TwelveDataQuoteResponse response;
+
+        try {
+            // Request the latest quote for the supplied ticker.
+            response = restClient
+                    .get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/quote")
+                            .queryParam("symbol", symbol)
+                            .build())
+                    .retrieve()
+                    .body(TwelveDataQuoteResponse.class);
+        } catch (HttpClientErrorException exception) {
+            // An unknown ticker is a normal "not found" result.
+            if (exception.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+                return Optional.empty();
+            }
+
+            // Authentication and rate-limit errors are real provider failures.
+            throw exception;
+        }
 
         // Missing fields mean that no usable quote was returned.
         if (response == null
