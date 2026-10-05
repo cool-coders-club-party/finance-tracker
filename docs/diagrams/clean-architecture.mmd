@@ -1,0 +1,32 @@
+flowchart LR
+    user((User)) --> frontend["UI layer<br/>Frontend1 React pages and components"]
+
+    subgraph service["One microservice - the same structure is repeated for Users, Transactions, Portfolio, Market Data, Insights, and Reporting"]
+        api["UI / API adapter<br/>REST controllers and request/response DTOs"]
+        application["Application / Service layer<br/>use cases, orchestration, transaction boundaries"]
+        domain["Domain layer<br/>business rules, entities, value objects, repository ports"]
+        infrastructure["Infrastructure layer<br/>JPA adapters, Liquibase, HTTP clients, cache"]
+        database[("Service-owned database")]
+        external["External APIs or providers"]
+
+        api -->|calls use cases| application
+        application -->|uses business rules and ports| domain
+        infrastructure -.->|implements domain ports| domain
+        infrastructure --> database
+        infrastructure --> external
+    end
+
+    frontend -->|HTTPS / JSON| api
+
+    classDef ui fill:#dbeafe,stroke:#2563eb,color:#111827
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#111827
+    classDef domain fill:#fef3c7,stroke:#d97706,color:#111827
+    classDef infrastructure fill:#f3e8ff,stroke:#9333ea,color:#111827
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#111827
+
+    class frontend,api ui
+    class application application
+    class domain domain
+    class infrastructure,database infrastructure
+    class external external
+    class user external

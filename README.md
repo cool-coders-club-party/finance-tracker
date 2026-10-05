@@ -26,4 +26,4 @@ cd services/transactions-service
 
 That starts Transactions on `http://localhost:8082`; health is at `http://localhost:8082/actuator/health`.
 
-Read [the microservices architecture note](docs/architecture-microservices.md) before adding a feature. The original setup history remains in [the team brief](docs/team-brief-1-initializing-and-backend.md).
+Read the [microservices architecture note](docs/architecture-microservices.md), [Clean Architecture diagram](docs/clean-architecture.md), and [system architecture diagrams](docs/architecture-diagrams.md) before adding a feature. The original setup history remains in [the team brief](docs/team-brief-1-initializing-and-backend.md).

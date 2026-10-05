@@ -1,0 +1,11 @@
+C4Context
+    title Finance Tracker - System Context
+
+    Person(user, "User", "Tracks income, expenses, investments, and financial activity")
+    System(frontend, "Frontend1", "React web application")
+    System(finance, "Finance Tracker", "Financial tracking platform")
+    System_Ext(market_provider, "Market Data Provider", "External prices and market information")
+
+    Rel(user, frontend, "Uses")
+    Rel(frontend, finance, "Uses through REST APIs")
+    Rel(finance, market_provider, "Retrieves market data")
