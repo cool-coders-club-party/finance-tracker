@@ -1,4 +1,5 @@
 package ie.universityofgalway.finance.portfolio.repository;
+
 import ie.universityofgalway.finance.portfolio.model.Holding;
 import ie.universityofgalway.finance.portfolio.model.Portfolio;
 import org.junit.jupiter.api.Test;
