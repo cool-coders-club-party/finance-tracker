@@ -80,6 +80,15 @@ function Dashboard() {
     );
 
     return (
+        <div className="dark relative isolate min-h-svh overflow-hidden">
+            <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-0 -z-10 bg-[url('images/DashboardBG.png')] bg-cover bg-center"
+            >
+            <div className="absolute inset-0 bg-black/20" />
+        </div>
+
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 md:px-8 md:py-12">
         <div className="p-6 space-y-6">
             <h1 className="text-3xl font-bold">Dashboard</h1>
 
@@ -126,7 +135,7 @@ function Dashboard() {
                 />
             </div>
 
-            <Card>
+            <Card className="glass bg-card/10">
                 <CardHeader>
                     <CardTitle>Combined Total</CardTitle>
                 </CardHeader>
@@ -153,7 +162,7 @@ function Dashboard() {
               </CardContent>
             </Card>*/}
 
-            <Card>
+            <Card className="glass bg-card/10">
               <CardHeader>
                 <CardTitle>Spending by Category</CardTitle>
               </CardHeader>
@@ -227,6 +236,8 @@ function Dashboard() {
               </CardContent>
             </Card>
         </div>
+      </div>
+     </div>
     );
 }
 

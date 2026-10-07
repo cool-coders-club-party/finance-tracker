@@ -8,7 +8,7 @@ function StatCard({ title, icon: Icon, available, value, formatter, change, capt
   const TrendIcon = isUp ? ArrowUpRight : ArrowDownRight;
 
   return (
-    <Card>
+    <Card className="glass bg-card/10">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardAction> {Icon && <Icon className="size-4 text-mutated-foreground" />} </CardAction>
