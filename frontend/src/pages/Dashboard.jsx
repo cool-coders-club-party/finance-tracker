@@ -3,6 +3,7 @@ import StatCard from "@/components/StatCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Wallet, Receipt, TrendingUp, Landmark } from "lucide-react"
+import { Pie, PieChart, Cell, Label } from "recharts";
 
 const formatMoney = (amount) =>
     new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
@@ -24,6 +25,14 @@ const mockDashboardData = {
     cashBalanceChange: -1.9,
     cashBalanceCaption: "across 3 accounts",
     cashBalancePositive: true,
+
+    expensesByCategory: [
+        { key: "housing", label: "Housing", amount: 900 },
+        { key: "groceries", label: "Groceries", amount: 350 },
+        { key: "transport", label: "Transport", amount: 175 },
+        { key: "entertainment", label: "Entertainment", amount: 225 },
+        { key: "other", label: "Other", amount: 225 },
+    ],
   },
   portfolio: {
     available: true,
@@ -49,6 +58,26 @@ function Dashboard() {
         color: "var(--chart-1)",
       },
     };
+
+    const palette = [
+      "var(--chart-1)",
+      "var(--chart-2)",
+      "var(--chart-3)",
+      "var(--chart-4)",
+      "var(--chart-5)",
+    ];
+
+    const categoryChartConfig = Object.fromEntries(
+        transactions.expensesByCategory.map((item, index) => [
+            item.key,
+            { label: item.label, color: palette[index % palette.length] },
+            ])
+    );
+
+    const totalSpent = transactions.expensesByCategory.reduce(
+        (sum, item) => sum + item.amount,
+        0
+    );
 
     return (
         <div className="p-6 space-y-6">
@@ -107,7 +136,7 @@ function Dashboard() {
             </Card>
 
             {/* Sample Chart */}
-            <Card>
+{/*            <Card>
               <CardHeader>
                 <CardTitle>Income vs Expenses</CardTitle>
               </CardHeader>
@@ -122,8 +151,81 @@ function Dashboard() {
                   </BarChart>
                 </ChartContainer>
               </CardContent>
-            </Card>
+            </Card>*/}
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Spending by Category</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-[260px_1fr] md:items-center">
+                <ChartContainer config={categoryChartConfig} className="mx-auto h-[260px] w-[260px]">
+                  <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                    <Pie
+                      data={transactions.expensesByCategory}
+                      dataKey="amount"
+                      nameKey="key"
+                      innerRadius="62%"
+                      outerRadius="92%"
+                      paddingAngle={2}
+                      cornerRadius={4}
+                    >
+                      {transactions.expensesByCategory.map((item) => (
+                        <Cell key={item.key} fill={`var(--color-${item.key})`} />
+                      ))}
+                      <Label
+                        content={({ viewBox }) => {
+                          if (!viewBox || !("cx" in viewBox)) return null;
+                          const { cx, cy } = viewBox;
+                          return (
+                            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+                              <tspan x={cx} y={cy - 10} className="fill-foreground text-2xl font-semibold">
+                                {formatMoney(totalSpent)}
+                              </tspan>
+                              <tspan x={cx} y={cy + 14} className="fill-muted-foreground text-xs">
+                                Total spent
+                              </tspan>
+                            </text>
+                          );
+                        }}
+                      />
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+
+                <ul className="flex flex-col gap-3">
+                    {transactions.expensesByCategory.map((item) => {
+                        const share = (item.amount / totalSpent) * 100;
+                        return (
+                            <li key={item.key} className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-3 text-sm">
+                                    <span className="flex items-center gap-2">
+                                        <span
+                                            className="inline-block size-2.5 rounded-full"
+                                            style={{ backgroundColor: categoryChartConfig[item.key].color }}
+                                        />
+                                        {item.label}
+                                    </span>
+                                    <span className="flex items-baseline gap-2">
+                                        <span className="font-medium">{formatMoney(item.amount)}</span>
+                                        <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
+                                    </span>
+                                </div>
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
+                                    <div
+                                        className="h-full rounded-full"
+                                        style={{
+                                            width: `${share}%`,
+                                            backgroundColor: categoryChartConfig[item.key].color,
+                                        }}
+                                    />
+                                </div>
+                            </li>
+                            );
+                        })}
+                </ul>
+              </CardContent>
+            </Card>
         </div>
     );
 }
