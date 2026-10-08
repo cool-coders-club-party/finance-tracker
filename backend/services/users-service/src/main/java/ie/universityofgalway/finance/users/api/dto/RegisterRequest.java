@@ -12,6 +12,9 @@ import jakarta.validation.constraints.Size;
  * is marked {@code @Valid}, checks the constraints below before the controller method
  * runs. A failed check produces a {@code 400 Bad Request}.
  *
+ * <p>On a side note: a record is a compact Java class for holding data. Under the hood,
+ * it creates fields for all parameters and defines setters and getters for them.
+ *
  * @param email    the address the user will log in with; must be a well-formed email address
  * @param password the plain-text password chosen by the user, 8 to 72 characters;
  *                 it is hashed before storage and must never be logged or returned

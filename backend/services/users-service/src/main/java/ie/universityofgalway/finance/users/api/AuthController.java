@@ -41,6 +41,9 @@ public class AuthController {
      * before this method runs; if validation fails, Spring responds with
      * {@code 400 Bad Request} and this method is never called.
      *
+     * <p> {@code @Valid}
+     *     {@code @RequestBody}
+     *
      * <p>Note: this is a placeholder. It currently only echoes the submitted email and does
      * not yet check for duplicates, hash the password or store the user.
      *
