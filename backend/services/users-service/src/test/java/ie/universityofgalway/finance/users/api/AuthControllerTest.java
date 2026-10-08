@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -146,5 +147,55 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message")
                         .value("An account already exists for test@example.com."));
+    }
+
+    @Test
+    void registerWithMalformedJsonReturns400() throws Exception {
+        postRegister("{\"email\": \"test@example.com\",")
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void registerWithNoBodyReturns400() throws Exception {
+        mvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void registerWithWrongContentTypeReturns415() throws Exception {
+        mvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content(VALID_JSON_BODY))
+                .andExpect(status().isUnsupportedMediaType());
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void getOnRegisterReturns405() throws Exception {
+        mvc.perform(get("/api/auth/register"))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void unknownPathReturns404() throws Exception {
+        mvc.perform(get("/api/auth/does-not-exist"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void registerResponseNeverContainsPassword() throws Exception {
+        String body = postRegister(VALID_JSON_BODY)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body)
+                .doesNotContain("12345678")
+                .doesNotContainIgnoringCase("password");
     }
 }
