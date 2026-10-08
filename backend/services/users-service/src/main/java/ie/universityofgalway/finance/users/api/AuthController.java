@@ -1,6 +1,8 @@
 package ie.universityofgalway.finance.users.api;
 
 import ie.universityofgalway.finance.users.api.dto.RegisterRequest; // pull in DTO
+import ie.universityofgalway.finance.users.domain.User;
+import ie.universityofgalway.finance.users.application.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,11 @@ import java.util.Map;
 @RequestMapping("/api/auth") // path prefix for the class, every endpoint starts with /api/auth
 public class AuthController {
 
+    private final AuthService authService;
+    public AuthController(AuthService authService){
+        this.authService = authService;
+    }
+
     @GetMapping("/ping") // maps GET requests for /ping to this method and declares the endpoint GET /api/auth/ping (prefix + /ping)
     public String ping(){ // method is a handler for that endpoint that runs when it is called
         return "auth api is working"; // sent back as the plaintext response body with status 200 OK
@@ -52,6 +59,7 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<Map<String,String>> register(@Valid @RequestBody RegisterRequest request){
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("email", request.email()));
+        User user = authService.register(request.email(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", user.id().toString(), "email", user.email()));
     }
 }
