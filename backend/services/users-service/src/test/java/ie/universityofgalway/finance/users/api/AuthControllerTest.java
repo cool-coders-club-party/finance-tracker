@@ -1,6 +1,7 @@
 package ie.universityofgalway.finance.users.api;
 
 import ie.universityofgalway.finance.users.application.AuthService;
+import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.User;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +19,7 @@ import org.springframework.http.MediaType;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -117,5 +118,33 @@ class AuthControllerTest {
     void registerWithPasswordOf73CharactersReturns400() throws Exception{
         postRegister(json("text@example.com", "a".repeat(73)))
                 .andExpect(status().isBadRequest());
+    }
+
+    /* TESTS FOR CONTROLLER-SERVICE INTERACTIONS */
+    @Test
+    void registerPassesEmailAndPasswordToService() throws Exception {
+        postRegister(VALID_JSON_BODY).andExpect(status().isCreated());
+
+        verify(authService).register("test@example.com", "12345678");
+    }
+
+    @Test
+    void registerWithInvalidBodyDoesNotCallService() throws Exception {
+        postRegister(json("invalid_email", "12345678"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService); // checking functionality of @Valid in AuthController
+    }
+
+    @Test
+    void registerWithExistingEmailReturns409() throws Exception {
+        doThrow(new EmailAlreadyRegisteredException("test@example.com"))
+                .when(authService).register(anyString(), anyString());
+
+        postRegister(VALID_JSON_BODY)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message")
+                        .value("An account already exists for test@example.com."));
     }
 }
