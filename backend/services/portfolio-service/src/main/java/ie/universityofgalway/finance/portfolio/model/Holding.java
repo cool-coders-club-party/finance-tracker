@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-//A holding contains info on the amount of a particular stock, and how much its worth etc...
+
 @Entity
 @Table(name = "holdings", uniqueConstraints = @UniqueConstraint(columnNames = {"portfolio_id", "ticker"}))
 public class Holding {

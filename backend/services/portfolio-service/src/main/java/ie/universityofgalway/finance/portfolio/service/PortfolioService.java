@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class PortfolioService {
@@ -90,9 +91,23 @@ public class PortfolioService {
         return holdingRepository.save(holding);
     }
 
+    @Transactional(readOnly = true)
+    public List<Holding> getHoldings(Long portfolioId, String userId) {
+        // Ownership check happens here, same as buy()/sell() - a holding list
+        // can only ever be returned for a portfolio the caller actually owns.
+        portfolioRepository.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Portfolio not found"));
+
+        // Query the holdings directly rather than walking portfolio.getHoldings():
+        // that collection is lazy-loaded, and would only work after this method
+        // returns if Spring's open-in-view setting happened to be on.
+        return holdingRepository.findByPortfolioId(portfolioId);
+    }
+
     private void requirePositive(BigDecimal quantity) {
         if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
     }
+
 }
