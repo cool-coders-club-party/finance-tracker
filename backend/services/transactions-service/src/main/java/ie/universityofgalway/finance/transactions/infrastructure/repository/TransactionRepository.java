@@ -2,9 +2,7 @@ package ie.universityofgalway.finance.transactions.infrastructure.repository;
 
 import ie.universityofgalway.finance.transactions.domain.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
-
-public interface TransactionRepository extends JpaRepository<Transaction,Long> {
-    List<Transaction> findByUserIdOrderByOccurredAtDesc(Long userId);
+public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
 }
