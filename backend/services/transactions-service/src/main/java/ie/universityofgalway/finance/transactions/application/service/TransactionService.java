@@ -1,12 +1,16 @@
 package ie.universityofgalway.finance.transactions.application.service;
 
 import ie.universityofgalway.finance.transactions.api.web.dto.CreateTransactionRequest;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionResponse;
-
-import java.util.List;
+import ie.universityofgalway.finance.transactions.api.web.dto.TransactionPageResponseDto;
+import ie.universityofgalway.finance.transactions.api.web.dto.TransactionResponseDto;
+import ie.universityofgalway.finance.transactions.api.web.dto.UpdateTransactionRequest;
 
 public interface TransactionService {
-    TransactionResponse create(CreateTransactionRequest request);
+    TransactionResponseDto createTransaction(CreateTransactionRequest request);
 
-    List<TransactionResponse> findByUserId(Long userId);
+    TransactionPageResponseDto findHistory(TransactionHistoryQuery query);
+
+    TransactionResponseDto findTransactionById(Long transactionId);
+
+    TransactionResponseDto updateTransaction(Long transactionId, UpdateTransactionRequest request);
 }
