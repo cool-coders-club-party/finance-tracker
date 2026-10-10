@@ -1,6 +1,6 @@
 # Clean Architecture
 
-This is the internal structure used by each Finance Tracker microservice. The same pattern is repeated independently in Users, Transactions, Portfolio, Market Data, Insights, and Reporting.
+This diagram shows the target responsibilities for each Finance Tracker microservice. Current package names and dependencies vary by service.
 
 ![Clean Architecture layers](images/clean-architecture.svg)
 
@@ -40,7 +40,7 @@ The application layer contains use cases such as `CreateTransaction` and `ListTr
 
 The domain layer contains the business meaning of the service: entities, value objects, enums, rules, and ports/interfaces. It should be plain Java and independent of Spring, JPA, Liquibase, HTTP, and databases.
 
-For Transactions, examples are `Transaction`, `TransactionType`, `TransactionCategory`, and a `TransactionRepository` interface describing the required persistence operations.
+For Transactions, the business concepts are `Transaction`, `TransactionType`, and `TransactionCategory`. A strict Clean Architecture implementation would define a persistence interface here.
 
 ### Infrastructure layer
 
@@ -57,4 +57,4 @@ Infrastructure  →  Domain/Application interfaces
 
 The domain must not import an outer layer. A service must not import another microservice's Java classes or database tables; cross-service communication uses APIs or events.
 
-The diagram is the target structure. The current Transactions scaffold still has its JPA-annotated `Transaction` class in `domain`; moving that persistence mapping into `infrastructure` is a follow-up cleanup task.
+Transactions currently uses `rest`, `service`, `entity`, `repository`, `mapper`, `dto`, and `exception` packages. Its `Transaction` entity uses JPA, and its service calls a Spring Data repository directly, so it is a conventional layered implementation of these responsibilities rather than a strict application of the dependency rule above.

@@ -1,6 +1,6 @@
-package ie.universityofgalway.finance.transactions.infrastructure.repository;
+package ie.universityofgalway.finance.transactions.repository;
 
-import ie.universityofgalway.finance.transactions.domain.Transaction;
+import ie.universityofgalway.finance.transactions.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
