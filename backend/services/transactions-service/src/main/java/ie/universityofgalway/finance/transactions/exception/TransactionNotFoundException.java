@@ -1,4 +1,4 @@
-package ie.universityofgalway.finance.transactions.application.service;
+package ie.universityofgalway.finance.transactions.exception;
 
 public class TransactionNotFoundException extends RuntimeException {
 

@@ -1,7 +1,7 @@
-package ie.universityofgalway.finance.transactions.application.service;
+package ie.universityofgalway.finance.transactions.service;
 
-import ie.universityofgalway.finance.transactions.domain.TransactionCategory;
-import ie.universityofgalway.finance.transactions.domain.TransactionType;
+import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
+import ie.universityofgalway.finance.transactions.entity.TransactionType;
 
 import java.time.LocalDate;
 

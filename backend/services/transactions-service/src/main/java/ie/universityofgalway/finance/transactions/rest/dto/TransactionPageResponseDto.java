@@ -1,4 +1,4 @@
-package ie.universityofgalway.finance.transactions.api.web.dto;
+package ie.universityofgalway.finance.transactions.rest.dto;
 
 import java.util.List;
 

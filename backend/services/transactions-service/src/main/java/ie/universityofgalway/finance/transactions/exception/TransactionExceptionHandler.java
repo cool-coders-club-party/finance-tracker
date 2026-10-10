@@ -1,8 +1,6 @@
-package ie.universityofgalway.finance.transactions.api.web;
+package ie.universityofgalway.finance.transactions.exception;
 
-import ie.universityofgalway.finance.transactions.api.web.dto.ApiErrorResponseDto;
-import ie.universityofgalway.finance.transactions.application.service.InvalidTransactionHistoryQueryException;
-import ie.universityofgalway.finance.transactions.application.service.TransactionNotFoundException;
+import ie.universityofgalway.finance.transactions.rest.dto.ApiErrorResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +46,13 @@ public class TransactionExceptionHandler {
         addErrors(details, exception.getBindingResult().getFieldErrors(),
                 exception.getBindingResult().getGlobalErrors());
         return error(HttpStatus.BAD_REQUEST, "Validation failed", request, details);
+    }
+
+    @ExceptionHandler(InvalidTransactionCombinationException.class)
+    public ResponseEntity<ApiErrorResponseDto> handleInvalidTransactionCombination(
+            InvalidTransactionCombinationException e, HttpServletRequest request
+    ){
+        return error(HttpStatus.BAD_REQUEST, e.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
