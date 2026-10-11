@@ -13,6 +13,11 @@
     <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>runtime</scope></dependency>
     <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
 
+      <!-- Hashing library -->
+      <dependency>
+          <groupId>org.springframework.security</groupId>
+          <artifactId>spring-security-crypto</artifactId>
+      </dependency>
       <!-- Packages for identity tokens -->
       <!-- jjwt-api: the public JJWT API you code against (Jwts.builder(), Jwts.parser(), Claims, exceptions) -->
       <dependency>
