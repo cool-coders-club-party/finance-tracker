@@ -61,4 +61,16 @@ class AuthServiceTest {
         assertThat(result.email()).isEqualTo("test@example.com");
         verify(users).existsByEmail("test@example.com");
     }
+
+    @Test
+    void registerSavesHashAndNotRawPassword(){
+        when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // AuthService.register() returns a User object with an email, hashed password and unique ID
+        User result = service.register("test@example.com", "12345678");
+
+        // service stub behavior, defined in setUp() returns "hashed" instead of an actual hashed value.
+        assertThat(result.passwordHash()).isEqualTo("hashed");
+        assertThat(result.passwordHash()).isNotEqualTo("12345678");
+    }
 }
