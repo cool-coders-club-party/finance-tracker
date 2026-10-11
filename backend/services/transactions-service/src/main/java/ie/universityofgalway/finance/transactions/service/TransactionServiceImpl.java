@@ -1,13 +1,18 @@
-package ie.universityofgalway.finance.transactions.application.service;
+package ie.universityofgalway.finance.transactions.service;
 
-import ie.universityofgalway.finance.transactions.api.web.dto.CreateTransactionRequest;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionPageResponseDto;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionResponseDto;
-import ie.universityofgalway.finance.transactions.api.web.dto.UpdateTransactionRequest;
-import ie.universityofgalway.finance.transactions.api.web.mapper.TransactionMapper;
-import ie.universityofgalway.finance.transactions.domain.Transaction;
-import ie.universityofgalway.finance.transactions.infrastructure.repository.TransactionRepository;
-import ie.universityofgalway.finance.transactions.infrastructure.repository.TransactionSpecifications;
+import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
+import ie.universityofgalway.finance.transactions.entity.TransactionType;
+import ie.universityofgalway.finance.transactions.rest.dto.CreateTransactionRequest;
+import ie.universityofgalway.finance.transactions.rest.dto.TransactionPageResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.TransactionResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.UpdateTransactionRequest;
+import ie.universityofgalway.finance.transactions.entity.Transaction;
+import ie.universityofgalway.finance.transactions.exception.InvalidTransactionHistoryQueryException;
+import ie.universityofgalway.finance.transactions.exception.TransactionNotFoundException;
+import ie.universityofgalway.finance.transactions.mapper.TransactionMapper;
+import ie.universityofgalway.finance.transactions.repository.TransactionRepository;
+import ie.universityofgalway.finance.transactions.repository.TransactionSpecifications;
+import ie.universityofgalway.finance.transactions.util.validator.TransactionCategoryValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,10 +27,12 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final TransactionMapper transactionMapper;
+    private final TransactionCategoryValidator transactionCategoryValidator;
 
     @Override
     @Transactional
     public TransactionResponseDto createTransaction(CreateTransactionRequest request) {
+        transactionCategoryValidator.validate(request.transactionType(),request.transactionCategory());
         Transaction transaction = transactionMapper.to(request);
         return transactionMapper.from(transactionRepository.save(transaction));
     }
@@ -70,6 +77,11 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionResponseDto updateTransaction(Long transactionId, UpdateTransactionRequest request) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId));
+        TransactionType transactionType = request.transactionType()==null ?
+                transaction.getTransactionType() : request.transactionType();
+        TransactionCategory transactionCategory = request.transactionCategory()==null ?
+                transaction.getTransactionCategory() : request.transactionCategory();
+        transactionCategoryValidator.validate(transactionType, transactionCategory);
         transactionMapper.update(transaction, request);
         return transactionMapper.from(transaction);
     }

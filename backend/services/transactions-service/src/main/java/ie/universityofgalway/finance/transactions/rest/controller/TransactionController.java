@@ -1,13 +1,13 @@
-package ie.universityofgalway.finance.transactions.api.web;
+package ie.universityofgalway.finance.transactions.rest.controller;
 
-import ie.universityofgalway.finance.transactions.api.web.dto.CreateTransactionRequest;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionPageResponseDto;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionResponseDto;
-import ie.universityofgalway.finance.transactions.api.web.dto.UpdateTransactionRequest;
-import ie.universityofgalway.finance.transactions.application.service.TransactionHistoryQuery;
-import ie.universityofgalway.finance.transactions.application.service.TransactionService;
-import ie.universityofgalway.finance.transactions.domain.TransactionCategory;
-import ie.universityofgalway.finance.transactions.domain.TransactionType;
+import ie.universityofgalway.finance.transactions.rest.dto.CreateTransactionRequest;
+import ie.universityofgalway.finance.transactions.rest.dto.TransactionPageResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.TransactionResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.UpdateTransactionRequest;
+import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
+import ie.universityofgalway.finance.transactions.entity.TransactionType;
+import ie.universityofgalway.finance.transactions.service.TransactionHistoryQuery;
+import ie.universityofgalway.finance.transactions.service.TransactionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

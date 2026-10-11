@@ -28,17 +28,20 @@ backend/
             └── resources/application.yml
 ```
 
-Use clean architecture inside each service:
+Services may organize their internal packages differently. Transactions uses a layered layout:
 
 ```text
-<service>/
-├── api/              # controllers and request/response DTOs
-├── application/      # use cases and orchestration
-├── domain/           # models and interfaces; no Spring/JPA annotations
-└── infrastructure/   # repositories, HTTP clients, cache implementations
+transactions/
+├── rest/          # HTTP controller
+├── dto/           # request and response types
+├── service/       # business operations and history query
+├── entity/        # JPA entity and transaction enums
+├── repository/    # Spring Data repository and filters
+├── mapper/        # MapStruct mappings
+└── exception/     # exceptions and HTTP error handler
 ```
 
-Dependencies point inward: `api → application → domain`. `infrastructure` implements interfaces defined in `domain`.
+The [Clean Architecture diagram](clean-architecture.md) describes the target responsibilities across services; it does not prescribe Java package names.
 
 ## Rules
 

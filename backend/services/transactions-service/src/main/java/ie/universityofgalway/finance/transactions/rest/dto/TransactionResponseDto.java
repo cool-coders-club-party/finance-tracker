@@ -1,7 +1,7 @@
-package ie.universityofgalway.finance.transactions.api.web.dto;
+package ie.universityofgalway.finance.transactions.rest.dto;
 
-import ie.universityofgalway.finance.transactions.domain.TransactionCategory;
-import ie.universityofgalway.finance.transactions.domain.TransactionType;
+import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
+import ie.universityofgalway.finance.transactions.entity.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

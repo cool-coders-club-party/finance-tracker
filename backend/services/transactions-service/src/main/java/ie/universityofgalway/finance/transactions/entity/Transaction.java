@@ -1,4 +1,4 @@
-package ie.universityofgalway.finance.transactions.domain;
+package ie.universityofgalway.finance.transactions.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

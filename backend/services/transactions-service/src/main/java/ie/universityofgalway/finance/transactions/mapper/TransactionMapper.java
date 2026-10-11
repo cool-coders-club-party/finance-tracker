@@ -1,10 +1,10 @@
-package ie.universityofgalway.finance.transactions.api.web.mapper;
+package ie.universityofgalway.finance.transactions.mapper;
 
-import ie.universityofgalway.finance.transactions.api.web.dto.CreateTransactionRequest;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionPageResponseDto;
-import ie.universityofgalway.finance.transactions.api.web.dto.TransactionResponseDto;
-import ie.universityofgalway.finance.transactions.api.web.dto.UpdateTransactionRequest;
-import ie.universityofgalway.finance.transactions.domain.Transaction;
+import ie.universityofgalway.finance.transactions.rest.dto.CreateTransactionRequest;
+import ie.universityofgalway.finance.transactions.rest.dto.TransactionPageResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.TransactionResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.UpdateTransactionRequest;
+import ie.universityofgalway.finance.transactions.entity.Transaction;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
