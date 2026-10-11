@@ -1,4 +1,5 @@
 package ie.universityofgalway.finance.portfolio.repository;
+
 import ie.universityofgalway.finance.portfolio.model.Holding;
 import ie.universityofgalway.finance.portfolio.model.Portfolio;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,30 @@ class HoldingRepositoryTest {
         Optional<Holding> found = holdingRepository.findByPortfolioIdAndTicker(portfolio.getId(), "MSFT");
 
         assertThat(found).isEmpty();
+    }
+
+    @Test
+    void findByPortfolioIdReturnsOnlyThatPortfoliosHoldings() {
+        Portfolio mine = portfolioRepository.save(new Portfolio("user-1", "Mine"));
+        Portfolio theirs = portfolioRepository.save(new Portfolio("user-2", "Theirs"));
+
+        holdingRepository.save(new Holding(mine, "AAPL"));
+        holdingRepository.save(new Holding(mine, "MSFT"));
+        holdingRepository.save(new Holding(theirs, "AAPL"));
+
+        assertThat(holdingRepository.findByPortfolioId(mine.getId()))
+                .extracting(Holding::getTicker)
+                .containsExactlyInAnyOrder("AAPL", "MSFT");
+        assertThat(holdingRepository.findByPortfolioId(theirs.getId()))
+                .extracting(Holding::getTicker)
+                .containsExactly("AAPL");
+    }
+
+    @Test
+    void findByPortfolioIdReturnsEmptyListWhenPortfolioHasNoHoldings() {
+        Portfolio empty = portfolioRepository.save(new Portfolio("user-1", "Empty"));
+
+        assertThat(holdingRepository.findByPortfolioId(empty.getId())).isEmpty();
     }
 
     @Test

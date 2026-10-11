@@ -3,7 +3,7 @@ package ie.universityofgalway.finance.portfolio.model;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
-// portfolio contains a users' holdings
+
 @Entity
 @Table(name = "portfolios")
 public class Portfolio {

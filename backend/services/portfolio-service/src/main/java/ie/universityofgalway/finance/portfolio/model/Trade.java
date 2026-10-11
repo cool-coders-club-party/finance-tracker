@@ -3,7 +3,7 @@ package ie.universityofgalway.finance.portfolio.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-//Trade is the transaction history of holdings
+
 @Entity
 @Table(name = "trades")
 public class Trade {
