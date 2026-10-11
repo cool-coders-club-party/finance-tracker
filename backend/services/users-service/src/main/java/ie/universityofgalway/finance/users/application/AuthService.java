@@ -11,9 +11,11 @@ import java.util.UUID;
 @Service
 public class AuthService {
     private final UserRepository users;
+    private final PasswordHasher passwordHasher;
 
-    public AuthService(UserRepository users){
+    public AuthService(UserRepository users, PasswordHasher passwordHasher){
         this.users = users;
+        this.passwordHasher = passwordHasher;
     }
 
     /**
@@ -30,6 +32,7 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException(normalisedEmail);
         }
 
-        return users.save(new User(UUID.randomUUID(), normalisedEmail));
+        String hash = passwordHasher.hash(password);
+        return users.save(new User(UUID.randomUUID(), normalisedEmail, hash));
     }
 }

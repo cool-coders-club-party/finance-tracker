@@ -51,7 +51,7 @@ class AuthControllerTest {
      */
     @BeforeEach
     void stubService(){
-        when(authService.register(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0)));
+        when(authService.register(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
     }
 
     @Test

@@ -4,9 +4,11 @@ import ie.universityofgalway.finance.users.domain.User;
 import ie.universityofgalway.finance.users.domain.UserRepository;
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 
+import io.jsonwebtoken.security.Password;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -20,11 +22,14 @@ class AuthServiceTest {
 
     private UserRepository users;
     private AuthService service;
+    private PasswordHasher hasher;
 
     @BeforeEach
     void setUp() {
         users = mock(UserRepository.class);
-        service = new AuthService(users);
+        hasher = mock(PasswordHasher.class);
+        when(hasher.hash(anyString())).thenReturn("hashed");
+        service = new AuthService(users, hasher);
     }
 
     @Test
