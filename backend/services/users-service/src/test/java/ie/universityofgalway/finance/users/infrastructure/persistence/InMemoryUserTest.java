@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,5 +37,18 @@ class InMemoryUserRepositoryTest {
         User user = new User(UUID.randomUUID(), "test@example.com", "hash");
 
         assertEquals(user, repository.save(user));
+    }
+
+    @Test
+    void findByEmailReturnsSavedUser() {
+        User user = new User(UUID.randomUUID(), "test@example.com", "hash");
+        repository.save(user);
+
+        assertThat(repository.findByEmail("test@example.com")).contains(user);
+    }
+
+    @Test
+    void findByEmailReturnsEmptyForUnknownEmail() {
+        assertThat(repository.findByEmail("nobody@example.com")).isEmpty();
     }
 }
