@@ -1,8 +1,8 @@
-package ie.universityofgalway.finance.transactions.infrastructure.repository;
+package ie.universityofgalway.finance.transactions.repository;
 
-import ie.universityofgalway.finance.transactions.domain.Transaction;
-import ie.universityofgalway.finance.transactions.domain.TransactionCategory;
-import ie.universityofgalway.finance.transactions.domain.TransactionType;
+import ie.universityofgalway.finance.transactions.entity.Transaction;
+import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
+import ie.universityofgalway.finance.transactions.entity.TransactionType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
