@@ -1,5 +1,6 @@
 package ie.universityofgalway.finance.users.api;
 
+import ie.universityofgalway.finance.users.api.dto.LoginRequest;
 import ie.universityofgalway.finance.users.api.dto.RegisterRequest; // pull in DTO
 import ie.universityofgalway.finance.users.domain.User;
 import ie.universityofgalway.finance.users.application.AuthService;
@@ -61,5 +62,11 @@ public class AuthController {
     public ResponseEntity<Map<String,String>> register(@Valid @RequestBody RegisterRequest request){
         User user = authService.register(request.email(), request.password());
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", user.id().toString(), "email", user.email()));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request){
+        User user = authService.login(request.email(), request.password());
+        return ResponseEntity.ok(Map.of("id", user.id().toString(), "email", user.email()));
     }
 }
