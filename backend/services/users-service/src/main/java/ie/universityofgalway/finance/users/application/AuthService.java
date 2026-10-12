@@ -1,11 +1,13 @@
 package ie.universityofgalway.finance.users.application;
 
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
+import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.User;
 import ie.universityofgalway.finance.users.domain.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -37,5 +39,29 @@ public class AuthService {
         // hash password
         String hash = passwordHasher.hash(password);
         return users.save(new User(UUID.randomUUID(), normalisedEmail, hash));
+    }
+
+    /**
+     * Checks emails against the user repository.
+     * Hashes given passwords and checks against known hashes
+     * @param email given email
+     * @param password given password
+     * @return user object
+     */
+    public User login(String email, String password){
+        String normalisedEmail = email.trim().toLowerCase();
+
+
+        Optional<User> searchResult = users.findByEmail(normalisedEmail);
+        if (searchResult.isEmpty()){
+            throw new InvalidCredentialsException();
+        }
+
+        User user = searchResult.get();
+
+        if(!passwordHasher.matches(password, user.passwordHash())){
+            throw new InvalidCredentialsException();
+        }
+        return user;
     }
 }
