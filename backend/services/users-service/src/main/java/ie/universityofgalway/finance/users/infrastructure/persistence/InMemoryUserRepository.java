@@ -5,6 +5,7 @@ import ie.universityofgalway.finance.users.domain.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -30,5 +31,11 @@ public class InMemoryUserRepository implements UserRepository{
     @Override
     public boolean existsByEmail(String email){
         return usersByEmail.containsKey(email);
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email){
+        // returns a User if one is found, returns an empty Optional if not
+        return Optional.ofNullable(usersByEmail.get(email));
     }
 }
