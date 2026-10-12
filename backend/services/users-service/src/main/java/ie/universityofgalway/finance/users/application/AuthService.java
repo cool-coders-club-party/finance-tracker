@@ -11,25 +11,31 @@ import java.util.UUID;
 @Service
 public class AuthService {
     private final UserRepository users;
+    private final PasswordHasher passwordHasher;
 
-    public AuthService(UserRepository users){
+    public AuthService(UserRepository users, PasswordHasher passwordHasher){
         this.users = users;
+        this.passwordHasher = passwordHasher;
     }
 
     /**
      * Creates a new user account
      * @param email email used in registration. Trailing spaces and case are ignored
      * @param password plaintext password (will be hashed later)
-     * @return newly created user object
+     * @return newly created User object
      * @throws EmailAlreadyRegisteredException if the email has been already taken
      */
     public User register(String email, String password){
+        // normalise email given address
         String normalisedEmail = email.trim().toLowerCase();
 
+        // check if the email is already registered to an account
         if (users.existsByEmail(normalisedEmail)){
             throw new EmailAlreadyRegisteredException(normalisedEmail);
         }
 
-        return users.save(new User(UUID.randomUUID(), normalisedEmail));
+        // hash password
+        String hash = passwordHasher.hash(password);
+        return users.save(new User(UUID.randomUUID(), normalisedEmail, hash));
     }
 }

@@ -21,19 +21,19 @@ class InMemoryUserRepositoryTest {
 
     @Test
     void existsByEmailIsFalseWhenNothingHasBeenSaved() {
-        assertFalse(repository.existsByEmail("sam@example.com"));
+        assertFalse(repository.existsByEmail("test@example.com"));
     }
 
     @Test
     void existsByEmailIsTrueAfterSaving() {
-        repository.save(new User(UUID.randomUUID(), "sam@example.com"));
+        repository.save(new User(UUID.randomUUID(), "test@example.com", "hash"));
 
-        assertTrue(repository.existsByEmail("sam@example.com"));
+        assertTrue(repository.existsByEmail("test@example.com"));
     }
 
     @Test
     void saveReturnsTheUserItWasGiven() {
-        User user = new User(UUID.randomUUID(), "sam@example.com");
+        User user = new User(UUID.randomUUID(), "test@example.com", "hash");
 
         assertEquals(user, repository.save(user));
     }
