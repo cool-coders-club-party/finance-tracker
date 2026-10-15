@@ -68,7 +68,8 @@ public class CachingMarketDataProvider implements MarketDataProvider {
         } catch (RestClientException exception) {
             //Returns the older quote when the provider is unavailable.
             if (cachedEntry != null) {
-                return Optional.of(cachedEntry.quote());
+                //Marks the cached quote as stale before returning the fallback.
+                return Optional.of(cachedEntry.quote().asStale());
             }
 
             //Rethrows the error when no cached quote can be used.

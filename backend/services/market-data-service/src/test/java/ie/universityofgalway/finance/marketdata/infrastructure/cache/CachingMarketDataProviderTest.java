@@ -14,6 +14,8 @@ import java.util.Optional;
 import org.springframework.web.client.RestClientException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -198,10 +200,28 @@ class CachingMarketDataProviderTest {
                 firstResult
         );
 
-        //Checks that the stale quote was returned as a fallback.
+        //Checks that the fallback keeps the original market data.
         assertEquals(
-                Optional.of(cachedQuote),
-                fallbackResult
+                cachedQuote.symbol(),
+                fallbackResult.orElseThrow().symbol()
+        );
+        assertEquals(
+                cachedQuote.price(),
+                fallbackResult.orElseThrow().price()
+        );
+        assertEquals(
+                cachedQuote.asOf(),
+                fallbackResult.orElseThrow().asOf()
+        );
+
+        //Checks that the original live quote is marked as fresh.
+        assertFalse(
+                firstResult.orElseThrow().stale()
+        );
+
+        //Checks that the fallback quote is marked as stale.
+        assertTrue(
+                fallbackResult.orElseThrow().stale()
         );
 
         //Checks that the cache attempted to refresh the expired quote.
