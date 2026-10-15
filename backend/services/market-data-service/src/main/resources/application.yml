@@ -12,6 +12,9 @@ spring:
       ddl-auto: update
 server:
   port: 8084
+market-data:
+  cache:
+    freshness: 15m
 management:
   endpoints:
     web:

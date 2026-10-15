@@ -56,11 +56,29 @@ public class QuoteControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.symbol").value("AAPL"))
                 .andExpect(jsonPath("$.price").value(192.45))
-                .andExpect(jsonPath("$.asOf").value(timestamp.toString()));
+                .andExpect(jsonPath("$.asOf").value(timestamp.toString()))
+                .andExpect(jsonPath("$.stale").value(false));
 
         //confirm that the controller passed the path variable to the service
         verify(quoteService).getQuote("AAPL");
 
+    }
+
+    @Test
+    void getQuoteMarksFallbackPriceAsStale() throws Exception {
+        //Creates a cached fallback with its original price and timestamp.
+        Instant timestamp = Instant.parse("2026-09-30T10:00:00Z");
+        Quote staleQuote = new Quote(
+                "AAPL", new BigDecimal("192.45"), timestamp, true
+        );
+        when(quoteService.getQuote("AAPL"))
+                .thenReturn(Optional.of(staleQuote));
+
+        //Checks that clients can recognise an older fallback price.
+        mockMvc.perform(get("/api/quotes/{symbol}", "AAPL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stale").value(true))
+                .andExpect(jsonPath("$.asOf").value(timestamp.toString()));
     }
 
     @Test

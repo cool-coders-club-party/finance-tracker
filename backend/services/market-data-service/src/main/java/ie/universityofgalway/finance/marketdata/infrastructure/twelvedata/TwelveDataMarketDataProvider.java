@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 
-@Component
+@Component("liveMarketDataProvider")
 @Profile("local")
 public class TwelveDataMarketDataProvider implements MarketDataProvider {
 
