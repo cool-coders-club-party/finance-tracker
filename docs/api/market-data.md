@@ -28,13 +28,15 @@ GET /api/quotes/aapl
 {
   "symbol": "AAPL",
   "price": 192.45,
-  "asOf": "2026-10-01T12:00:00Z"
+  "asOf": "2026-10-01T12:00:00Z",
+  "stale": false
 }
 ```
 
 - `symbol` — normalised ticker symbol.
 - `price` — latest available share price.
 - `asOf` — time the price was obtained.
+- `stale` — `false` for a live or fresh cached quote; `true` when the provider fails and an older cached quote is returned. Keep `asOf` visible so users can judge the price's age.
 
 ### Unknown symbol
 
@@ -52,7 +54,7 @@ GET /api/quotes/aapl
 
 ## Current implementation
 
-The service currently uses a stub provider with fixed prices for `AAPL`, `MSFT` and `TSLA`. These are development values, not live prices.
+The default `stub` profile uses fixed development prices for `AAPL`, `MSFT` and `TSLA`. The `local` profile uses Twelve Data for live prices. Successful quotes are cached per symbol for 15 minutes (configurable with `market-data.cache.freshness`). If the provider fails after a quote has expired, the latest cached quote is returned with `stale: true`.
 
 ## Service responsibilities
 
@@ -68,10 +70,7 @@ market value = quantity × quote price
 
 The following are not implemented yet:
 
-- connection to a live market-data provider;
 - quote currency;
-- price caching;
-- a `stale` indicator for cached prices;
 - `503 Service Unavailable` when neither live nor cached data is available.
 
-Contract changes must be agreed with affected team members before implementation.nt services are updated.
+Contract changes must be agreed with affected team members before implementation.

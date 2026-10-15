@@ -40,7 +40,9 @@ public class QuoteController {
 
         //Known ticker: copy the Quote into the public response shape
         Quote quote = result.get();
-        QuoteResponse response = new QuoteResponse(quote.symbol(), quote.price(), quote.asOf());
+        QuoteResponse response = new QuoteResponse(
+                quote.symbol(), quote.price(), quote.asOf(), quote.stale()
+        );
 
         //reply 200 OK with the JSON
         return ResponseEntity.ok(response);
