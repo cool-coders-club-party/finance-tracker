@@ -3,6 +3,8 @@ package ie.universityofgalway.finance.marketdata.infrastructure.cache;
 import ie.universityofgalway.finance.marketdata.domain.MarketDataProvider;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
 
+import org.springframework.web.client.RestClientException;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -46,19 +48,32 @@ public class CachingMarketDataProvider implements MarketDataProvider {
             return Optional.of(cachedEntry.quote());
         }
 
-        //Requests a new quote when the cache is missing or expired.
-        Optional<Quote> liveResult =
-                liveProvider.findQuote(symbol);
+        try {
+            //Requests a new quote from the external provider.
+            Optional<Quote> liveResult =
+                    liveProvider.findQuote(symbol);
 
-        //Stores a successful result with the current cache time.
-        liveResult.ifPresent(quote ->
-                cache.put(
-                        symbol,
-                        new CacheEntry(quote, clock.instant())
-                )
-        );
+            //Stores a successful result with the current cache time.
+            liveResult.ifPresent(quote ->
+                    cache.put(
+                            symbol,
+                            new CacheEntry(
+                                    quote,
+                                    clock.instant()
+                            )
+                    )
+            );
 
-        return liveResult;
+            return liveResult;
+        } catch (RestClientException exception) {
+            //Returns the older quote when the provider is unavailable.
+            if (cachedEntry != null) {
+                return Optional.of(cachedEntry.quote());
+            }
+
+            //Rethrows the error when no cached quote can be used.
+            throw exception;
+        }
     }
 
     private boolean isFresh(CacheEntry entry) {

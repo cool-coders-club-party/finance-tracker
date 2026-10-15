@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
+import org.springframework.web.client.RestClientException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -133,6 +135,76 @@ class CachingMarketDataProviderTest {
         );
 
         //Checks that the live provider was called for both requests.
+        verify(liveProvider, times(2))
+                .findQuote("AAPL");
+    }
+
+    @Test
+    void returnsStaleCachedQuoteWhenProviderFails() {
+        //Defines when the quote first enters the cache.
+        Instant initialTime =
+                Instant.parse("2026-10-15T12:00:00Z");
+
+        //Moves time beyond the cache freshness period.
+        Instant expiredTime =
+                initialTime.plus(Duration.ofMinutes(16));
+
+        //Returns the initial time and then the expired time.
+        Clock clock = mock(Clock.class);
+        when(clock.instant())
+                .thenReturn(
+                        initialTime,
+                        expiredTime
+                );
+
+        //Creates the quote that will become stale.
+        Quote cachedQuote = new Quote(
+                "AAPL",
+                new BigDecimal("192.45"),
+                initialTime
+        );
+
+        //Returns a quote first and simulates provider failure second.
+        MarketDataProvider liveProvider =
+                mock(MarketDataProvider.class);
+
+        when(liveProvider.findQuote("AAPL"))
+                .thenReturn(Optional.of(cachedQuote))
+                .thenThrow(
+                        new RestClientException(
+                                "Provider unavailable"
+                        )
+                );
+
+        //Creates a cache with a fifteen-minute freshness period.
+        CachingMarketDataProvider cachingProvider =
+                new CachingMarketDataProvider(
+                        liveProvider,
+                        Duration.ofMinutes(15),
+                        clock
+                );
+
+        //Stores the successful provider result.
+        Optional<Quote> firstResult =
+                cachingProvider.findQuote("AAPL");
+
+        //Requests the quote after expiry while the provider is unavailable.
+        Optional<Quote> fallbackResult =
+                cachingProvider.findQuote("AAPL");
+
+        //Checks that the initial request returned the quote.
+        assertEquals(
+                Optional.of(cachedQuote),
+                firstResult
+        );
+
+        //Checks that the stale quote was returned as a fallback.
+        assertEquals(
+                Optional.of(cachedQuote),
+                fallbackResult
+        );
+
+        //Checks that the cache attempted to refresh the expired quote.
         verify(liveProvider, times(2))
                 .findQuote("AAPL");
     }
