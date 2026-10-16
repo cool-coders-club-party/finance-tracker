@@ -1,9 +1,6 @@
 package ie.universityofgalway.finance.transactions.rest.controller;
 
-import ie.universityofgalway.finance.transactions.rest.dto.CreateTransactionRequest;
-import ie.universityofgalway.finance.transactions.rest.dto.TransactionPageResponseDto;
-import ie.universityofgalway.finance.transactions.rest.dto.TransactionResponseDto;
-import ie.universityofgalway.finance.transactions.rest.dto.UpdateTransactionRequest;
+import ie.universityofgalway.finance.transactions.rest.dto.*;
 import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
 import ie.universityofgalway.finance.transactions.entity.TransactionType;
 import ie.universityofgalway.finance.transactions.service.TransactionHistoryQuery;
@@ -17,16 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
@@ -65,9 +56,27 @@ public class TransactionController {
     }
 
     @PatchMapping("/{transactionId}")
-    public ResponseEntity<TransactionResponseDto> update(
+    public ResponseEntity<TransactionResponseDto> updateTransaction(
             @PathVariable @NotNull @Positive Long transactionId,
             @Valid @RequestBody UpdateTransactionRequest request) {
         return ResponseEntity.ok(transactionService.updateTransaction(transactionId, request));
     }
+
+    @DeleteMapping("/{transactionId}")
+    public ResponseEntity<Void> deleteTransaction(
+            @PathVariable @NotNull @Positive Long transactionId,
+            @RequestParam(defaultValue = "false") boolean permanent
+    ) {
+        if (permanent) transactionService.hardDelete(transactionId);
+        else transactionService.softDelete(transactionId);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/metadata")
+    public ResponseEntity<TransactionMetadataResponseDto> getMetadata(){
+        return ResponseEntity.ok(transactionService.findTransactionMetadata());
+    }
+
+
 }

@@ -1,0 +1,2 @@
+ALTER TABLE transactions
+    ADD COLUMN active BOOLEAN NOT NULL DEFAULT true;
