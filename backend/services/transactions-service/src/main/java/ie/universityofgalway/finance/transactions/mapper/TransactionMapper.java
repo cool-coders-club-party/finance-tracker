@@ -27,6 +27,7 @@ public abstract class TransactionMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "active", ignore = true)
     public abstract Transaction to(CreateTransactionRequest request);
 
     public abstract List<Transaction> to(List<CreateTransactionRequest> requests);
@@ -39,6 +40,7 @@ public abstract class TransactionMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "active", ignore = true)
     public abstract void update(@MappingTarget Transaction transaction, UpdateTransactionRequest request);
 
     public TransactionPageResponseDto from(Page<Transaction> transactions) {

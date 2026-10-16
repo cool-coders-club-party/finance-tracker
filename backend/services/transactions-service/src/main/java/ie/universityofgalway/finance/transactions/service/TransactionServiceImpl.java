@@ -2,10 +2,7 @@ package ie.universityofgalway.finance.transactions.service;
 
 import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
 import ie.universityofgalway.finance.transactions.entity.TransactionType;
-import ie.universityofgalway.finance.transactions.rest.dto.CreateTransactionRequest;
-import ie.universityofgalway.finance.transactions.rest.dto.TransactionPageResponseDto;
-import ie.universityofgalway.finance.transactions.rest.dto.TransactionResponseDto;
-import ie.universityofgalway.finance.transactions.rest.dto.UpdateTransactionRequest;
+import ie.universityofgalway.finance.transactions.rest.dto.*;
 import ie.universityofgalway.finance.transactions.entity.Transaction;
 import ie.universityofgalway.finance.transactions.exception.InvalidTransactionHistoryQueryException;
 import ie.universityofgalway.finance.transactions.exception.TransactionNotFoundException;
@@ -19,6 +16,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -32,7 +31,7 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public TransactionResponseDto createTransaction(CreateTransactionRequest request) {
-        transactionCategoryValidator.validate(request.transactionType(),request.transactionCategory());
+        transactionCategoryValidator.validate(request.transactionType(), request.transactionCategory());
         Transaction transaction = transactionMapper.to(request);
         return transactionMapper.from(transactionRepository.save(transaction));
     }
@@ -68,21 +67,54 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional(readOnly = true)
     public TransactionResponseDto findTransactionById(Long transactionId) {
-        return transactionMapper.from(transactionRepository.findById(transactionId)
+        return transactionMapper.from(transactionRepository.findActiveById(transactionId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId)));
     }
 
     @Override
     @Transactional
     public TransactionResponseDto updateTransaction(Long transactionId, UpdateTransactionRequest request) {
-        Transaction transaction = transactionRepository.findById(transactionId)
+        Transaction transaction = transactionRepository.findActiveById(transactionId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId));
-        TransactionType transactionType = request.transactionType()==null ?
+
+        TransactionType transactionType = request.transactionType() == null ?
                 transaction.getTransactionType() : request.transactionType();
-        TransactionCategory transactionCategory = request.transactionCategory()==null ?
+        TransactionCategory transactionCategory = request.transactionCategory() == null ?
                 transaction.getTransactionCategory() : request.transactionCategory();
+
         transactionCategoryValidator.validate(transactionType, transactionCategory);
         transactionMapper.update(transaction, request);
         return transactionMapper.from(transaction);
     }
+
+    @Override
+    @Transactional
+    public void softDelete(Long transactionId) {
+        Integer deletedTransactions = transactionRepository.softDelete(transactionId);
+        if (deletedTransactions == 0) throw new TransactionNotFoundException(transactionId);
+    }
+
+    @Override
+    @Transactional
+    public void hardDelete(Long transactionId) {
+        Integer deletedTransactions = transactionRepository.hardDelete(transactionId);
+        if (deletedTransactions == 0) throw new TransactionNotFoundException(transactionId);
+    }
+
+    @Override
+    public TransactionMetadataResponseDto findTransactionMetadata() {
+        TransactionType[] types = TransactionType.values();
+        TransactionCategory[] categories = TransactionCategory.values();
+        List<TransactionCategoryMetadataDto> categoriesMetadataDto = Arrays.stream(categories)
+                .map(category -> new TransactionCategoryMetadataDto(
+                        category,
+                        Arrays.stream(types)
+                                .filter(category::allows)
+                                .toList()
+                ))
+                .toList();
+        return new TransactionMetadataResponseDto(Arrays.asList(types), categoriesMetadataDto);
+    }
+
+
 }

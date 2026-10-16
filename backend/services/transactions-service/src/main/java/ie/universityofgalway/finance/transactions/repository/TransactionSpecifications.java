@@ -37,6 +37,8 @@ public final class TransactionSpecifications {
                         root.get("occurredAt"), to.plusDays(1).atStartOfDay()));
             }
 
+            predicates.add(criteriaBuilder.isTrue(root.get("active")));
+
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
     }

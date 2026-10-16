@@ -1,8 +1,10 @@
 package ie.universityofgalway.finance.transactions.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -31,5 +33,10 @@ public class Transaction {
 
     @CreationTimestamp
     LocalDateTime createdAt;
+
+    @NotNull
+    @ColumnDefault("true")
+    @Column(name = "active", nullable = false)
+    Boolean active = true;
 
 }
