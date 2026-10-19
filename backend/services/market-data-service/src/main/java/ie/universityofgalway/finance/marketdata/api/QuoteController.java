@@ -2,6 +2,7 @@ package ie.universityofgalway.finance.marketdata.api;
 
 import ie.universityofgalway.finance.marketdata.application.QuoteService;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
+import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.Optional;
 
@@ -47,5 +49,23 @@ public class QuoteController {
         //reply 200 OK with the JSON
         return ResponseEntity.ok(response);
     }
+
+    //converts a temporary market-data failure into a clear HTTP 503 response
+    @ExceptionHandler(MarketDataUnavailableException.class)
+    public ResponseEntity<ProblemDetail> handleMarketDataUnavailable(
+            MarketDataUnavailableException exception
+    ) {
+        //create a standard error body using the safe domain-level message.
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(problem);
+    }
+
+
 
 }

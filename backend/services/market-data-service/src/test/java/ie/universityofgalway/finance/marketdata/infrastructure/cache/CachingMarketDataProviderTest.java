@@ -12,7 +12,10 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 
 import org.springframework.web.client.RestClientException;
+import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
 
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -227,6 +230,36 @@ class CachingMarketDataProviderTest {
         //Checks that the cache attempted to refresh the expired quote.
         verify(liveProvider, times(2))
                 .findQuote("AAPL");
+    }
+
+    @Test
+    void throwsMarketDataUnavailableWhenProviderFailsWithoutCachedQuote() {
+        //Arrange: create the original error returned by the external provider.
+        RestClientException providerFailure =
+                new RestClientException("Provider unavailable");
+
+        MarketDataProvider liveProvider =
+                mock(MarketDataProvider.class);
+
+        //Simulate Twelve Data failing on the first request.
+        when(liveProvider.findQuote("AAPL"))
+                .thenThrow(providerFailure);
+
+        CachingMarketDataProvider cachingProvider =
+                new CachingMarketDataProvider(
+                        liveProvider,
+                        Duration.ofMinutes(15),
+                        Clock.systemUTC()
+                );
+
+        //Act: capture the domain-level exception produced by our cache.
+        MarketDataUnavailableException exception = assertThrows(
+                MarketDataUnavailableException.class,
+                () -> cachingProvider.findQuote("AAPL")
+        );
+
+        //Assert: preserve the original provider error for debugging.
+        assertSame(providerFailure, exception.getCause());
     }
 
 }
