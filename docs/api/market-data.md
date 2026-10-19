@@ -52,6 +52,18 @@ GET /api/quotes/aapl
 }
 ```
 
+### Provider unavailable — `503 Service Unavailable`
+
+Returned when the external provider fails and no cached quote is available.
+
+```json
+{
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "Market data is temporarily unavailable"
+}
+```
+
 ## Current implementation
 
 The default `stub` profile uses fixed development prices for `AAPL`, `MSFT` and `TSLA`. The `local` profile uses Twelve Data for live prices. Successful quotes are cached per symbol for 15 minutes (configurable with `market-data.cache.freshness`). If the provider fails after a quote has expired, the latest cached quote is returned with `stale: true`.
@@ -71,6 +83,5 @@ market value = quantity × quote price
 The following are not implemented yet:
 
 - quote currency;
-- `503 Service Unavailable` when neither live nor cached data is available.
 
 Contract changes must be agreed with affected team members before implementation.
