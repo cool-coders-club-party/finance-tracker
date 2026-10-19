@@ -2,6 +2,7 @@ package ie.universityofgalway.finance.marketdata.infrastructure.cache;
 
 import ie.universityofgalway.finance.marketdata.domain.MarketDataProvider;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
+import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
 
 import org.springframework.web.client.RestClientException;
 
@@ -72,8 +73,8 @@ public class CachingMarketDataProvider implements MarketDataProvider {
                 return Optional.of(cachedEntry.quote().asStale());
             }
 
-            //Rethrows the error when no cached quote can be used.
-            throw exception;
+            //Convert the provider error into a meaningful domain-level failure.
+            throw new MarketDataUnavailableException(exception);
         }
     }
 

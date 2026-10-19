@@ -1,6 +1,7 @@
 package ie.universityofgalway.finance.marketdata.api;
 
 import ie.universityofgalway.finance.marketdata.application.QuoteService;
+import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,30 @@ public class QuoteControllerTest {
 
         //confirm that the controller passed the symbol to the service
         verify(quoteService).getQuote("NOPE");
+    }
+
+    @Test
+    void getQuoteReturnsServiceUnavailableWhenProviderFails() throws Exception {
+        //Arrange: simulate a provider failure when no cached quote is available.
+        MarketDataUnavailableException exception =
+                new MarketDataUnavailableException(
+                        new RuntimeException("Provider failed")
+                );
+
+        when(quoteService.getQuote("AAPL"))
+                .thenThrow(exception);
+
+        //Act and assert: the API should return a clear temporary failure response.
+        mockMvc.perform(get("/api/quotes/{symbol}", "AAPL"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.title")
+                        .value("Service Unavailable"))
+                .andExpect(jsonPath("$.detail")
+                        .value("Market data is temporarily unavailable"));
+
+        //Confirm that the requested symbol reached the service.
+        verify(quoteService).getQuote("AAPL");
     }
 
 }
