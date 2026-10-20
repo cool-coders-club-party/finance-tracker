@@ -1,0 +1,26 @@
+networks:
+  finance-tracker:
+    driver: bridge
+
+volumes:
+  transaction-db-data:
+    driver: local
+
+
+services:
+  transaction-postgres:
+    image: 'postgres:17.5-alpine'
+    container_name: transaction-postgres
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: transactions
+    volumes:
+      - transaction-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -p 5432" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
