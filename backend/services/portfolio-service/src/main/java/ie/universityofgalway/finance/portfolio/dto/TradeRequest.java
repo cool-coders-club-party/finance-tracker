@@ -3,6 +3,7 @@ package ie.universityofgalway.finance.portfolio.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -17,3 +18,4 @@ public record TradeRequest(
         @Positive(message = "Quantity must be greater than zero")
         BigDecimal quantity
 ) {}
+
