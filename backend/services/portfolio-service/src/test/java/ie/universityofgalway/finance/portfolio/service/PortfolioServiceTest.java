@@ -4,9 +4,12 @@ import ie.universityofgalway.finance.portfolio.exception.InsufficientSharesExcep
 import ie.universityofgalway.finance.portfolio.exception.InvalidSymbolException;
 import ie.universityofgalway.finance.portfolio.model.Holding;
 import ie.universityofgalway.finance.portfolio.model.Portfolio;
+import ie.universityofgalway.finance.portfolio.model.Trade;
+import ie.universityofgalway.finance.portfolio.model.TradeType;
 import ie.universityofgalway.finance.portfolio.price.PriceClient;
 import ie.universityofgalway.finance.portfolio.repository.HoldingRepository;
 import ie.universityofgalway.finance.portfolio.repository.PortfolioRepository;
+import ie.universityofgalway.finance.portfolio.repository.TradeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +34,7 @@ class PortfolioServiceTest {
 
     @Mock private PortfolioRepository portfolioRepository;
     @Mock private HoldingRepository holdingRepository;
+    @Mock private TradeRepository tradeRepository;
     @Mock private PriceClient priceClient;
 
     @InjectMocks
@@ -152,5 +157,52 @@ class PortfolioServiceTest {
 
         // Holdings must never even be queried if the ownership check fails.
         verifyNoInteractions(holdingRepository);
+    }
+
+    @Test
+    void getPortfoliosReturnsOnlyTheUsersPortfolios() {
+        Portfolio second = new Portfolio("user-1", "Retirement");
+        when(portfolioRepository.findByUserId("user-1")).thenReturn(List.of(portfolio, second));
+
+        assertThat(portfolioService.getPortfolios("user-1")).containsExactly(portfolio, second);
+    }
+
+    @Test
+    void getPortfoliosReturnsEmptyListForUserWithNoPortfolios() {
+        when(portfolioRepository.findByUserId("new-user")).thenReturn(List.of());
+
+        assertThat(portfolioService.getPortfolios("new-user")).isEmpty();
+    }
+
+    @Test
+    void createPortfolioSavesWithCallersUserIdAndTrimmedName(){
+        when(portfolioRepository.save(any(Portfolio.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Portfolio result = portfolioService.createPortfolio("new-user", "Retirement");
+
+        assertThat(result.getUserId()).isEqualTo("new-user");
+        assertThat(result.getName()).isEqualTo("Retirement");
+    }
+
+    @Test
+    void getTradesReturnsTradesForOwnedPortfolio() {
+        Holding aapl = new Holding(portfolio, "AAPL");
+        Trade buy = new Trade(aapl, TradeType.BUY, new BigDecimal("10"), new BigDecimal("194.25"), Instant.now());
+        Trade sell = new Trade(aapl,  TradeType.SELL, new BigDecimal("4"), new BigDecimal("200.00"), Instant.now());
+
+        when(portfolioRepository.findByIdAndUserId(1L, "user-1")).thenReturn(Optional.of(portfolio));
+        when(tradeRepository.findAllByPortfolioId(1L)).thenReturn(List.of(buy, sell));
+
+        assertThat(portfolioService.getTrades(1L, "user-1")).containsExactly(buy, sell);
+    }
+
+    @Test
+    void getTradesThrowsNotFoundWhenPortfolioBelongsToSomeoneElse() {
+        when(portfolioRepository.findByIdAndUserId(1L, "other-user")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> portfolioService.getTrades(1L, "other-user"))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verifyNoInteractions(tradeRepository);
     }
 }
