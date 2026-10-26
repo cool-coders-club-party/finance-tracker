@@ -1,2 +1,2 @@
-ALTER TABLE transactions
+ALTER TABLE transaction.transactions
     ADD COLUMN active BOOLEAN NOT NULL DEFAULT true;

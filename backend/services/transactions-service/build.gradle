@@ -24,6 +24,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-liquibase'
     implementation 'org.mapstruct:mapstruct:1.6.3'
+    implementation 'org.hibernate.orm:hibernate-envers:7.4.13.Final'
     compileOnly 'org.projectlombok:lombok:1.18.48'
     annotationProcessor 'org.projectlombok:lombok:1.18.48'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'

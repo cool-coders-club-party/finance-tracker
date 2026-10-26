@@ -1,3 +1,3 @@
 
-ALTER TABLE transactions
+ALTER TABLE transaction.transactions
     ADD COLUMN occurred_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
