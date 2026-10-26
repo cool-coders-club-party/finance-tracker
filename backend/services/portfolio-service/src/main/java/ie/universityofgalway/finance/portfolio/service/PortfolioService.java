@@ -8,6 +8,7 @@ import ie.universityofgalway.finance.portfolio.model.TradeType;
 import ie.universityofgalway.finance.portfolio.price.PriceClient;
 import ie.universityofgalway.finance.portfolio.repository.HoldingRepository;
 import ie.universityofgalway.finance.portfolio.repository.PortfolioRepository;
+import ie.universityofgalway.finance.portfolio.repository.TradeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +23,16 @@ public class PortfolioService {
 
     private final PortfolioRepository portfolioRepository;
     private final HoldingRepository holdingRepository;
+    private final TradeRepository tradeRepository;
     private final PriceClient priceClient;
 
     public PortfolioService(PortfolioRepository portfolioRepository,
                              HoldingRepository holdingRepository,
+                             TradeRepository tradeRepository,
                              PriceClient priceClient) {
         this.portfolioRepository = portfolioRepository;
         this.holdingRepository = holdingRepository;
+        this.tradeRepository = tradeRepository;
         this.priceClient = priceClient;
     }
 
@@ -92,6 +96,13 @@ public class PortfolioService {
     }
 
     @Transactional(readOnly = true)
+    public List<Portfolio> getPortfolios(String userId) {
+        // Only ever returns portfolios owned by userId - an empty list (not an
+        // error) if they don't have any yet.
+        return portfolioRepository.findByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
     public List<Holding> getHoldings(Long portfolioId, String userId) {
         // Ownership check happens here, same as buy()/sell() - a holding list
         // can only ever be returned for a portfolio the caller actually owns.
@@ -103,11 +114,21 @@ public class PortfolioService {
         // returns if Spring's open-in-view setting happened to be on.
         return holdingRepository.findByPortfolioId(portfolioId);
     }
+    @Transactional(readOnly = true)
+    public List<Trade> getTrades(Long portfolioId, String userId) {
+        portfolioRepository.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Portfolio not found"));
+        return tradeRepository.findAllByPortfolioId(portfolioId);
+    }
+
+    @Transactional
+    public Portfolio createPortfolio(String userId, String name) {
+        return  portfolioRepository.save(new Portfolio(userId, name.trim()));
+    }
 
     private void requirePositive(BigDecimal quantity) {
         if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
     }
-
 }

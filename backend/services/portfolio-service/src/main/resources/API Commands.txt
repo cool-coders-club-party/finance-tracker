@@ -1,0 +1,20 @@
+buy to holding: 
+curl -X POST http://localhost:8083/api/portfolios/1/buy -H "Content-Type: application/json" -d "{\"ticker\": \"AAPL\", \"quantity\": 10}"
+
+sell from holding: 
+curl -X POST http://localhost:8083/api/portfolios/1/sell -H "Content-Type: application/json" -d "{\"ticker\": \"AAPL\", \"quantity\": 20}"
+
+get all holdings: 
+curl http://localhost:8083/api/portfolios/1/holdings
+
+call bad ticker: 
+curl -X POST http://localhost:8083/api/portfolios/1/buy -H "Content-Type: application/json" -d "{\"ticker\": \"ZZZZ\", \"quantity\": 10}"
+
+get all portfolios: 
+curl http://localhost:8083/api/portfolios
+
+create new portfolio: 
+curl -i -X POST http://localhost:8083/api/portfolios -H "Content-Type: application/json" -d "{\"name\": \"Retirement\"}"
+
+get all trades:
+curl http://localhost:8083/api/portfolios/1/trades
