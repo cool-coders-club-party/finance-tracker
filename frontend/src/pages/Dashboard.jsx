@@ -108,6 +108,8 @@ async function fetchQuote(symbol) {
     symbol: quote.symbol.trim().toUpperCase(),
     price,
     asOf: quote.asOf,
+    //true when the backend had to use an older cached price
+    stale: quote.stale === true,
   };
 }
 
@@ -275,6 +277,13 @@ function InvestmentPortfolioCard() {
                   <span> · as of {new Date(quoteResult.asOf).toLocaleString("en-IE", { dateStyle: "medium", timeStyle: "short" })}</span>
                 )}
               </p>
+
+              {quoteResult.stale && (
+                      <p role="status" className="text-sm text-amber-400">
+                          Cached price - live market data is temporarily unavailable
+                      </p>
+                  )}
+
             </div>
             <label className="grid gap-1.5 text-sm">
               <span>Amount invested (€)</span>
@@ -337,6 +346,14 @@ function InvestmentPortfolioCard() {
                       <span> · {new Date(holding.asOf).toLocaleString("en-IE", { dateStyle: "medium", timeStyle: "short" })}</span>
                     )}
                   </p>
+
+                  {/* Label an older price returned from the backend cache. */}
+                  {holding.stale && (
+                      <p className="text-xs text-amber-400">
+                          Cached price - live quote unavailable.
+                      </p>
+                  )}
+
                 </div>
                 <label className="grid gap-1 text-xs text-muted-foreground">
                   Amount invested (€)
