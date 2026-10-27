@@ -4,9 +4,8 @@ Router setup for three placeholder pages
 ========================================
 */
 
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import Landing from "./pages/Landing";
-import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 
@@ -14,7 +13,8 @@ const router = createBrowserRouter([
     { path: "/", element: <Landing /> },
 //     { path: "/home", element: <Home /> },
      { path: "/dashboard", element: <Dashboard /> },
-//     { path: "/transactions", element: <Transactions /> },
+    { path: "/transactions", element: <Transactions /> },
+    { path: "/transactions/:transactionId/edit", element: <Transactions /> },
 ]);
 
 export default router;

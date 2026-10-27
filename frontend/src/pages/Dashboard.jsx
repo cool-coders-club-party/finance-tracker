@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
+import DashboardShell from "@/components/DashboardShell";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Wallet, Receipt, TrendingUp, Landmark, Search, Plus, Trash2, RefreshCw, Loader2 } from "lucide-react"
@@ -449,17 +451,13 @@ function Dashboard() {
     );
 
     return (
-        <div className="dark relative isolate min-h-svh overflow-hidden">
-            <div
-                aria-hidden="true"
-                className="pointer-events-none fixed inset-0 -z-10 bg-[url('images/DashboardBG.png')] bg-cover bg-center"
-            >
-            <div className="absolute inset-0 bg-black/20" />
-        </div>
-
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 md:px-8 md:py-12">
-        <div className="p-6 space-y-6">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+        <DashboardShell>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <Link to="/transactions" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Add transaction
+              </Link>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
@@ -605,9 +603,7 @@ function Dashboard() {
               </CardContent>
             </Card>
             <InvestmentPortfolioCard />
-        </div>
-      </div>
-     </div>
+        </DashboardShell>
     );
 }
 

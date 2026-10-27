@@ -13,6 +13,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/market-data/, ""),
       },
+      "/api/v1/transactions": {
+        target: "http://localhost:8082",
+        changeOrigin: true,
+      },
     },
   },
   resolve: {
