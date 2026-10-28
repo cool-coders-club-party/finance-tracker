@@ -536,20 +536,6 @@ function Dashboard() {
         0
     );
 
-    return (
-        <DashboardShell>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <h1 className="text-3xl font-bold">Dashboard</h1>
-              <Link to="/transactions" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                Add transaction
-              </Link>
-            </div>
-
-  const totalSpent = transactions.expensesByCategory.reduce(
-    (sum, item) => sum + item.amount,
-    0
-  );
-
   return (
     <DashboardShell>
       <div className="flex flex-wrap items-center justify-between gap-4">
