@@ -1,15 +1,16 @@
 package ie.universityofgalway.finance.portfolio.service;
 
-import ie.universityofgalway.finance.portfolio.exception.InsufficientSharesException;
-import ie.universityofgalway.finance.portfolio.exception.InvalidSymbolException;
-import ie.universityofgalway.finance.portfolio.model.Holding;
-import ie.universityofgalway.finance.portfolio.model.Portfolio;
-import ie.universityofgalway.finance.portfolio.model.Trade;
-import ie.universityofgalway.finance.portfolio.model.TradeType;
-import ie.universityofgalway.finance.portfolio.price.PriceClient;
-import ie.universityofgalway.finance.portfolio.repository.HoldingRepository;
-import ie.universityofgalway.finance.portfolio.repository.PortfolioRepository;
-import ie.universityofgalway.finance.portfolio.repository.TradeRepository;
+import ie.universityofgalway.finance.portfolio.application.service.PortfolioService;
+import ie.universityofgalway.finance.portfolio.domain.exception.InsufficientSharesException;
+import ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException;
+import ie.universityofgalway.finance.portfolio.domain.model.Holding;
+import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
+import ie.universityofgalway.finance.portfolio.domain.model.Trade;
+import ie.universityofgalway.finance.portfolio.domain.model.TradeType;
+import ie.universityofgalway.finance.portfolio.application.port.PriceClient;
+import ie.universityofgalway.finance.portfolio.application.port.HoldingRepository;
+import ie.universityofgalway.finance.portfolio.application.port.PortfolioRepository;
+import ie.universityofgalway.finance.portfolio.application.port.TradeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

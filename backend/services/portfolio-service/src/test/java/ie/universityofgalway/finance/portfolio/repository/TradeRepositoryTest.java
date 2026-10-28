@@ -1,9 +1,12 @@
 package ie.universityofgalway.finance.portfolio.repository;
 
-import ie.universityofgalway.finance.portfolio.model.Holding;
-import ie.universityofgalway.finance.portfolio.model.Portfolio;
-import ie.universityofgalway.finance.portfolio.model.Trade;
-import ie.universityofgalway.finance.portfolio.model.TradeType;
+import ie.universityofgalway.finance.portfolio.application.port.HoldingRepository;
+import ie.universityofgalway.finance.portfolio.application.port.PortfolioRepository;
+import ie.universityofgalway.finance.portfolio.application.port.TradeRepository;
+import ie.universityofgalway.finance.portfolio.domain.model.Holding;
+import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
+import ie.universityofgalway.finance.portfolio.domain.model.Trade;
+import ie.universityofgalway.finance.portfolio.domain.model.TradeType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;

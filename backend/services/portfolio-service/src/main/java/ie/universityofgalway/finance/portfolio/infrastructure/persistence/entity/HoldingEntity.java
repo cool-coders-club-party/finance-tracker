@@ -1,0 +1,69 @@
+package ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity;
+
+import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
+import ie.universityofgalway.finance.portfolio.domain.model.Trade;
+import jakarta.persistence.*;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "holdings", uniqueConstraints = @UniqueConstraint(columnNames = {"portfolio_id", "ticker"}))
+public class HoldingEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "portfolio_id", nullable = false)
+    private PortfolioEntity portfolio;
+
+    @Column(nullable = false, length = 5)
+    private String ticker;
+
+    @Column(nullable = false, precision = 19, scale = 6)
+    private BigDecimal quantity = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal avgPurchasePrice = BigDecimal.ZERO;
+
+
+    protected HoldingEntity() {
+        // JPA
+    }
+
+    public HoldingEntity(PortfolioEntity portfolio, String ticker) {
+        this.portfolio = portfolio;
+        this.ticker = ticker;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public PortfolioEntity getPortfolio() {
+        return portfolio;
+    }
+
+    public String getTicker() {
+        return ticker;
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(BigDecimal quantity) {
+        this.quantity = quantity;
+    }
+
+    public BigDecimal getAvgPurchasePrice() {
+        return avgPurchasePrice;
+    }
+
+    public void setAvgPurchasePrice(BigDecimal avgPurchasePrice) {
+        this.avgPurchasePrice = avgPurchasePrice;
+    }
+}
