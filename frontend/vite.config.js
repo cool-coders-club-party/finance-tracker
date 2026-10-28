@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/market-data": {
+      "/market-data/api": {
         target: "http://localhost:8084",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/market-data/, ""),
