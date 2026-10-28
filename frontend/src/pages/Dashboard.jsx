@@ -10,7 +10,7 @@ import { Pie, PieChart, Cell, Label } from "recharts";
 import { getTransactionHistory } from "../api/transactions";
 
 const formatMoney = (amount) =>
-    new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
+  new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
 
 const DASHBOARD_USER_ID = 5;
 
@@ -33,11 +33,11 @@ const mockDashboardData = {
     cashBalancePositive: true,
 
     expensesByCategory: [
-        { key: "housing", label: "Housing", amount: 900 },
-        { key: "groceries", label: "Groceries", amount: 350 },
-        { key: "transport", label: "Transport", amount: 175 },
-        { key: "entertainment", label: "Entertainment", amount: 225 },
-        { key: "other", label: "Other", amount: 225 },
+      { key: "housing", label: "Housing", amount: 900 },
+      { key: "groceries", label: "Groceries", amount: 350 },
+      { key: "transport", label: "Transport", amount: 175 },
+      { key: "entertainment", label: "Entertainment", amount: 225 },
+      { key: "other", label: "Other", amount: 225 },
     ],
   },
   portfolio: {
@@ -158,10 +158,10 @@ function InvestmentPortfolioCard() {
       setSearchError("Enter a ticker symbol to search.");
       return;
     }
-//     if (!/^[A-Z0-9.^=$-]{1,24}$/.test(symbol)) {
-//       setSearchError("Use a ticker symbol with letters, numbers, dots, or hyphens.");
-//       return;
-//     }
+    //     if (!/^[A-Z0-9.^=$-]{1,24}$/.test(symbol)) {
+    //       setSearchError("Use a ticker symbol with letters, numbers, dots, or hyphens.");
+    //       return;
+    //     }
 
     setIsSearching(true);
     setSearchError("");
@@ -284,10 +284,10 @@ function InvestmentPortfolioCard() {
               </p>
 
               {quoteResult.stale && (
-                      <p role="status" className="text-sm text-amber-400">
-                          Cached price - live market data is temporarily unavailable
-                      </p>
-                  )}
+                <p role="status" className="text-sm text-amber-400">
+                  Cached price - live market data is temporarily unavailable
+                </p>
+              )}
 
             </div>
             <label className="grid gap-1.5 text-sm">
@@ -354,9 +354,9 @@ function InvestmentPortfolioCard() {
 
                   {/* Label an older price returned from the backend cache. */}
                   {holding.stale && (
-                      <p className="text-xs text-amber-400">
-                          Cached price - live quote unavailable.
-                      </p>
+                    <p className="text-xs text-amber-400">
+                      Cached price - live quote unavailable.
+                    </p>
                   )}
 
                 </div>
@@ -545,60 +545,88 @@ function Dashboard() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                    title="Total Income"
-                    icon={Wallet}
-                    available={transactions.available}
-                    value={transactions.totalIncome}
-                    formatter={formatMoney}
-                    change={transactions.totalIncomeChange}
-                    caption={transactions.totalIncomeCaption}
-                    positiveIsGood={transactions.totalIncomePositive}
-                />
-                <StatCard
-                    title="Total Expenses"
-                    icon={Receipt}
-                    available={transactions.available}
-                    value={transactions.totalExpenses}
-                    formatter={formatMoney}
-                    change={transactions.totalExpensesChange}
-                    caption={transactions.totalExpensesCaption}
-                    positiveIsGood={transactions.totalExpensesPositive}
-                />
-                <StatCard
-                    title="Cash Balance"
-                    icon={Landmark}
-                    available={transactions.available}
-                    value={transactions.cashBalance}
-                    formatter={formatMoney}
-                    change={transactions.cashBalanceChange}
-                    caption={transactions.cashBalanceCaption}
-                    positiveIsGood={transactions.cashBalancePositive}
-                />
-                <StatCard
-                    title="Investment Value"
-                    icon={TrendingUp}
-                    available={portfolio.available}
-                    value={portfolio.investmentValue}
-                    formatter={formatMoney}
-                    change={portfolio.investmentValueChange}
-                    caption={portfolio.investmentValueCaption}
-                    positiveIsGood={portfolio.investmentValuePositive}
-                />
-            </div>
+  const totalSpent = transactions.expensesByCategory.reduce(
+    (sum, item) => sum + item.amount,
+    0
+  );
 
-            <Card className="glass bg-card/10">
-                <CardHeader>
-                    <CardTitle>Combined Total</CardTitle>
-                </CardHeader>
-                    <CardContent className="text-4xl font-bold">
-                        {formatMoney(combinedTotal)}
-                    </CardContent>
-            </Card>
+  return (
+    <DashboardShell>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
 
-            {/* Sample Chart */}
-{/*            <Card>
+        <div className="flex flex-wrap gap-2">
+          {/* Open the dedicated quote page. */}
+          <Link
+            to="/market-data"
+            className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-foreground/5"
+          >
+            Market Data
+          </Link>
+
+          <Link
+            to="/transactions"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Add transaction
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Income"
+          icon={Wallet}
+          available={transactions.available}
+          value={transactions.totalIncome}
+          formatter={formatMoney}
+          change={transactions.totalIncomeChange}
+          caption={transactions.totalIncomeCaption}
+          positiveIsGood={transactions.totalIncomePositive}
+        />
+        <StatCard
+          title="Total Expenses"
+          icon={Receipt}
+          available={transactions.available}
+          value={transactions.totalExpenses}
+          formatter={formatMoney}
+          change={transactions.totalExpensesChange}
+          caption={transactions.totalExpensesCaption}
+          positiveIsGood={transactions.totalExpensesPositive}
+        />
+        <StatCard
+          title="Cash Balance"
+          icon={Landmark}
+          available={transactions.available}
+          value={transactions.cashBalance}
+          formatter={formatMoney}
+          change={transactions.cashBalanceChange}
+          caption={transactions.cashBalanceCaption}
+          positiveIsGood={transactions.cashBalancePositive}
+        />
+        <StatCard
+          title="Investment Value"
+          icon={TrendingUp}
+          available={portfolio.available}
+          value={portfolio.investmentValue}
+          formatter={formatMoney}
+          change={portfolio.investmentValueChange}
+          caption={portfolio.investmentValueCaption}
+          positiveIsGood={portfolio.investmentValuePositive}
+        />
+      </div>
+
+      <Card className="glass bg-card/10">
+        <CardHeader>
+          <CardTitle>Combined Total</CardTitle>
+        </CardHeader>
+        <CardContent className="text-4xl font-bold">
+          {formatMoney(combinedTotal)}
+        </CardContent>
+      </Card>
+
+      {/* Sample Chart */}
+      {/*            <Card>
               <CardHeader>
                 <CardTitle>Income vs Expenses</CardTitle>
               </CardHeader>
