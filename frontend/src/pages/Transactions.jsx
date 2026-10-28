@@ -55,7 +55,7 @@ function TransactionEditor({ transactionId }) {
     <DashboardShell>
       <main className="space-y-6 text-left">
         <nav aria-label="Transactions navigation">
-          <Link to="/dashboard" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border/60 bg-background/35 px-3 text-sm text-foreground/90 backdrop-blur-sm transition-colors hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link to="/" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border/60 bg-background/35 px-3 text-sm text-foreground/90 backdrop-blur-sm transition-colors hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft aria-hidden="true" className="size-4" />
             Back to dashboard
           </Link>

@@ -7,9 +7,12 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Wallet, Receipt, TrendingUp, Landmark, Search, Plus, Trash2, RefreshCw, Loader2 } from "lucide-react"
 import { Pie, PieChart, Cell, Label } from "recharts";
+import { getTransactionHistory } from "../api/transactions";
 
 const formatMoney = (amount) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
+
+const DASHBOARD_USER_ID = 5;
 
 const mockDashboardData = {
   transactions: {
@@ -427,23 +430,120 @@ function InvestmentPortfolioCard() {
 }
 // ====================== MARKET DATA API IMPLEMENTATION ABOVE: FORMATTING, SEARCHING, UPDATING, ETC. ======================
 function Dashboard() {
-  const { transactions, portfolio } = mockDashboardData;
-  const combinedTotal = transactions.cashBalance + portfolio.investmentValue;
+    const { transactions, portfolio } = mockDashboardData;
 
-  const palette = [
-    "var(--chart-1)",
-    "var(--chart-2)",
-    "var(--chart-3)",
-    "var(--chart-4)",
-    "var(--chart-5)",
-  ];
+    // Get transaction expense history.
+    const [expenseHistory, setExpenseHistory] = useState({
+      status: "loading",
+      records: [],
+      error: "",
+    });
 
-  const categoryChartConfig = Object.fromEntries(
-    transactions.expensesByCategory.map((item, index) => [
-      item.key,
-      { label: item.label, color: palette[index % palette.length] },
-    ])
-  );
+    // New abort controller, if we leave dashboard early they don't load.
+    useEffect(() => {
+      const controller = new AbortController();
+
+      async function loadExpenses() {
+        try { // Load first 100 pages
+          const firstPage = await getTransactionHistory(DASHBOARD_USER_ID, {
+            page: 0,
+            size: 100,
+            signal: controller.signal,
+          });
+
+          // Load the all other pages
+          const remainingPages = await Promise.all(
+            Array.from(
+              { length: Math.max(0, firstPage.totalPages - 1) },
+              (_, index) =>
+                getTransactionHistory(DASHBOARD_USER_ID, {
+                  page: index + 1,
+                  size: 100,
+                  signal: controller.signal,
+                }),
+            ),
+          );
+
+          if (controller.signal.aborted) return;
+
+          // Put content into records array, use flatmap to flatten nested structure
+          const records = [
+            ...(firstPage.content ?? []),
+            ...remainingPages.flatMap((page) => page.content ?? []),
+          ];
+
+          // If error return expense history with an error.
+          setExpenseHistory({ status: "ready", records, error: "" });
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          setExpenseHistory({
+            status: "error",
+            records: [],
+            error: error.message,
+          });
+        }
+      }
+      // loadExpenses and end useEffect call.
+      loadExpenses();
+      return () => controller.abort();
+    }, []);
+
+    // New empty map, find every transaction, skip if not expense.
+    const expensesByCategory = useMemo(() => {
+      const totalsByCategory = new Map();
+
+      for (const record of expenseHistory.records) {
+        if (record.transactionType !== "EXPENSE") continue;
+        // Convert to number.
+        const category = record.transactionCategory;
+        const amount = Number(record.amount);
+        // Skip invalid records
+        if (!category || !Number.isFinite(amount) || amount <= 0) continue;
+        // Make a key and add it to categories total, so we don't have e.g. multiple housing categories
+        // Multiple housing transactions get added together under one housing category, etc.
+        const key = category.toLowerCase();
+        totalsByCategory.set(key, (totalsByCategory.get(key) ?? 0) + amount);
+      }
+      // Turn map int chart data objects we can use. Make a readable label.
+      return Array.from(totalsByCategory, ([key, amount]) => ({
+        key,
+        label: key
+          .replaceAll("_", " ")
+          .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+        amount,
+      })).sort((a, b) => b.amount - a.amount); // Sort from most spending to lowest.
+    }, [expenseHistory.records]); // Tells react when to recalculate.
+
+    const combinedTotal = transactions.cashBalance + portfolio.investmentValue;
+
+    const palette = [
+      "var(--chart-1)",
+      "var(--chart-2)",
+      "var(--chart-3)",
+      "var(--chart-4)",
+      "var(--chart-5)",
+    ];
+
+    const categoryChartConfig = Object.fromEntries(
+        expensesByCategory.map((item, index) => [
+            item.key,
+            { label: item.label, color: palette[index % palette.length] },
+            ])
+    );
+
+    const totalSpent = expensesByCategory.reduce(
+        (sum, item) => sum + item.amount,
+        0
+    );
+
+    return (
+        <DashboardShell>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <Link to="/transactions" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Add transaction
+              </Link>
+            </div>
 
   const totalSpent = transactions.expensesByCategory.reduce(
     (sum, item) => sum + item.amount,
@@ -543,82 +643,82 @@ function Dashboard() {
               </CardContent>
             </Card>*/}
 
-      <Card className="glass bg-card/10">
-        <CardHeader>
-          <CardTitle>Spending by Category</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-[260px_1fr] md:items-center">
-          <ChartContainer config={categoryChartConfig} className="mx-auto h-[260px] w-[260px]">
-            <PieChart>
-              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-              <Pie
-                data={transactions.expensesByCategory}
-                dataKey="amount"
-                nameKey="key"
-                innerRadius="62%"
-                outerRadius="92%"
-                paddingAngle={2}
-                cornerRadius={4}
-              >
-                {transactions.expensesByCategory.map((item) => (
-                  <Cell key={item.key} fill={`var(--color-${item.key})`} />
-                ))}
-                <Label
-                  content={({ viewBox }) => {
-                    if (!viewBox || !("cx" in viewBox)) return null;
-                    const { cx, cy } = viewBox;
-                    return (
-                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-                        <tspan x={cx} y={cy - 10} className="fill-foreground text-2xl font-semibold">
-                          {formatMoney(totalSpent)}
-                        </tspan>
-                        <tspan x={cx} y={cy + 14} className="fill-muted-foreground text-xs">
-                          Total spent
-                        </tspan>
-                      </text>
-                    );
-                  }}
-                />
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-
-          <ul className="flex flex-col gap-3">
-            {transactions.expensesByCategory.map((item) => {
-              const share = (item.amount / totalSpent) * 100;
-              return (
-                <li key={item.key} className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="inline-block size-2.5 rounded-full"
-                        style={{ backgroundColor: categoryChartConfig[item.key].color }}
+            <Card className="glass bg-card/10">
+              <CardHeader>
+                <CardTitle>Spending by Category</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-[260px_1fr] md:items-center">
+                <ChartContainer config={categoryChartConfig} className="mx-auto h-[260px] w-[260px]">
+                  <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                    <Pie
+                      data={expensesByCategory}
+                      dataKey="amount"
+                      nameKey="key"
+                      innerRadius="62%"
+                      outerRadius="92%"
+                      paddingAngle={2}
+                      cornerRadius={4}
+                    >
+                      {expensesByCategory.map((item) => (
+                        <Cell key={item.key} fill={`var(--color-${item.key})`} />
+                      ))}
+                      <Label
+                        content={({ viewBox }) => {
+                          if (!viewBox || !("cx" in viewBox)) return null;
+                          const { cx, cy } = viewBox;
+                          return (
+                            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+                              <tspan x={cx} y={cy - 10} className="fill-foreground text-2xl font-semibold">
+                                {formatMoney(totalSpent)}
+                              </tspan>
+                              <tspan x={cx} y={cy + 14} className="fill-muted-foreground text-xs">
+                                Total spent
+                              </tspan>
+                            </text>
+                          );
+                        }}
                       />
-                      {item.label}
-                    </span>
-                    <span className="flex items-baseline gap-2">
-                      <span className="font-medium">{formatMoney(item.amount)}</span>
-                      <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${share}%`,
-                        backgroundColor: categoryChartConfig[item.key].color,
-                      }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </CardContent>
-      </Card>
-      <InvestmentPortfolioCard />
-    </DashboardShell>
-  );
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+
+                <ul className="flex flex-col gap-3">
+                    {expensesByCategory.map((item) => {
+                        const share = (item.amount / totalSpent) * 100;
+                        return (
+                            <li key={item.key} className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-3 text-sm">
+                                    <span className="flex items-center gap-2">
+                                        <span
+                                            className="inline-block size-2.5 rounded-full"
+                                            style={{ backgroundColor: categoryChartConfig[item.key].color }}
+                                        />
+                                        {item.label}
+                                    </span>
+                                    <span className="flex items-baseline gap-2">
+                                        <span className="font-medium">{formatMoney(item.amount)}</span>
+                                        <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
+                                    </span>
+                                </div>
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
+                                    <div
+                                        className="h-full rounded-full"
+                                        style={{
+                                            width: `${share}%`,
+                                            backgroundColor: categoryChartConfig[item.key].color,
+                                        }}
+                                    />
+                                </div>
+                            </li>
+                            );
+                        })}
+                </ul>
+              </CardContent>
+            </Card>
+            <InvestmentPortfolioCard />
+        </DashboardShell>
+    );
 }
 
 export default Dashboard

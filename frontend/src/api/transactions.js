@@ -36,6 +36,24 @@ export async function getTransactionMetadata(signal) {
   return validateMetadata(await request('/metadata', { signal }));
 }
 
+// Expenses for chart
+export function getTransactionHistory(
+  userId,
+  { page = 0, size = 100, type = 'EXPENSE', signal } = {},
+) {
+  const params = new URLSearchParams({
+    userId: String(userId),
+    page: String(page),
+    size: String(size),
+    sortBy: 'date',
+    direction: 'desc',
+  });
+
+  if (type) params.set('type', type);
+
+  return request(`?${params.toString()}`, { signal });
+}
+
 export function getTransaction(id, signal) {
   return request(`/${encodeURIComponent(id)}`, { signal });
 }
