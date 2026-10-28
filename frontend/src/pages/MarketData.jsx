@@ -28,7 +28,7 @@ export default function MarketData() {
   try {
     // The backend supplies the price, timestamp, and stale flag.
     const result = await getQuote(symbol);
-    setQuote({ ...result, stale: true});
+    setQuote(result);
   } catch (requestError) {
     setError(requestError.message);
   } finally {
