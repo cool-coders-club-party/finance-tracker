@@ -10,9 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 
 const router = createBrowserRouter([
-    { path: "/", element: <Landing /> },
+    { path: "/", element: <Dashboard /> },
 //     { path: "/home", element: <Home /> },
-     { path: "/dashboard", element: <Dashboard /> },
+//      { path: "/dashboard", element: <Dashboard /> },
     { path: "/transactions", element: <Transactions /> },
     { path: "/transactions/:transactionId/edit", element: <Transactions /> },
 ]);
