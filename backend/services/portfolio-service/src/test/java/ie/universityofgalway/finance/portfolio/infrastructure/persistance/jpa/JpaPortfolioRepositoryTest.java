@@ -1,7 +1,6 @@
-package ie.universityofgalway.finance.portfolio.repository;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa;
 
-import ie.universityofgalway.finance.portfolio.application.port.PortfolioRepository;
-import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.PortfolioEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -9,21 +8,21 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-class PortfolioRepositoryTest {
+class JpaPortfolioRepositoryTest {
 
-    @Autowired private PortfolioRepository portfolioRepository;
+    @Autowired private JpaPortfolioRepository portfolioRepository;
 
     @Test
     void findByUserIdReturnsOnlyThatUsersPortfolios() {
-        portfolioRepository.save(new Portfolio("user-1", "Main"));
-        portfolioRepository.save(new Portfolio("user-1", "Retirement"));
-        portfolioRepository.save(new Portfolio("user-2", "Someone Else's"));
+        portfolioRepository.save(new PortfolioEntity("user-1", "Main"));
+        portfolioRepository.save(new PortfolioEntity("user-1", "Retirement"));
+        portfolioRepository.save(new PortfolioEntity("user-2", "Someone Else's"));
 
         assertThat(portfolioRepository.findByUserId("user-1"))
-                .extracting(Portfolio::getName)
+                .extracting(PortfolioEntity::getName)
                 .containsExactlyInAnyOrder("Main", "Retirement");
         assertThat(portfolioRepository.findByUserId("user-2"))
-                .extracting(Portfolio::getName)
+                .extracting(PortfolioEntity::getName)
                 .containsExactly("Someone Else's");
     }
 
@@ -34,7 +33,7 @@ class PortfolioRepositoryTest {
 
     @Test
     void findByIdAndUserIdRefusesAnotherUsersPortfolio() {
-        Portfolio mine = portfolioRepository.save(new Portfolio("user-1", "Main"));
+        PortfolioEntity mine = portfolioRepository.save(new PortfolioEntity("user-1", "Main"));
 
         assertThat(portfolioRepository.findByIdAndUserId(mine.getId(), "user-1")).isPresent();
         assertThat(portfolioRepository.findByIdAndUserId(mine.getId(), "user-2")).isEmpty();

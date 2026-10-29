@@ -1,7 +1,6 @@
-package ie.universityofgalway.finance.portfolio.price;
+package ie.universityofgalway.finance.portfolio.infrastructure.price;
 
 import ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException;
-import ie.universityofgalway.finance.portfolio.infrastructure.price.FakePriceClient;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

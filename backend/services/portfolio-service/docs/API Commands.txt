@@ -16,5 +16,5 @@ curl http://localhost:8083/api/portfolios
 create new portfolio: 
 curl -i -X POST http://localhost:8083/api/portfolios -H "Content-Type: application/json" -d "{\"name\": \"Retirement\"}"
 
-get all trades:
+get all trades for user 1:
 curl http://localhost:8083/api/portfolios/1/trades
