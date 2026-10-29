@@ -17,7 +17,7 @@ import jakarta.validation.constraints.Size;
  *
  * @param email    the address the user will log in with; must be a well-formed email address
  * @param password the plain-text password chosen by the user, 8 to 72 characters;
- *                 it is hashed before storage and must never be logged or returned
+ *                 it is hashed (in AuthService) before storage and must never be logged or returned
  */
 public record RegisterRequest(@NotBlank @Email String email,
                               @NotBlank @Size(min = 8, max = 72) String password) {
