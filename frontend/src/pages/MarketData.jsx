@@ -4,6 +4,7 @@ import { getQuote, getPriceHistory } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
 import StrokeText from "../components/StrokeText";
 import CountUp from "../components/CountUp";
+import PriceHistoryChart from "../components/PriceHistoryChart";
 
 function formatPrice(value) {
   if (value == null) return "—";
@@ -208,13 +209,32 @@ export default function MarketData() {
                 </p>
               )}
 
-              {isHistoryLoading && <p className="text-sm">Loading price history...</p>}
-              {historyError && <p className="text-sm text-amber-400">{historyError}</p>}
-              {history.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {history.length} daily prices loaded.
-                </p>
-              )}
+              <div className="border-t border-white/10 pt-5">
+                <h3 className="mb-3 text-sm font-semibold text-white/80">
+                  Past month
+                </h3>
+
+                {isHistoryLoading && (
+                  <p className="text-sm text-white/60">Loading price history...</p>
+                )}
+
+                {historyError && (
+                  <p className="text-sm text-amber-400">{historyError}</p>
+                )}
+
+                {!isHistoryLoading && !historyError && history.length > 1 && (
+                  <PriceHistoryChart
+                    points={history}
+                    currency={details?.currency}
+                  />
+                )}
+
+                {!isHistoryLoading && !historyError && history.length <= 1 && (
+                  <p className="text-sm text-white/60">
+                    Not enough price history to draw a graph.
+                  </p>
+                )}
+              </div>
 
 
             </section>

@@ -87,9 +87,10 @@ const SpotlightCard = ({
     grain: clamp(grain, 0, 1)
   };
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
 
   useEffect(() => {
+    // Apply updated settings after React renders.
+    settingsRef.current = settings;
     wakeRef.current?.();
   });
 
