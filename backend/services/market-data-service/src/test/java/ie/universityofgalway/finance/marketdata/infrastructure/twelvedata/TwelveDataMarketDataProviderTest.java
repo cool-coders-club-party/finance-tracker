@@ -55,9 +55,21 @@ class TwelveDataMarketDataProviderTest {
         String responseBody = """
                 {
                   "symbol": "AAPL",
+                  "name": "Apple Inc.",
                   "currency": "USD",
                   "close": "192.45",
-                  "timestamp": 1760000000
+                  "timestamp": 1760000000,
+                  "open": "190.10",
+                  "high": "193.00",
+                  "low": "189.80",
+                  "volume": "183055376",
+                  "previous_close": "190.72",
+                  "change": "1.73",
+                  "percent_change": "0.91",
+                  "fifty_two_week": {
+                    "low": "150.00",
+                    "high": "205.00"
+                  }
                 }
                 """;
 
@@ -87,6 +99,15 @@ class TwelveDataMarketDataProviderTest {
                 Instant.ofEpochSecond(1760000000L),
                 quote.asOf()
         );
+        assertEquals("Apple Inc.", quote.details().name());
+        assertEquals("USD", quote.details().currency());
+        assertEquals(new BigDecimal("190.10"), quote.details().open());
+        assertEquals(new BigDecimal("190.72"), quote.details().previousClose());
+        assertEquals(new BigDecimal("1.73"), quote.details().change());
+        assertEquals(new BigDecimal("0.91"), quote.details().percentChange());
+        assertEquals(183055376L, quote.details().volume());
+        assertEquals(new BigDecimal("150.00"), quote.details().fiftyTwoWeekLow());
+        assertEquals(new BigDecimal("205.00"), quote.details().fiftyTwoWeekHigh());
 
         // Confirm that the expected HTTP request occurred.
         server.verify();
@@ -96,12 +117,12 @@ class TwelveDataMarketDataProviderTest {
     void findQuoteReturnsEmptyWhenSymbolIsNotFound() {
         // Arrange: Twelve Data reports that the ticker does not exist.
         String responseBody = """
-            {
-              "code": 404,
-              "message": "Symbol not found",
-              "status": "error"
-            }
-            """;
+                {
+                  "code": 404,
+                  "message": "Symbol not found",
+                  "status": "error"
+                }
+                """;
 
         server.expect(requestTo(
                         "https://api.twelvedata.com/quote?symbol=NOPE"
@@ -123,12 +144,12 @@ class TwelveDataMarketDataProviderTest {
     void findQuoteRethrowsRateLimitError() {
         // Arrange: Twelve Data reports that the request limit was reached.
         String responseBody = """
-            {
-              "code": 429,
-              "message": "API rate limit reached",
-              "status": "error"
-            }
-            """;
+                {
+                  "code": 429,
+                  "message": "API rate limit reached",
+                  "status": "error"
+                }
+                """;
 
         server.expect(requestTo(
                         "https://api.twelvedata.com/quote?symbol=AAPL"
@@ -149,6 +170,27 @@ class TwelveDataMarketDataProviderTest {
                 exception.getStatusCode()
         );
 
+        server.verify();
+    }
+
+    @Test
+    void findQuoteWorksWhenOptionalDetailsAreMissing() {
+        String responseBody = """
+                {
+                  "symbol": "AAPL",
+                  "close": "192.45",
+                  "timestamp": 1760000000
+                }
+                """;
+
+        server.expect(requestTo("https://api.twelvedata.com/quote?symbol=AAPL"))
+                .andRespond(withSuccess(responseBody, MediaType.APPLICATION_JSON));
+
+        Quote quote = provider.findQuote("AAPL").orElseThrow();
+
+        assertEquals(new BigDecimal("192.45"), quote.price());
+        assertEquals(null, quote.details().name());
+        assertEquals(null, quote.details().fiftyTwoWeekLow());
         server.verify();
     }
 }

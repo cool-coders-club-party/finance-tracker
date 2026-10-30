@@ -3,6 +3,8 @@ package ie.universityofgalway.finance.marketdata.api;
 import ie.universityofgalway.finance.marketdata.application.QuoteService;
 import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
+import ie.universityofgalway.finance.marketdata.domain.QuoteDetails;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,10 +45,26 @@ public class QuoteControllerTest {
         //arrange
         Instant timestamp = Instant.parse("2026-09-30T10:00:00Z");
 
+        QuoteDetails details = new QuoteDetails(
+                "Apple Inc.",
+                "USD",
+                new BigDecimal("190.10"),
+                null,
+                null,
+                183055376L,
+                new BigDecimal("190.72"),
+                new BigDecimal("1.73"),
+                new BigDecimal("0.91"),
+                null,
+                null
+        );
+
         Quote quote = new Quote(
                 "AAPL",
                 new BigDecimal("192.45"),
-                timestamp
+                timestamp,
+                false,
+                details
         );
 
         when(quoteService.getQuote("AAPL"))
@@ -58,7 +76,14 @@ public class QuoteControllerTest {
                 .andExpect(jsonPath("$.symbol").value("AAPL"))
                 .andExpect(jsonPath("$.price").value(192.45))
                 .andExpect(jsonPath("$.asOf").value(timestamp.toString()))
-                .andExpect(jsonPath("$.stale").value(false));
+                .andExpect(jsonPath("$.stale").value(false))
+                .andExpect(jsonPath("$.details.name").value("Apple Inc."))
+                .andExpect(jsonPath("$.details.currency").value("USD"))
+                .andExpect(jsonPath("$.details.open").value(190.10))
+                .andExpect(jsonPath("$.details.volume").value(183055376))
+                .andExpect(jsonPath("$.details.previousClose").value(190.72))
+                .andExpect(jsonPath("$.details.change").value(1.73))
+                .andExpect(jsonPath("$.details.percentChange").value(0.91));
 
         //confirm that the controller passed the path variable to the service
         verify(quoteService).getQuote("AAPL");

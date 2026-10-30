@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import org.springframework.web.client.RestClientException;
 import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
+import ie.universityofgalway.finance.marketdata.domain.QuoteDetails;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -163,10 +164,17 @@ class CachingMarketDataProviderTest {
                 );
 
         //Creates the quote that will become stale.
+        QuoteDetails details = new QuoteDetails(
+                "Apple Inc.", "USD",
+                null, null, null, null, null, null, null, null, null
+        );
+
         Quote cachedQuote = new Quote(
                 "AAPL",
                 new BigDecimal("192.45"),
-                initialTime
+                initialTime,
+                false,
+                details
         );
 
         //Returns a quote first and simulates provider failure second.
@@ -216,6 +224,7 @@ class CachingMarketDataProviderTest {
                 cachedQuote.asOf(),
                 fallbackResult.orElseThrow().asOf()
         );
+        assertSame(details, fallbackResult.orElseThrow().details());
 
         //Checks that the original live quote is marked as fresh.
         assertFalse(
