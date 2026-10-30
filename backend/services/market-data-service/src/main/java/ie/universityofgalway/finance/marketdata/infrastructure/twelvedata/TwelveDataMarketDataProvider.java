@@ -1,5 +1,6 @@
 package ie.universityofgalway.finance.marketdata.infrastructure.twelvedata;
 
+import ie.universityofgalway.finance.marketdata.domain.QuoteDetails;
 import ie.universityofgalway.finance.marketdata.domain.MarketDataProvider;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
 import org.springframework.context.annotation.Profile;
@@ -70,12 +71,54 @@ public class TwelveDataMarketDataProvider implements MarketDataProvider {
         BigDecimal price = new BigDecimal(response.close());
         Instant asOf = Instant.ofEpochSecond(response.timestamp());
 
+        TwelveDataQuoteResponse.FiftyTwoWeek range = response.fiftyTwoWeek();
+
+        QuoteDetails details = new QuoteDetails(
+                response.name(),
+                response.currency(),
+                parseOptionalDecimal(response.open()),
+                parseOptionalDecimal(response.high()),
+                parseOptionalDecimal(response.low()),
+                parseOptionalLong(response.volume()),
+                parseOptionalDecimal(response.previousClose()),
+                parseOptionalDecimal(response.change()),
+                parseOptionalDecimal(response.percentChange()),
+                range == null ? null : parseOptionalDecimal(range.low()),
+                range == null ? null : parseOptionalDecimal(range.high())
+        );
+
         Quote quote = new Quote(
                 response.symbol(),
                 price,
-                asOf
+                asOf,
+                false,
+                details
         );
 
         return Optional.of(quote);
     }
+
+    // A missing or malformed optional value should not hide the price.
+    private BigDecimal parseOptionalDecimal(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private Long parseOptionalLong(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
 }
