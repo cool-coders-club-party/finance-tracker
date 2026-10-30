@@ -2,6 +2,7 @@ package ie.universityofgalway.finance.users.api;
 
 import ie.universityofgalway.finance.users.application.AuthService;
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
+import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.User;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +53,7 @@ class AuthControllerTest {
     @BeforeEach
     void stubService(){
         when(authService.register(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
+        when(authService.login(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
     }
 
     @Test
@@ -61,10 +63,17 @@ class AuthControllerTest {
                 .andExpect(content().string("auth api is working")); // expect relevant message in response body
     }
 
-    /* setup for POST tests. Will be chained with .andExpect() in tests */
+    /* setup for POST tests for the register endpoint. Will be chained with .andExpect() in tests */
     private ResultActions postRegister(String json) throws Exception{
         return mvc.perform(post("/api/auth/register") // send POST request
                 .contentType(MediaType.APPLICATION_JSON) // set Content-Type header in response
+                .content(json));
+    }
+
+    /* setup for POST tests for the login endpoint*/
+    private ResultActions postLogin(String json) throws Exception {
+        return mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(json));
     }
 
@@ -197,5 +206,39 @@ class AuthControllerTest {
         assertThat(body)
                 .doesNotContain("12345678")
                 .doesNotContainIgnoringCase("password");
+    }
+
+    @Test
+    void loginWithValidBodyReturns200WithIdAndEmail() throws Exception {
+        postLogin(VALID_JSON_BODY)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.id").isNotEmpty());
+
+        verify(authService).login("test@example.com", "12345678");
+    }
+
+    @Test
+    void loginWithInvalidCredentialsReturns401() throws Exception {
+        doThrow(new InvalidCredentialsException())
+                .when(authService).login(anyString(), anyString());
+
+        postLogin(VALID_JSON_BODY)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "invalid_email, 12345678",
+            "'', 12345678",
+            "test@example.com, ''"
+    })
+    void loginWithInvalidFieldsReturns400(String email, String password) throws Exception {
+        postLogin(json(email, password))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
     }
 }
