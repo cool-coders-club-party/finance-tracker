@@ -5,6 +5,15 @@ import SpotlightCard from "../components/SpotlightCard";
 import StrokeText from "../components/StrokeText";
 import CountUp from "../components/CountUp";
 
+function formatPrice(value) {
+  if (value == null) return "—";
+
+  return Number(value).toLocaleString("en-IE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export default function MarketData() {
   const [tickerInput, setTickerInput] = useState("");
 
@@ -57,6 +66,11 @@ export default function MarketData() {
     }
   }
 
+  const details = quote?.details;
+  const dailyChange = details?.change == null ? null : Number(details.change);
+  const percentChange =
+    details?.percentChange == null ? null : Number(details.percentChange);
+
   return (
     <DashboardShell>
       <main className="mx-auto w-full max-w-3xl space-y-6 px-4 text-left">
@@ -104,20 +118,85 @@ export default function MarketData() {
         {quote && (
           <SpotlightCard className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
             <section aria-live="polite" className="space-y-3">
-              <h2 className="text-xl font-semibold">{quote.symbol}</h2>
+              <div className="flex flex-wrap items-end justify-between gap-5">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {details?.name || quote.symbol}
+                  </h2>
+                  {details?.name && (
+                    <p className="text-sm text-white/60">{quote.symbol}</p>
+                  )}
 
-              <p className="text-3xl font-bold">
-                <span className="block text-sm font-normal text-muted-foreground">
-                  Price per share
-                </span>
-                <CountUp
-                  to={Number(quote.price)}
-                  decimals={2}
-                  separator=","
-                  duration={1.2}
-                  trigger="load"
-                />
-              </p>
+                  <p className="mt-5 text-sm text-white/60">Price per share</p>
+                  <p className="text-4xl font-bold text-blue-400">
+                    <CountUp
+                      to={Number(quote.price)}
+                      decimals={2}
+                      separator=","
+                      duration={1.2}
+                      trigger="load"
+                    />
+                    {details?.currency && (
+                      <span className="ml-2 text-base font-semibold">
+                        {details.currency}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {dailyChange !== null && percentChange !== null && (
+                  <p
+                    className={`pb-1 text-lg font-semibold ${dailyChange >= 0 ? "text-blue-400" : "text-red-400"
+                      }`}
+                  >
+                    {dailyChange >= 0 ? "+" : ""}
+                    {dailyChange.toFixed(2)}{" "}
+                    {percentChange >= 0 ? "+" : ""}
+                    {percentChange.toFixed(2)}%
+                  </p>
+                )}
+              </div>
+
+              {details && (
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-5">
+                  <div>
+                    <dt className="text-sm text-white/60">Open</dt>
+                    <dd className="font-semibold">{formatPrice(details.open)}</dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-sm text-white/60">Previous close</dt>
+                    <dd className="font-semibold">{formatPrice(details.previousClose)}</dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-sm text-white/60">Volume</dt>
+                    <dd className="font-semibold">
+                      {details.volume == null
+                        ? "—"
+                        : Number(details.volume).toLocaleString("en-IE")}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-sm text-white/60">Day range</dt>
+                    <dd className="font-semibold">
+                      {details.low == null || details.high == null
+                        ? "—"
+                        : `${formatPrice(details.low)} – ${formatPrice(details.high)}`}
+                    </dd>
+                  </div>
+
+                  <div className="col-span-2">
+                    <dt className="text-sm text-white/60">52-week range</dt>
+                    <dd className="font-semibold">
+                      {details.fiftyTwoWeekLow == null || details.fiftyTwoWeekHigh == null
+                        ? "—"
+                        : `${formatPrice(details.fiftyTwoWeekLow)} – ${formatPrice(details.fiftyTwoWeekHigh)}`}
+                    </dd>
+                  </div>
+                </dl>
+              )}
 
               <p className="text-sm text-muted-foreground">
                 As of: {new Date(quote.asOf).toLocaleString("en-IE")}
