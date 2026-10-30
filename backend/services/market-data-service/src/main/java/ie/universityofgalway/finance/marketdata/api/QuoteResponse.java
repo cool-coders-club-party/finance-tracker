@@ -9,7 +9,8 @@ public record QuoteResponse (
     String symbol,      // e.g AAPL
     BigDecimal price,   // exact money value
     Instant asOf,       // time supplied by the price provider
-    boolean stale      // true when an older quote is used after a provider failure
+    boolean stale,      // true when an older quote is used after a provider failure
+    QuoteDetailResponse details // detailed ticker call, returns more relevant data for stock card
 ) {
 
 }

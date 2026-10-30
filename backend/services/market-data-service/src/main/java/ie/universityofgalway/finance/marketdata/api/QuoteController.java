@@ -22,7 +22,7 @@ public class QuoteController {
 
     private final QuoteService quoteService;
 
-    public QuoteController(QuoteService quoteService){
+    public QuoteController(QuoteService quoteService) {
         this.quoteService = quoteService;
     }
 
@@ -43,7 +43,11 @@ public class QuoteController {
         //Known ticker: copy the Quote into the public response shape
         Quote quote = result.get();
         QuoteResponse response = new QuoteResponse(
-                quote.symbol(), quote.price(), quote.asOf(), quote.stale()
+                quote.symbol(),
+                quote.price(),
+                quote.asOf(),
+                quote.stale(),
+                QuoteDetailResponse.from(quote.details())
         );
 
         //reply 200 OK with the JSON
@@ -65,7 +69,6 @@ public class QuoteController {
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(problem);
     }
-
 
 
 }
