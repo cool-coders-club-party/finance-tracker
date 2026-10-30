@@ -1,7 +1,10 @@
 package ie.universityofgalway.finance.users.infrastructure.persistence;
 
+import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.User;
 import ie.universityofgalway.finance.users.domain.UserRepository;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -62,8 +65,12 @@ public class JpaUserRepository implements UserRepository {
      */
     @Override
     public User save(User user){
-        UserEntity saved = jpa.save(toEntity(user)); // CrudRepository.save()
-        return toDomain(saved);
+        try{
+            UserEntity saved = jpa.save(toEntity(user)); // CrudRepository.save()
+            return toDomain(saved);
+        } catch (DataIntegrityViolationException e){ // thrown when duplicate email is passed to the database
+            throw new EmailAlreadyRegisteredException(user.email()); // map it to existing exception for this scenario
+        }
     }
 
     /**
