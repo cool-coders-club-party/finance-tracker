@@ -2,6 +2,7 @@ package ie.universityofgalway.finance.marketdata.api;
 
 import ie.universityofgalway.finance.marketdata.application.PriceHistoryService;
 import ie.universityofgalway.finance.marketdata.domain.PricePoint;
+import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -37,5 +38,40 @@ class PriceHistoryControllerTest {
                 .andExpect(jsonPath("$.points[0].close").value(343.83))
                 .andExpect(jsonPath("$.points[1].date").value("2026-10-29"))
                 .andExpect(jsonPath("$.points[1].close").value(348.91));
+    }
+
+    @Test
+    void returnsNotFoundWhenHistoryIsMissing() throws Exception {
+        PriceHistoryService service = mock(PriceHistoryService.class);
+        MockMvc mockMvc = MockMvcBuilders
+                .standaloneSetup(new PriceHistoryController(service))
+                .build();
+
+        when(service.getHistory("NOPE")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/quotes/NOPE/history"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail")
+                        .value("No price history found for symbol: NOPE"));
+    }
+
+    @Test
+    void returnsServiceUnavailableWhenProviderFails() throws Exception {
+        PriceHistoryService service = mock(PriceHistoryService.class);
+        MockMvc mockMvc = MockMvcBuilders
+                .standaloneSetup(new PriceHistoryController(service))
+                .build();
+
+        // A provider failure should become HTTP 503.
+        when(service.getHistory("AAPL")).thenThrow(
+                new MarketDataUnavailableException(
+                        new RuntimeException("Provider failed")
+                )
+        );
+
+        mockMvc.perform(get("/api/quotes/AAPL/history"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.detail")
+                        .value("Market data is temporarily unavailable"));
     }
 }

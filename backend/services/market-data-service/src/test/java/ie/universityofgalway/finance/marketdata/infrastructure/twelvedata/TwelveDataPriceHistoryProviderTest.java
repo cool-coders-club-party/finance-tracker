@@ -1,10 +1,13 @@
 package ie.universityofgalway.finance.marketdata.infrastructure.twelvedata;
 
 import ie.universityofgalway.finance.marketdata.domain.PricePoint;
+import ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -13,6 +16,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -49,8 +54,8 @@ class TwelveDataPriceHistoryProviderTest {
 
         server.expect(requestTo(
                         "https://api.twelvedata.com/time_series"
-                        + "?symbol=AAPL&interval=1day"
-                        + "&start_date=2026-09-30&end_date=2026-10-30"
+                                + "?symbol=AAPL&interval=1day"
+                                + "&start_date=2026-09-30&end_date=2026-10-30"
                 ))
                 .andRespond(withSuccess(responseBody, MediaType.APPLICATION_JSON));
 
@@ -60,6 +65,38 @@ class TwelveDataPriceHistoryProviderTest {
                 new PricePoint(LocalDate.parse("2026-10-28"), new BigDecimal("343.83")),
                 new PricePoint(LocalDate.parse("2026-10-29"), new BigDecimal("348.91"))
         ), points);
+
+        server.verify();
+    }
+
+    @Test
+    void reportsProviderFailure() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+
+        Clock clock = Clock.fixed(
+                Instant.parse("2026-10-30T12:00:00Z"),
+                ZoneOffset.UTC
+        );
+
+        TwelveDataPriceHistoryProvider provider = new TwelveDataPriceHistoryProvider(
+                builder,
+                new TwelveDataProperties("https://api.twelvedata.com", "test-key"),
+                clock
+        );
+
+        // Simulate Twelve Data rejecting the request.
+        server.expect(requestTo(
+                        "https://api.twelvedata.com/time_series"
+                                + "?symbol=AAPL&interval=1day"
+                                + "&start_date=2026-09-30&end_date=2026-10-30"
+                ))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+        assertThrows(
+                MarketDataUnavailableException.class,
+                () -> provider.findDailyHistory("AAPL")
+        );
 
         server.verify();
     }
