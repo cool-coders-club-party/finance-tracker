@@ -27,16 +27,30 @@ GET /api/quotes/aapl
 ```json
 {
   "symbol": "AAPL",
-  "price": 192.45,
-  "asOf": "2026-10-01T12:00:00Z",
-  "stale": false
+  "price": 348.91,
+  "asOf": "2026-10-29T13:30:00Z",
+  "stale": false,
+  "details": {
+    "name": "Apple Inc.",
+    "currency": "USD",
+    "open": 348.00,
+    "high": 351.43,
+    "low": 347.30,
+    "volume": 42382900,
+    "previousClose": 343.83,
+    "change": 5.08,
+    "percentChange": 1.48,
+    "fiftyTwoWeekLow": 243.42,
+    "fiftyTwoWeekHigh": 351.73
+  }
 }
 ```
 
 - `symbol` — normalised ticker symbol.
 - `price` — latest available share price.
-- `asOf` — time the price was obtained.
+- `asOf` — the provider's quote timestamp
 - `stale` — `false` for a live or fresh cached quote; `true` when the provider fails and an older cached quote is returned. Keep `asOf` visible so users can judge the price's age.
+- `details` - contains optional quote statistics and may be `null` in stub mode.
 
 ### Unknown symbol
 
@@ -78,10 +92,3 @@ The portfolio service owns holdings, quantities, market value and profit/loss ca
 market value = quantity × quote price
 ```
 
-## Planned changes
-
-The following are not implemented yet:
-
-- quote currency;
-
-Contract changes must be agreed with affected team members before implementation.
