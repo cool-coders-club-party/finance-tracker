@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@code @Repository} tells Spring to instantiate this class on boot
  * and make it available to any classes that look for it.
  */
-@Repository
+//@Repository
 public class InMemoryUserRepository implements UserRepository{
     private final Map<String, User> usersByEmail = new ConcurrentHashMap<>();
 
