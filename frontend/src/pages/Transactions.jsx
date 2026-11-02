@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTransaction } from '../api/transactions';
-import { ArrowLeft, CheckCircle2, Loader2, Plus, Receipt, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Loader2, Plus, Receipt, RefreshCw } from 'lucide-react';
 import DashboardShell from '../components/DashboardShell';
 import TransactionForm from '../components/transactions/TransactionForm';
 import { Button } from '../components/ui/button';
@@ -54,12 +54,6 @@ function TransactionEditor({ transactionId }) {
   return (
     <DashboardShell>
       <main className="space-y-6 text-left">
-        <nav aria-label="Transactions navigation">
-          <Link to="/" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border/60 bg-background/35 px-3 text-sm text-foreground/90 backdrop-blur-sm transition-colors hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            Back to dashboard
-          </Link>
-        </nav>
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
             <h1 className="!my-0 text-3xl font-bold !text-foreground">{transactionId ? `Edit transaction #${transactionId}` : 'New transaction'}</h1>

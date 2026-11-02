@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
 import DashboardShell from "@/components/DashboardShell";
@@ -239,7 +238,7 @@ function InvestmentPortfolioCard() {
   }
 
   return (
-    <Card className="glass bg-card/10">
+    <Card id="portfolio" className="glass bg-card/10 scroll-mt-24">
       <CardHeader>
         <CardTitle>Investment by ticker</CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -537,27 +536,10 @@ function Dashboard() {
     );
 
   return (
-    <DashboardShell>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-
-        <div className="flex flex-wrap gap-2">
-          {/* Open the dedicated quote page. */}
-          <Link
-            to="/market-data"
-            className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-foreground/5"
-          >
-            Market Data
-          </Link>
-
-          <Link
-            to="/transactions"
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-          >
-            Add transaction
-          </Link>
+      <DashboardShell>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
         </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -703,7 +685,7 @@ function Dashboard() {
               </CardContent>
             </Card>
             <InvestmentPortfolioCard />
-        </DashboardShell>
+      </DashboardShell>
     );
 }
 
