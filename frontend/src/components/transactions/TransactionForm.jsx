@@ -18,6 +18,7 @@ function initialValues(transaction) {
     userId: String(transaction?.userId ?? ''),
     transactionType: transaction?.transactionType ?? '',
     transactionCategory: transaction?.transactionCategory ?? '',
+    currency: transaction?.currency ?? '',
     amount: String(transaction?.amount ?? ''),
     description: transaction?.description ?? '',
   };
@@ -35,6 +36,8 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
   const categories = categoriesForType(metadata, values.transactionType);
   const pairIsValid = categories.some(({ name }) => name === values.transactionCategory);
 
+  const currencyIsValid = metadata.currencies.includes(values.currency);
+
   function updateField(event) {
     const { name, value } = event.target;
     setFeedback({ message: '', details: {} });
@@ -49,9 +52,9 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!pairIsValid || pendingRequest.current) return;
+    if (!pairIsValid || !currencyIsValid || pendingRequest.current) return;
     const original = initialValues(transaction);
-    const editable = ['transactionType', 'transactionCategory', 'amount', 'description'];
+    const editable = ['transactionType', 'transactionCategory', 'amount', 'currency', 'description'];
     const payload = Object.fromEntries(editable
       .filter((key) => !transaction || values[key] !== original[key])
       .map((key) => [key, values[key]]));
@@ -129,6 +132,19 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
             {fieldError(name)}
           </label>
         ))}
+        <label className="grid content-start gap-2 text-sm font-medium">
+          <span>Currency</span>
+          <select name="currency" required value={values.currency} onChange={updateField} className={inputClass}
+            aria-invalid={Boolean(feedback.details.currency)}
+            aria-describedby={`${id}-currency-help${feedback.details.currency ? ` ${id}-currency-error` : ''}`}>
+            <option value="">Select a currency</option>
+            {metadata.currencies.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+          </select>
+          <span id={`${id}-currency-help`} className="text-xs font-normal text-muted-foreground">
+            {transaction ? 'Changing currency does not convert the amount.' : 'Choose the currency of the original amount.'}
+          </span>
+          {fieldError('currency')}
+        </label>
         <label className="grid content-start gap-2 text-sm font-medium sm:col-span-2">
           <span>Description (optional)</span>
           <textarea name="description" maxLength={500} rows={3} value={values.description} onChange={updateField} className={`${inputClass} min-h-28 resize-y`}
@@ -140,7 +156,7 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
         <Button asChild variant="ghost" className="h-11 px-5">
           <Link to="/dashboard">Cancel</Link>
         </Button>
-        <Button type="submit" className="h-11 gap-2 px-5" disabled={isSaving || !pairIsValid}>
+        <Button type="submit" className="h-11 gap-2 px-5" disabled={isSaving || !pairIsValid || !currencyIsValid}>
           {isSaving ? <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> : transaction ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
           {isSaving ? 'Saving…' : transaction ? 'Save changes' : 'Create transaction'}
         </Button>

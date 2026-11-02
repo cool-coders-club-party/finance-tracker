@@ -29,6 +29,12 @@ public class Transaction {
     TransactionCategory transactionCategory;
     BigDecimal amount;
     String description;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", nullable = false, length = 3)
+    TransactionCurrency currency;
+
     LocalDateTime occurredAt;
 
     @CreationTimestamp
@@ -38,5 +44,6 @@ public class Transaction {
     @ColumnDefault("true")
     @Column(name = "active", nullable = false)
     Boolean active = true;
+
 
 }

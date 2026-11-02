@@ -4,6 +4,7 @@ import { categoriesForType, categoryAfterTypeChange, formatEnumLabel, validateMe
 import { getTransactionMetadata, getTransaction, saveTransaction } from '../src/api/transactions.js';
 
 const metadata = {
+  currencies: ['EUR', 'USD', 'GBP'],
   types: ['INCOME', 'EXPENSE'],
   categories: [
     { name: 'SALARY', allowedTypes: ['INCOME'] },
@@ -26,10 +27,11 @@ test('type changes clear incompatible categories but preserve shared categories'
 
 test('metadata remains extensible and rejects broken API responses', () => {
   assert.equal(validateMetadata(metadata), metadata);
-  const future = { types: ['TRANSFER'], categories: [{ name: 'SAVINGS', allowedTypes: ['TRANSFER'] }] };
+  const future = { currencies: ['CAD'], types: ['TRANSFER'], categories: [{ name: 'SAVINGS', allowedTypes: ['TRANSFER'] }] };
   assert.deepEqual(categoriesForType(validateMetadata(future), 'TRANSFER'), future.categories);
   for (const broken of [null, {}, { types: [], categories: [] },
     { ...metadata, types: ['INCOME', 'INCOME'] },
+    ...[undefined, [], ['EUR', 'EUR'], ['eur'], [123], ['EURO']].map((currencies) => ({ ...metadata, currencies })),
     { ...metadata, categories: [{ name: 'SALARY', allowedTypes: ['UNKNOWN'] }] }]) {
     assert.throws(() => validateMetadata(broken), /options could not be read/);
   }
@@ -44,7 +46,7 @@ test('API uses relative URLs, preserves enum values and decimal text, and expose
   });
   await getTransactionMetadata();
   assert.equal(calls[0].url, '/api/v1/transactions/metadata');
-  const payload = { userId: '1', transactionType: 'INCOME', transactionCategory: 'SALARY', amount: '12345678901234567.89' };
+  const payload = { currency: 'USD', userId: '1', transactionType: 'INCOME', transactionCategory: 'SALARY', amount: '12345678901234567.89' };
   await saveTransaction(payload);
   assert.equal(calls[1].options.method, 'POST');
   assert.deepEqual(JSON.parse(calls[1].options.body), payload);
@@ -68,4 +70,18 @@ test('network failures, malformed responses, and request cancellation are handle
   controller.abort();
   globalThis.fetch.mock.mockImplementation(async (_url, { signal }) => { signal.throwIfAborted(); });
   await assert.rejects(getTransactionMetadata(controller.signal), { name: 'AbortError' });
+});
+
+
+test('API sends currency-only patches without adding amount or other fields', async (t) => {
+  const bodies = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    const body = JSON.parse(options.body);
+    bodies.push(body);
+    return Response.json({ id: 42, ...body });
+  });
+  await saveTransaction({ currency: 'GBP' }, 42);
+  assert.deepEqual(bodies[0], { currency: 'GBP' });
+  await saveTransaction({ description: 'Updated note' }, 42);
+  assert.deepEqual(bodies[1], { description: 'Updated note' });
 });

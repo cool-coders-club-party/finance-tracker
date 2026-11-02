@@ -1,6 +1,7 @@
 package ie.universityofgalway.finance.transactions.service;
 
 import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
+import ie.universityofgalway.finance.transactions.entity.TransactionCurrency;
 import ie.universityofgalway.finance.transactions.entity.TransactionType;
 import ie.universityofgalway.finance.transactions.rest.dto.*;
 import ie.universityofgalway.finance.transactions.entity.Transaction;
@@ -113,7 +114,11 @@ public class TransactionServiceImpl implements TransactionService {
                                 .toList()
                 ))
                 .toList();
-        return new TransactionMetadataResponseDto(Arrays.asList(types), categoriesMetadataDto);
+        return new TransactionMetadataResponseDto(
+                Arrays.asList(types),
+                categoriesMetadataDto,
+                Arrays.asList(TransactionCurrency.values())
+        );
     }
 
 
