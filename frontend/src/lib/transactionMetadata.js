@@ -11,7 +11,10 @@ export function validateMetadata(data) {
       && Array.isArray(category.allowedTypes) && category.allowedTypes.length > 0
       && category.allowedTypes.every((type) => data.types.includes(type)))
     && new Set(data.categories.map(({ name }) => name)).size === data.categories.length;
-  if (!validCategories) throw new Error('Transaction options could not be read. Please try again.');
+  const validCurrencies = Array.isArray(data?.currencies) && data.currencies.length > 0
+    && data.currencies.every((currency) => typeof currency === 'string' && /^[A-Z]{3}$/.test(currency))
+    && new Set(data.currencies).size === data.currencies.length;
+  if (!validCategories || !validCurrencies) throw new Error('Transaction options could not be read. Please try again.');
   return data;
 }
 
