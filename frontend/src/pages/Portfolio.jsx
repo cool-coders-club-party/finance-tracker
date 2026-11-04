@@ -1,5 +1,5 @@
 // useEffect loads Portfolio data when the page opens.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getPortfolios, getHoldings } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
 import { getQuote, getPriceHistory } from "../api/marketData";
@@ -7,6 +7,8 @@ import SpotlightCard from "../components/SpotlightCard";
 import StrokeText from "../components/StrokeText";
 import CountUp from "../components/CountUp";
 import PriceHistoryChart from "../components/PriceHistoryChart";
+// The form handles purchase inputs and validation.
+import RecordPurchaseForm from "../components/RecordPurchaseForm";
 
 function formatPrice(value) {
   if (value == null) return "—";
@@ -37,6 +39,10 @@ export default function Portfolio() {
     holdings: [],
     error: "",
   });
+
+  // Share only the selected ticker with the purchase form; preserve its other inputs.
+  const [purchaseTicker, setPurchaseTicker] = useState("");
+  const purchaseQuantityRef = useRef(null);
 
   // Changing this number lets the Retry button request the data again.
   const [portfolioReload, setPortfolioReload] = useState(0);
@@ -162,31 +168,34 @@ export default function Portfolio() {
 
         {/* Holdings occupy the full width because they are this page's primary task. */}
         <SpotlightCard>
-          <section aria-labelledby="portfolio-heading" className="space-y-6">
-            <div>
+          <section aria-labelledby="portfolio-heading" className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="portfolio-heading" className="text-2xl font-bold">
                 Your portfolio
               </h2>
-              <p className="mt-1 text-sm text-white/60">
-                Your holdings, purchase history and investment performance.
-              </p>
+              {portfolioData.portfolio && (
+                <span className="text-sm text-white/80">
+                  {portfolioData.portfolio.name}
+                </span>
+              )}
             </div>
 
             {/* Missing data is shown as a dash, never as a misleading zero balance. */}
-            <dl className="grid gap-5 sm:grid-cols-3">
+            {/* Match the table's equal thirds without horizontal gaps shifting the columns. */}
+            <dl className="grid gap-y-4 sm:grid-cols-3">
               <div>
-                <dt className="text-sm text-white/60">Current value</dt>
-                <dd className="mt-1 text-3xl font-semibold">—</dd>
+                <dt className="text-sm text-white/80">Current value</dt>
+                <dd className="mt-1 text-2xl font-semibold">—</dd>
               </div>
 
               <div>
-                <dt className="text-sm text-white/60">Invested</dt>
-                <dd className="mt-1 text-3xl font-semibold">—</dd>
+                <dt className="text-sm text-white/80">Invested</dt>
+                <dd className="mt-1 text-2xl font-semibold">—</dd>
               </div>
 
               <div>
-                <dt className="text-sm text-white/60">Unrealised gain / loss</dt>
-                <dd className="mt-1 text-3xl font-semibold">—</dd>
+                <dt className="text-sm text-white/80">Unrealised gain / loss</dt>
+                <dd className="mt-1 text-2xl font-semibold">—</dd>
               </div>
             </dl>
 
@@ -214,11 +223,7 @@ export default function Portfolio() {
 
               {portfolioData.status === "ready" && (
                 <div className="space-y-4">
-                  <p className="text-sm text-white/60">
-                    {portfolioData.portfolio
-                      ? portfolioData.portfolio.name
-                      : "You have no portfolios yet."}
-                  </p>
+                  {!portfolioData.portfolio && <p>You have no portfolios yet.</p>}
 
                   {portfolioData.portfolio && portfolioData.holdings.length === 0 && (
                     <p>You have no holdings in this portfolio yet.</p>
@@ -227,14 +232,20 @@ export default function Portfolio() {
                   {/* Contain table scrolling so the whole page stays within the screen. */}
                   {portfolioData.holdings.length > 0 && (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="border-b border-white/10 text-white/60">
+                      {/* Equal columns keep headings and values aligned as data changes. */}
+                      <table className="w-full table-fixed text-left text-sm">
+                        <colgroup>
+                          <col className="w-1/3" />
+                          <col className="w-1/3" />
+                          <col className="w-1/3" />
+                        </colgroup>
+                        <thead className="border-b border-white/10 text-white/80">
                           <tr>
                             <th scope="col" className="pb-3 font-medium">Stock</th>
-                            <th scope="col" className="pb-3 text-right font-medium">
+                            <th scope="col" className="pb-3 text-left font-medium">
                               Shares
                             </th>
-                            <th scope="col" className="pb-3 pl-4 text-right font-medium">
+                            <th scope="col" className="pb-3 text-left font-medium">
                               Average price paid
                             </th>
                           </tr>
@@ -246,24 +257,32 @@ export default function Portfolio() {
                               <th scope="row" className="py-4 text-[#b8dc89]">
                                 {holding.ticker}
                               </th>
-                              <td className="py-4 text-right tabular-nums">
+                              <td className="py-4 text-left tabular-nums">
                                 {holding.quantity}
                               </td>
-                              <td className="py-4 pl-4 text-right tabular-nums">
+                              <td className="py-4 text-left tabular-nums">
                                 {formatPrice(holding.avgPurchasePrice)}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      <p className="mt-3 text-sm text-white/60">
-                        Purchase-price currency is currently unavailable.
+                      <p className="mt-2 text-xs text-white/75">
+                        Purchase-price currency unavailable.
                       </p>
                     </div>
                   )}
                 </div>
               )}
             </div>
+
+            {/* Keep the form mounted so research and retries do not discard entered details. */}
+            <RecordPurchaseForm
+              ticker={purchaseTicker}
+              onTickerChange={setPurchaseTicker}
+              quantityInputRef={purchaseQuantityRef}
+            />
+            
           </section>
         </SpotlightCard>
 
@@ -338,6 +357,18 @@ export default function Portfolio() {
                         </p>
                       )}
                     </div>
+
+                    {/* Prefill only the ticker; a live quote is not the user's purchase price. */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPurchaseTicker(quote.symbol);
+                        purchaseQuantityRef.current?.focus();
+                      }}
+                      className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
+                    >
+                      Use this stock
+                    </button>
 
                     {/* Stack statistics on narrow screens so long ranges can fit. */}
                     {details && (
