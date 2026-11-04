@@ -4,8 +4,7 @@ import { StaggeredMenu } from "./StaggeredMenu";
 
 const NAV_ITEMS = [
   { label: "Dashboard", link: "/" },
-  { label: "Portfolio", link: "/#portfolio", ariaLabel: "Go to portfolio on dashboard" },
-  { label: "Market Data", link: "/market-data" },
+  { label: "Portfolio", link: "/portfolio"},
   { label: "Add Transaction", link: "/transactions" },
 ];
 

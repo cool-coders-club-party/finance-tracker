@@ -15,7 +15,8 @@ function formatPrice(value) {
   });
 }
 
-export default function MarketData() {
+//This page will hold both stock lookup and the user's holdings
+export default function Portfolio() {
   const [tickerInput, setTickerInput] = useState("");
 
   const [quote, setQuote] = useState(null);
@@ -79,10 +80,10 @@ export default function MarketData() {
           <h1 className="w-full">
             <StrokeText
               className="mx-auto max-w-[520px]"
-              text="Market Data"
+              text="Portfolio"
               fontSize={64}
               letterSpacing={-2}
-              strokeColor="#60a5fa"
+              strokeColor="#b8dc89"
               fillColor="currentColor"
               drawDuration={1.1}
               stagger={0.04}
