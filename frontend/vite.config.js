@@ -17,6 +17,11 @@ export default defineConfig({
         target: "http://localhost:8082",
         changeOrigin: true,
       },
+      "/portfolio-api": {
+        target: "http://localhost:8083",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/portfolio-api/, ""),
+      },
     },
   },
   resolve: {

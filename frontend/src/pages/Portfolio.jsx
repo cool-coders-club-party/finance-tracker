@@ -75,8 +75,10 @@ export default function Portfolio() {
 
   return (
     <DashboardShell>
-      <main className="mx-auto w-full max-w-3xl space-y-6 px-4 text-left">
+      {/* Use the available width while preventing children from widening the page. */}
+      <main className="mx-auto w-full min-w-0 max-w-6xl space-y-6 text-left">
         <header className="flex flex-col items-center gap-2 text-center">
+
           <h1 className="w-full">
             <StrokeText
               className="mx-auto max-w-[520px]"
@@ -91,156 +93,241 @@ export default function Portfolio() {
             />
           </h1>
           <p className="text-sm text-white/90">
-            Look up the latest available stock price.
+            Track your holdings. Explore the market.
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex-1">
-            <span className="mb-2 block text-sm">Ticker symbol</span>
-            <input
-              type="search"
-              value={tickerInput}
-              onChange={(event) => setTickerInput(event.target.value)}
-              placeholder="e.g. AAPL"
-              className="h-10 w-full rounded-lg border border-input bg-background/70 px-3"
-            />
-          </label>
+        {/* Holdings occupy the full width because they are this page's primary task. */}
+        <SpotlightCard>
+          <section aria-labelledby="portfolio-heading" className="space-y-6">
+            <div>
+              <h2 id="portfolio-heading" className="text-2xl font-bold">
+                Your portfolio
+              </h2>
+              <p className="mt-1 text-sm text-white/60">
+                Your holdings, purchase history and investment performance.
+              </p>
+            </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="h-10 self-end rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50"
-          >
-            {isHistoryLoading ? "Loading history..." : isLoading ? "Looking up..." : "Find price"}
-          </button>
-        </form>
+            {/* Missing data is shown as a dash, never as a misleading zero balance. */}
+            <dl className="grid gap-5 sm:grid-cols-3">
+              <div>
+                <dt className="text-sm text-white/60">Current value</dt>
+                <dd className="mt-1 text-3xl font-semibold">—</dd>
+              </div>
 
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        {quote && (
-          <SpotlightCard className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
-            <section aria-live="polite" className="space-y-3">
-              <div className="flex flex-wrap items-end justify-between gap-5">
-                <div>
-                  <h2 className="text-2xl font-bold">
-                    {details?.name || quote.symbol}
-                  </h2>
-                  {details?.name && (
-                    <p className="text-sm text-white/60">{quote.symbol}</p>
+              <div>
+                <dt className="text-sm text-white/60">Invested</dt>
+                <dd className="mt-1 text-3xl font-semibold">—</dd>
+              </div>
+
+              <div>
+                <dt className="text-sm text-white/60">Unrealised gain / loss</dt>
+                <dd className="mt-1 text-3xl font-semibold">—</dd>
+              </div>
+            </dl>
+
+            <p className="border-t border-white/10 pt-5 text-sm text-white/60">
+              Your portfolio has not been loaded yet.
+            </p>
+          </section>
+        </SpotlightCard>
+
+        {/* Stack on smaller screens; use a wider lookup column on desktop. */}
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <SpotlightCard className="min-w-0">
+          <section aria-labelledby="lookup-heading" className="min-w-0 space-y-5">
+            <h2 id="lookup-heading" className="text-2xl font-bold">
+              Stock lookup
+            </h2>
+
+
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-sm">Ticker symbol</span>
+                <input
+                  type="search"
+                  value={tickerInput}
+                  onChange={(event) => setTickerInput(event.target.value)}
+                  placeholder="e.g. AAPL"
+                  className="h-10 w-full rounded-lg border border-input bg-background/70 px-3"
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="h-10 w-full self-end rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50 sm:w-auto"
+              >
+                {isHistoryLoading ? "Loading history..." : isLoading ? "Looking up..." : "Find price"}
+              </button>
+            </form>
+
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            {quote && (
+              <div className="min-w-0 border-t border-white/10 pt-5">
+                <section aria-live="polite" className="space-y-3">
+                  <div className="flex flex-wrap items-end justify-between gap-5">
+                    <div>
+                      <h2 className="text-2xl font-bold">
+                        {details?.name || quote.symbol}
+                      </h2>
+                      {details?.name && (
+                        <p className="text-sm text-white/60">{quote.symbol}</p>
+                      )}
+
+                      <p className="mt-5 text-sm text-white/60">Price per share</p>
+                      <p className="text-4xl font-bold text-blue-400">
+                        <CountUp
+                          to={Number(quote.price)}
+                          decimals={2}
+                          separator=","
+                          duration={1.2}
+                          trigger="load"
+                        />
+                        {details?.currency && (
+                          <span className="ml-2 text-base font-semibold">
+                            {details.currency}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    {dailyChange !== null && percentChange !== null && (
+                      <p
+                        className={`pb-1 text-lg font-semibold ${dailyChange >= 0 ? "text-blue-400" : "text-red-400"
+                          }`}
+                      >
+                        {dailyChange >= 0 ? "+" : ""}
+                        {dailyChange.toFixed(2)}{" "}
+                        {percentChange >= 0 ? "+" : ""}
+                        {percentChange.toFixed(2)}%
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stack statistics on narrow screens so long ranges can fit. */}
+                  {details && (
+                    <dl className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-sm text-white/60">Open</dt>
+                        <dd className="font-semibold">{formatPrice(details.open)}</dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-sm text-white/60">Previous close</dt>
+                        <dd className="font-semibold">{formatPrice(details.previousClose)}</dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-sm text-white/60">Volume</dt>
+                        <dd className="font-semibold">
+                          {details.volume == null
+                            ? "—"
+                            : Number(details.volume).toLocaleString("en-IE")}
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-sm text-white/60">Day range</dt>
+                        <dd className="font-semibold">
+                          {details.low == null || details.high == null
+                            ? "—"
+                            : `${formatPrice(details.low)} – ${formatPrice(details.high)}`}
+                        </dd>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <dt className="text-sm text-white/60">52-week range</dt>
+                        <dd className="font-semibold">
+                          {details.fiftyTwoWeekLow == null || details.fiftyTwoWeekHigh == null
+                            ? "—"
+                            : `${formatPrice(details.fiftyTwoWeekLow)} – ${formatPrice(details.fiftyTwoWeekHigh)}`}
+                        </dd>
+                      </div>
+                    </dl>
                   )}
 
-                  <p className="mt-5 text-sm text-white/60">Price per share</p>
-                  <p className="text-4xl font-bold text-blue-400">
-                    <CountUp
-                      to={Number(quote.price)}
-                      decimals={2}
-                      separator=","
-                      duration={1.2}
-                      trigger="load"
-                    />
-                    {details?.currency && (
-                      <span className="ml-2 text-base font-semibold">
-                        {details.currency}
-                      </span>
+                  <p className="text-sm text-muted-foreground">
+                    As of: {new Date(quote.asOf).toLocaleString("en-IE")}
+                  </p>
+
+                  {quote.stale && (
+                    <p className="text-sm text-amber-400">
+                      Cached price — live market data is temporarily unavailable.
+                    </p>
+                  )}
+
+                  <div className="border-t border-white/10 pt-5">
+                    <h3 className="mb-3 text-sm font-semibold text-white/80">
+                      Past month
+                    </h3>
+
+                    {isHistoryLoading && (
+                      <p className="text-sm text-white/60">Loading price history...</p>
                     )}
-                  </p>
-                </div>
 
-                {dailyChange !== null && percentChange !== null && (
-                  <p
-                    className={`pb-1 text-lg font-semibold ${dailyChange >= 0 ? "text-blue-400" : "text-red-400"
-                      }`}
-                  >
-                    {dailyChange >= 0 ? "+" : ""}
-                    {dailyChange.toFixed(2)}{" "}
-                    {percentChange >= 0 ? "+" : ""}
-                    {percentChange.toFixed(2)}%
-                  </p>
-                )}
+                    {historyError && (
+                      <p className="text-sm text-amber-400">{historyError}</p>
+                    )}
+
+                    {!isHistoryLoading && !historyError && history.length > 1 && (
+                      <PriceHistoryChart
+                        points={history}
+                        currency={details?.currency}
+                      />
+                    )}
+
+                    {!isHistoryLoading && !historyError && history.length <= 1 && (
+                      <p className="text-sm text-white/60">
+                        Not enough price history to draw a graph.
+                      </p>
+                    )}
+                  </div>
+
+
+                </section>
               </div>
-
-              {details && (
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-5">
-                  <div>
-                    <dt className="text-sm text-white/60">Open</dt>
-                    <dd className="font-semibold">{formatPrice(details.open)}</dd>
-                  </div>
-
-                  <div>
-                    <dt className="text-sm text-white/60">Previous close</dt>
-                    <dd className="font-semibold">{formatPrice(details.previousClose)}</dd>
-                  </div>
-
-                  <div>
-                    <dt className="text-sm text-white/60">Volume</dt>
-                    <dd className="font-semibold">
-                      {details.volume == null
-                        ? "—"
-                        : Number(details.volume).toLocaleString("en-IE")}
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt className="text-sm text-white/60">Day range</dt>
-                    <dd className="font-semibold">
-                      {details.low == null || details.high == null
-                        ? "—"
-                        : `${formatPrice(details.low)} – ${formatPrice(details.high)}`}
-                    </dd>
-                  </div>
-
-                  <div className="col-span-2">
-                    <dt className="text-sm text-white/60">52-week range</dt>
-                    <dd className="font-semibold">
-                      {details.fiftyTwoWeekLow == null || details.fiftyTwoWeekHigh == null
-                        ? "—"
-                        : `${formatPrice(details.fiftyTwoWeekLow)} – ${formatPrice(details.fiftyTwoWeekHigh)}`}
-                    </dd>
-                  </div>
-                </dl>
-              )}
-
-              <p className="text-sm text-muted-foreground">
-                As of: {new Date(quote.asOf).toLocaleString("en-IE")}
-              </p>
-
-              {quote.stale && (
-                <p className="text-sm text-amber-400">
-                  Cached price — live market data is temporarily unavailable.
-                </p>
-              )}
-
-              <div className="border-t border-white/10 pt-5">
-                <h3 className="mb-3 text-sm font-semibold text-white/80">
-                  Past month
-                </h3>
-
-                {isHistoryLoading && (
-                  <p className="text-sm text-white/60">Loading price history...</p>
-                )}
-
-                {historyError && (
-                  <p className="text-sm text-amber-400">{historyError}</p>
-                )}
-
-                {!isHistoryLoading && !historyError && history.length > 1 && (
-                  <PriceHistoryChart
-                    points={history}
-                    currency={details?.currency}
-                  />
-                )}
-
-                {!isHistoryLoading && !historyError && history.length <= 1 && (
-                  <p className="text-sm text-white/60">
-                    Not enough price history to draw a graph.
-                  </p>
-                )}
-              </div>
-
-
-            </section>
+            )}
+          </section>
           </SpotlightCard>
-        )}
+
+          {/* This follows lookup on small screens and sits beside it on desktop. */}
+          <aside aria-label="Market overview" className="min-w-0 space-y-6">
+            <SpotlightCard>
+              <section aria-labelledby="top-stocks-heading" className="space-y-3">
+                <header>
+                  <h2 id="top-stocks-heading" className="text-xl font-bold">
+                    Top 5 stocks
+                  </h2>
+                  <p className="mt-1 text-sm text-white/60">
+                    By market capitalisation · US stocks
+                  </p>
+                </header>
+                <p className="border-t border-white/10 pt-4 text-sm text-white/60">
+                  No ranking loaded.
+                </p>
+              </section>
+            </SpotlightCard>
+
+            <SpotlightCard>
+              <section aria-labelledby="movers-heading" className="space-y-3">
+                <header>
+                  <h2 id="movers-heading" className="text-xl font-bold">
+                    Top 5 movers
+                  </h2>
+                  <p className="mt-1 text-sm text-white/60">
+                    Largest absolute daily change · US stocks
+                  </p>
+                </header>
+                <p className="border-t border-white/10 pt-4 text-sm text-white/60">
+                  No ranking loaded.
+                </p>
+              </section>
+            </SpotlightCard>
+          </aside>
+        </div>
       </main>
     </DashboardShell>
   );
