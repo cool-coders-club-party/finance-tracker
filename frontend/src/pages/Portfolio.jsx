@@ -1,4 +1,6 @@
-import { useState } from "react";
+// useEffect loads Portfolio data when the page opens.
+import { useEffect, useState } from "react";
+import { getPortfolios, getHoldings } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
 import { getQuote, getPriceHistory } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
@@ -27,6 +29,67 @@ export default function Portfolio() {
   const [history, setHistory] = useState([]);
   const [historyError, setHistoryError] = useState("");
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  // Keep the request status and its data together.
+  const [portfolioData, setPortfolioData] = useState({
+    status: "loading",
+    portfolio: null,
+    holdings: [],
+    error: "",
+  });
+
+  // Changing this number lets the Retry button request the data again.
+  const [portfolioReload, setPortfolioReload] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadPortfolio() {
+      setPortfolioData({
+        status: "loading",
+        portfolio: null,
+        holdings: [],
+        error: "",
+      });
+
+      try {
+        const portfolios = await getPortfolios(controller.signal);
+
+        // Initially display the first available portfolio.
+        // Its name will be visible so the user knows which one is selected.
+        const selectedPortfolio = portfolios[0] ?? null;
+
+        const holdings = selectedPortfolio
+          ? await getHoldings(selectedPortfolio.id, controller.signal)
+          : [];
+
+        // Ignore results if the page was left while requests were running.
+        if (controller.signal.aborted) return;
+
+        setPortfolioData({
+          status: "ready",
+          portfolio: selectedPortfolio,
+          holdings,
+          error: "",
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setPortfolioData({
+          status: "error",
+          portfolio: null,
+          holdings: [],
+          error: error.message,
+        });
+      }
+    }
+
+    loadPortfolio();
+
+    // Cancel unfinished requests when leaving the page or retrying.
+    return () => controller.abort();
+  }, [portfolioReload]);
+
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -127,170 +190,239 @@ export default function Portfolio() {
               </div>
             </dl>
 
-            <p className="border-t border-white/10 pt-5 text-sm text-white/60">
-              Your portfolio has not been loaded yet.
-            </p>
+            {/* Announce loading and results without interrupting the user. */}
+            <div aria-live="polite" className="border-t border-white/10 pt-5">
+              {portfolioData.status === "loading" && (
+                <p className="text-sm text-white/60">Loading your holdings…</p>
+              )}
+
+              {portfolioData.status === "error" && (
+                <div className="space-y-3">
+                  <p role="alert" className="text-sm text-amber-400">
+                    {portfolioData.error}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setPortfolioReload((current) => current + 1)}
+                    className="rounded-lg border border-white/20 px-4 py-2 text-sm"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {portfolioData.status === "ready" && (
+                <div className="space-y-4">
+                  <p className="text-sm text-white/60">
+                    {portfolioData.portfolio
+                      ? portfolioData.portfolio.name
+                      : "You have no portfolios yet."}
+                  </p>
+
+                  {portfolioData.portfolio && portfolioData.holdings.length === 0 && (
+                    <p>You have no holdings in this portfolio yet.</p>
+                  )}
+
+                  {/* Contain table scrolling so the whole page stays within the screen. */}
+                  {portfolioData.holdings.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="border-b border-white/10 text-white/60">
+                          <tr>
+                            <th scope="col" className="pb-3 font-medium">Stock</th>
+                            <th scope="col" className="pb-3 text-right font-medium">
+                              Shares
+                            </th>
+                            <th scope="col" className="pb-3 pl-4 text-right font-medium">
+                              Average price paid
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-white/10">
+                          {portfolioData.holdings.map((holding) => (
+                            <tr key={holding.id}>
+                              <th scope="row" className="py-4 text-[#b8dc89]">
+                                {holding.ticker}
+                              </th>
+                              <td className="py-4 text-right tabular-nums">
+                                {holding.quantity}
+                              </td>
+                              <td className="py-4 pl-4 text-right tabular-nums">
+                                {formatPrice(holding.avgPurchasePrice)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <p className="mt-3 text-sm text-white/60">
+                        Purchase-price currency is currently unavailable.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
         </SpotlightCard>
 
         {/* Stack on smaller screens; use a wider lookup column on desktop. */}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <SpotlightCard className="min-w-0">
-          <section aria-labelledby="lookup-heading" className="min-w-0 space-y-5">
-            <h2 id="lookup-heading" className="text-2xl font-bold">
-              Stock lookup
-            </h2>
+            <section aria-labelledby="lookup-heading" className="min-w-0 space-y-5">
+              <h2 id="lookup-heading" className="text-2xl font-bold">
+                Stock lookup
+              </h2>
 
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
+                <label className="min-w-0 flex-1">
+                  <span className="mb-2 block text-sm">Ticker symbol</span>
+                  <input
+                    type="search"
+                    value={tickerInput}
+                    onChange={(event) => setTickerInput(event.target.value)}
+                    placeholder="e.g. AAPL"
+                    className="h-10 w-full rounded-lg border border-input bg-background/70 px-3"
+                  />
+                </label>
 
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="h-10 w-full self-end rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50 sm:w-auto"
+                >
+                  {isHistoryLoading ? "Loading history..." : isLoading ? "Looking up..." : "Find price"}
+                </button>
+              </form>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
-              <label className="min-w-0 flex-1">
-                <span className="mb-2 block text-sm">Ticker symbol</span>
-                <input
-                  type="search"
-                  value={tickerInput}
-                  onChange={(event) => setTickerInput(event.target.value)}
-                  placeholder="e.g. AAPL"
-                  className="h-10 w-full rounded-lg border border-input bg-background/70 px-3"
-                />
-              </label>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="h-10 w-full self-end rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50 sm:w-auto"
-              >
-                {isHistoryLoading ? "Loading history..." : isLoading ? "Looking up..." : "Find price"}
-              </button>
-            </form>
-
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-            {quote && (
-              <div className="min-w-0 border-t border-white/10 pt-5">
-                <section aria-live="polite" className="space-y-3">
-                  <div className="flex flex-wrap items-end justify-between gap-5">
-                    <div>
-                      <h2 className="text-2xl font-bold">
-                        {details?.name || quote.symbol}
-                      </h2>
-                      {details?.name && (
-                        <p className="text-sm text-white/60">{quote.symbol}</p>
-                      )}
-
-                      <p className="mt-5 text-sm text-white/60">Price per share</p>
-                      <p className="text-4xl font-bold text-blue-400">
-                        <CountUp
-                          to={Number(quote.price)}
-                          decimals={2}
-                          separator=","
-                          duration={1.2}
-                          trigger="load"
-                        />
-                        {details?.currency && (
-                          <span className="ml-2 text-base font-semibold">
-                            {details.currency}
-                          </span>
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+              {quote && (
+                <div className="min-w-0 border-t border-white/10 pt-5">
+                  <section aria-live="polite" className="space-y-3">
+                    <div className="flex flex-wrap items-end justify-between gap-5">
+                      <div>
+                        <h2 className="text-2xl font-bold">
+                          {details?.name || quote.symbol}
+                        </h2>
+                        {details?.name && (
+                          <p className="text-sm text-white/60">{quote.symbol}</p>
                         )}
-                      </p>
+
+                        <p className="mt-5 text-sm text-white/60">Price per share</p>
+                        <p className="text-4xl font-bold text-blue-400">
+                          <CountUp
+                            to={Number(quote.price)}
+                            decimals={2}
+                            separator=","
+                            duration={1.2}
+                            trigger="load"
+                          />
+                          {details?.currency && (
+                            <span className="ml-2 text-base font-semibold">
+                              {details.currency}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      {dailyChange !== null && percentChange !== null && (
+                        <p
+                          className={`pb-1 text-lg font-semibold ${dailyChange >= 0 ? "text-blue-400" : "text-red-400"
+                            }`}
+                        >
+                          {dailyChange >= 0 ? "+" : ""}
+                          {dailyChange.toFixed(2)}{" "}
+                          {percentChange >= 0 ? "+" : ""}
+                          {percentChange.toFixed(2)}%
+                        </p>
+                      )}
                     </div>
 
-                    {dailyChange !== null && percentChange !== null && (
-                      <p
-                        className={`pb-1 text-lg font-semibold ${dailyChange >= 0 ? "text-blue-400" : "text-red-400"
-                          }`}
-                      >
-                        {dailyChange >= 0 ? "+" : ""}
-                        {dailyChange.toFixed(2)}{" "}
-                        {percentChange >= 0 ? "+" : ""}
-                        {percentChange.toFixed(2)}%
-                      </p>
+                    {/* Stack statistics on narrow screens so long ranges can fit. */}
+                    {details && (
+                      <dl className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-2">
+                        <div>
+                          <dt className="text-sm text-white/60">Open</dt>
+                          <dd className="font-semibold">{formatPrice(details.open)}</dd>
+                        </div>
+
+                        <div>
+                          <dt className="text-sm text-white/60">Previous close</dt>
+                          <dd className="font-semibold">{formatPrice(details.previousClose)}</dd>
+                        </div>
+
+                        <div>
+                          <dt className="text-sm text-white/60">Volume</dt>
+                          <dd className="font-semibold">
+                            {details.volume == null
+                              ? "—"
+                              : Number(details.volume).toLocaleString("en-IE")}
+                          </dd>
+                        </div>
+
+                        <div>
+                          <dt className="text-sm text-white/60">Day range</dt>
+                          <dd className="font-semibold">
+                            {details.low == null || details.high == null
+                              ? "—"
+                              : `${formatPrice(details.low)} – ${formatPrice(details.high)}`}
+                          </dd>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <dt className="text-sm text-white/60">52-week range</dt>
+                          <dd className="font-semibold">
+                            {details.fiftyTwoWeekLow == null || details.fiftyTwoWeekHigh == null
+                              ? "—"
+                              : `${formatPrice(details.fiftyTwoWeekLow)} – ${formatPrice(details.fiftyTwoWeekHigh)}`}
+                          </dd>
+                        </div>
+                      </dl>
                     )}
-                  </div>
 
-                  {/* Stack statistics on narrow screens so long ranges can fit. */}
-                  {details && (
-                    <dl className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-2">
-                      <div>
-                        <dt className="text-sm text-white/60">Open</dt>
-                        <dd className="font-semibold">{formatPrice(details.open)}</dd>
-                      </div>
-
-                      <div>
-                        <dt className="text-sm text-white/60">Previous close</dt>
-                        <dd className="font-semibold">{formatPrice(details.previousClose)}</dd>
-                      </div>
-
-                      <div>
-                        <dt className="text-sm text-white/60">Volume</dt>
-                        <dd className="font-semibold">
-                          {details.volume == null
-                            ? "—"
-                            : Number(details.volume).toLocaleString("en-IE")}
-                        </dd>
-                      </div>
-
-                      <div>
-                        <dt className="text-sm text-white/60">Day range</dt>
-                        <dd className="font-semibold">
-                          {details.low == null || details.high == null
-                            ? "—"
-                            : `${formatPrice(details.low)} – ${formatPrice(details.high)}`}
-                        </dd>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <dt className="text-sm text-white/60">52-week range</dt>
-                        <dd className="font-semibold">
-                          {details.fiftyTwoWeekLow == null || details.fiftyTwoWeekHigh == null
-                            ? "—"
-                            : `${formatPrice(details.fiftyTwoWeekLow)} – ${formatPrice(details.fiftyTwoWeekHigh)}`}
-                        </dd>
-                      </div>
-                    </dl>
-                  )}
-
-                  <p className="text-sm text-muted-foreground">
-                    As of: {new Date(quote.asOf).toLocaleString("en-IE")}
-                  </p>
-
-                  {quote.stale && (
-                    <p className="text-sm text-amber-400">
-                      Cached price — live market data is temporarily unavailable.
+                    <p className="text-sm text-muted-foreground">
+                      As of: {new Date(quote.asOf).toLocaleString("en-IE")}
                     </p>
-                  )}
 
-                  <div className="border-t border-white/10 pt-5">
-                    <h3 className="mb-3 text-sm font-semibold text-white/80">
-                      Past month
-                    </h3>
-
-                    {isHistoryLoading && (
-                      <p className="text-sm text-white/60">Loading price history...</p>
-                    )}
-
-                    {historyError && (
-                      <p className="text-sm text-amber-400">{historyError}</p>
-                    )}
-
-                    {!isHistoryLoading && !historyError && history.length > 1 && (
-                      <PriceHistoryChart
-                        points={history}
-                        currency={details?.currency}
-                      />
-                    )}
-
-                    {!isHistoryLoading && !historyError && history.length <= 1 && (
-                      <p className="text-sm text-white/60">
-                        Not enough price history to draw a graph.
+                    {quote.stale && (
+                      <p className="text-sm text-amber-400">
+                        Cached price — live market data is temporarily unavailable.
                       </p>
                     )}
-                  </div>
+
+                    <div className="border-t border-white/10 pt-5">
+                      <h3 className="mb-3 text-sm font-semibold text-white/80">
+                        Past month
+                      </h3>
+
+                      {isHistoryLoading && (
+                        <p className="text-sm text-white/60">Loading price history...</p>
+                      )}
+
+                      {historyError && (
+                        <p className="text-sm text-amber-400">{historyError}</p>
+                      )}
+
+                      {!isHistoryLoading && !historyError && history.length > 1 && (
+                        <PriceHistoryChart
+                          points={history}
+                          currency={details?.currency}
+                        />
+                      )}
+
+                      {!isHistoryLoading && !historyError && history.length <= 1 && (
+                        <p className="text-sm text-white/60">
+                          Not enough price history to draw a graph.
+                        </p>
+                      )}
+                    </div>
 
 
-                </section>
-              </div>
-            )}
-          </section>
+                  </section>
+                </div>
+              )}
+            </section>
           </SpotlightCard>
 
           {/* This follows lookup on small screens and sits beside it on desktop. */}
