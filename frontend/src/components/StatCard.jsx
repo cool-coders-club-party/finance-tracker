@@ -6,6 +6,7 @@ function StatCard({ title, icon: Icon, available, value, formatter, change, capt
   const isUp = change >= 0;
   const isFavourable = isUp === positiveIsGood;
   const TrendIcon = isUp ? ArrowUpRight : ArrowDownRight;
+  const hasTrend = Number.isFinite(change);
 
   return (
     <Card className="glass bg-card/10">
@@ -16,7 +17,7 @@ function StatCard({ title, icon: Icon, available, value, formatter, change, capt
       <CardContent className="text-2xl font-bold">
           {available ? formatter(value) : "Data Unavailable"}
       </CardContent>
-      {available && (
+      {available && hasTrend && (
           <CardFooter className="gap-2 test-xs text-muted-foreground">
               <Badge variant={isFavourable ? "secondary" : "destructive"}>
                   <TrendIcon className="size-3" />
