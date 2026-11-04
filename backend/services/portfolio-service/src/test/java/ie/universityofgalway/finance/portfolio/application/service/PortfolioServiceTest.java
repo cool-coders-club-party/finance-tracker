@@ -221,4 +221,15 @@ class PortfolioServiceTest {
 
         verifyNoInteractions(tradeRepository);
     }
+
+    @Test
+    void sellingAnUnknownTickerIsInvalidSymbolNotInsufficientShares() {
+        callerOwnsPortfolio();
+        when(priceClient.getPrice("APPL")).thenThrow(new InvalidSymbolException("APPL"));
+
+        assertThatThrownBy(() -> portfolioService.sell(1L, "user-1", "APPL", bd("1")))
+                .isInstanceOf(InvalidSymbolException.class);
+
+        verifyNoInteractions(holdingRepository, tradeRepository);
+    }
 }

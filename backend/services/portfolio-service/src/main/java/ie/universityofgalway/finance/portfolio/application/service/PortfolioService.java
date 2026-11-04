@@ -56,10 +56,11 @@ public class PortfolioService {
         String symbol = ticker.toUpperCase();
         requireOwnedPortfolio(portfolioId, userId);
 
+        BigDecimal price = priceClient.getPrice(symbol);
+
         Holding holding = holdingRepository.findByPortfolioIdAndTicker(portfolioId, symbol)
                 .orElseThrow(() -> new InsufficientSharesException(symbol, quantity, BigDecimal.ZERO));
 
-        BigDecimal price = priceClient.getPrice(symbol);
 
         Trade trade = holding.sell(quantity, price, Instant.now());
 
