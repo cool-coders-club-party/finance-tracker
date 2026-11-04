@@ -14,31 +14,31 @@ const formatMoney = (amount) =>
 const DASHBOARD_USER_ID = 5;
 
 const mockDashboardData = {
-  transactions: {
-    available: false,
-    totalIncome: 3200,
-    totalIncomeChange: 8.2,
-    totalIncomeCaption: "vs. last month",
-    totalIncomePositive: true,
-
-    totalExpenses: 1875,
-    totalExpensesChange: 3.4,
-    totalExpensesCaption: "vs. last month",
-    totalExpensesPositive: false,
-
-    cashBalance: 1325,
-    cashBalanceChange: -1.9,
-    cashBalanceCaption: "across 3 accounts",
-    cashBalancePositive: true,
-
-    expensesByCategory: [
-      { key: "housing", label: "Housing", amount: 900 },
-      { key: "groceries", label: "Groceries", amount: 350 },
-      { key: "transport", label: "Transport", amount: 175 },
-      { key: "entertainment", label: "Entertainment", amount: 225 },
-      { key: "other", label: "Other", amount: 225 },
-    ],
-  },
+//   transactions: {
+//     available: false,
+//     totalIncome: 3200,
+//     totalIncomeChange: 8.2,
+//     totalIncomeCaption: "vs. last month",
+//     totalIncomePositive: true,
+//
+//     totalExpenses: 1875,
+//     totalExpensesChange: 3.4,
+//     totalExpensesCaption: "vs. last month",
+//     totalExpensesPositive: false,
+//
+//     cashBalance: 1325,
+//     cashBalanceChange: -1.9,
+//     cashBalanceCaption: "across 3 accounts",
+//     cashBalancePositive: true,
+//
+//     expensesByCategory: [
+//       { key: "housing", label: "Housing", amount: 900 },
+//       { key: "groceries", label: "Groceries", amount: 350 },
+//       { key: "transport", label: "Transport", amount: 175 },
+//       { key: "entertainment", label: "Entertainment", amount: 225 },
+//       { key: "other", label: "Other", amount: 225 },
+//     ],
+//   },
   portfolio: {
     available: true,
     investmentValue: 4820,
@@ -429,10 +429,10 @@ function InvestmentPortfolioCard() {
 }
 // ====================== MARKET DATA API IMPLEMENTATION ABOVE: FORMATTING, SEARCHING, UPDATING, ETC. ======================
 function Dashboard() {
-    const { transactions, portfolio } = mockDashboardData;
+    const { portfolio } = mockDashboardData;
 
     // Get transaction expense history.
-    const [expenseHistory, setExpenseHistory] = useState({
+    const [transactionHistory, setTransactionHistory] = useState({
       status: "loading",
       records: [],
       error: "",
@@ -447,6 +447,7 @@ function Dashboard() {
           const firstPage = await getTransactionHistory(DASHBOARD_USER_ID, {
             page: 0,
             size: 100,
+            type: null,
             signal: controller.signal,
           });
 
@@ -458,6 +459,7 @@ function Dashboard() {
                 getTransactionHistory(DASHBOARD_USER_ID, {
                   page: index + 1,
                   size: 100,
+                  type: null,
                   signal: controller.signal,
                 }),
             ),
@@ -472,10 +474,10 @@ function Dashboard() {
           ];
 
           // If error return expense history with an error.
-          setExpenseHistory({ status: "ready", records, error: "" });
+          setTransactionHistory({ status: "ready", records, error: "" });
         } catch (error) {
           if (controller.signal.aborted) return;
-          setExpenseHistory({
+          setTransactionHistory({
             status: "error",
             records: [],
             error: error.message,
@@ -487,11 +489,34 @@ function Dashboard() {
       return () => controller.abort();
     }, []);
 
+    const transactionTotals = useMemo(() => {
+      let totalIncome = 0;
+      let totalExpenses = 0;
+
+      for (const record of transactionHistory.records) {
+        const amount = Number(record.amount);
+
+        if (!Number.isFinite(amount) || amount <= 0) continue;
+
+        if (record.transactionType === "INCOME") {
+          totalIncome += amount;
+        } else if (record.transactionType === "EXPENSE") {
+          totalExpenses += amount;
+        }
+      }
+
+      return {
+        totalIncome,
+        totalExpenses,
+        cashBalance: totalIncome - totalExpenses,
+      };
+    }, [transactionHistory.records]);
+
     // New empty map, find every transaction, skip if not expense.
     const expensesByCategory = useMemo(() => {
       const totalsByCategory = new Map();
 
-      for (const record of expenseHistory.records) {
+      for (const record of transactionHistory.records) {
         if (record.transactionType !== "EXPENSE") continue;
         // Convert to number.
         const category = record.transactionCategory;
@@ -511,9 +536,9 @@ function Dashboard() {
           .replace(/\b\w/g, (letter) => letter.toUpperCase()),
         amount,
       })).sort((a, b) => b.amount - a.amount); // Sort from most spending to lowest.
-    }, [expenseHistory.records]); // Tells react when to recalculate.
+    }, [transactionHistory.records]); // Tells react when to recalculate.
 
-    const combinedTotal = transactions.cashBalance + portfolio.investmentValue;
+    const combinedTotal = transactionTotals.cashBalance + portfolio.investmentValue;
 
     const palette = [
       "var(--chart-1)",
@@ -545,32 +570,23 @@ function Dashboard() {
         <StatCard
           title="Total Income"
           icon={Wallet}
-          available={transactions.available}
-          value={transactions.totalIncome}
+          available={transactionHistory.status === "ready"}
+          value={transactionTotals.totalIncome}
           formatter={formatMoney}
-          change={transactions.totalIncomeChange}
-          caption={transactions.totalIncomeCaption}
-          positiveIsGood={transactions.totalIncomePositive}
         />
         <StatCard
           title="Total Expenses"
           icon={Receipt}
-          available={transactions.available}
-          value={transactions.totalExpenses}
+          available={transactionHistory.status === "ready"}
+          value={transactionTotals.totalExpenses}
           formatter={formatMoney}
-          change={transactions.totalExpensesChange}
-          caption={transactions.totalExpensesCaption}
-          positiveIsGood={transactions.totalExpensesPositive}
         />
         <StatCard
           title="Cash Balance"
           icon={Landmark}
-          available={transactions.available}
-          value={transactions.cashBalance}
+          available={transactionHistory.status === "ready"}
+          value={transactionTotals.cashBalance}
           formatter={formatMoney}
-          change={transactions.cashBalanceChange}
-          caption={transactions.cashBalanceCaption}
-          positiveIsGood={transactions.cashBalancePositive}
         />
         <StatCard
           title="Investment Value"
