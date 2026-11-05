@@ -1,6 +1,4 @@
 spring:
-
-
   datasource:
     url: ${PORTFOLIO_DB_URL:jdbc:postgresql://localhost:5432/portfolio}
     username: ${PORTFOLIO_DB_USER:portfolio}
@@ -8,8 +6,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+
 server:
   port: 8083
+
+price-client:
+  type: market-data   # use "fake" to go back to FakePriceClient
+
+market-data:
+  base-url: http://localhost:8084
+  connect-timeout-ms: 1000
+  read-timeout-ms: 2000
+
 management:
   endpoints:
     web:

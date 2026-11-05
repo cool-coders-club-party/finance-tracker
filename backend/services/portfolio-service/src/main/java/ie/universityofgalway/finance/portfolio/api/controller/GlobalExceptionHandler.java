@@ -4,6 +4,7 @@ import ie.universityofgalway.finance.portfolio.api.dto.ErrorResponse;
 import ie.universityofgalway.finance.portfolio.domain.exception.InsufficientSharesException;
 import ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException;
 import ie.universityofgalway.finance.portfolio.domain.exception.PortfolioNotFoundException;
+import ie.universityofgalway.finance.portfolio.domain.exception.PriceUnavailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,5 +46,10 @@ public class GlobalExceptionHandler {
                 .orElse("Invalid request");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("VALIDATION_ERROR", message));
+    }
+    @ExceptionHandler(PriceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handlePriceUnavailable(PriceUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("PRICE_UNAVAILABLE", ex.getMessage()));
     }
 }
