@@ -201,9 +201,9 @@ class AuthControllerTest {
     }
 
     @Test
-    void unknownPathReturns403ForUnauthenticatedCaller() throws Exception {
+    void unknownPathReturns401ForUnauthenticatedCaller() throws Exception {
         mvc.perform(get("/api/auth/does-not-exist"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -268,5 +268,18 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(tokenIssuer);
+    }
+
+    @Test
+    void meWithoutATokenIsRejected() throws Exception {
+        mvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void meWithAnInvalidTokenIsRejected() throws Exception {
+        mvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer not-a-real-token"))
+                .andExpect(status().isUnauthorized());
     }
 }
