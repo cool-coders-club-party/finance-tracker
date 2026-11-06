@@ -1,0 +1,4 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:17.5-alpine:///transactions
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
