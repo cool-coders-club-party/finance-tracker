@@ -1,6 +1,8 @@
 package ie.universityofgalway.finance.users.api;
 
+import ie.universityofgalway.finance.users.application.AccessToken;
 import ie.universityofgalway.finance.users.application.AuthService;
+import ie.universityofgalway.finance.users.application.TokenIssuer;
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.User;
@@ -49,6 +51,9 @@ class AuthControllerTest {
     @MockitoBean
     private AuthService authService; // mock AuthService
 
+    @MockitoBean
+    private TokenIssuer tokenIssuer;
+
     /**
      * Passing behavior to Mockito for authService to ensure tests run correctly
      * An un-stubbed mock service returns null, which would crash the controller.
@@ -57,6 +62,7 @@ class AuthControllerTest {
     void stubService(){
         when(authService.register(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
         when(authService.login(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
+        when(tokenIssuer.issue(any())).thenReturn(new AccessToken("test-token", 900));
     }
 
     @Test
@@ -243,5 +249,24 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(authService);
+    }
+
+    @Test
+    void loginReturnsAnAccessToken() throws Exception{
+        postLogin(json("test@example.com", "12345678"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("test-token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(900));
+    }
+
+    @Test
+    void failedLoginDoesNotIssueAToken() throws Exception{
+        doThrow(new InvalidCredentialsException()).when(authService).login(anyString(), anyString());
+
+        postLogin(json("test@example.com", "wrong-password"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(tokenIssuer);
     }
 }
