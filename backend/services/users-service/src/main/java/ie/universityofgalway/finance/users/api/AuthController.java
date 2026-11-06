@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.antlr.v4.runtime.Token;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping; // mapping GETs
 import org.springframework.web.bind.annotation.PostMapping; // mapping POSTs
 import org.springframework.web.bind.annotation.RequestMapping; // declaring endpoint prefixes
@@ -79,5 +81,12 @@ public class AuthController {
                 "accessToken", token.value(),
                 "tokenType", "Bearer",
                 "expiresIn", token.expiresInSeconds()));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, String>> me(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(Map.of(
+                "id", jwt.getSubject(),
+                "email", jwt.getClaimAsString("email")));
     }
 }

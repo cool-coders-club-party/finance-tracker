@@ -26,6 +26,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -281,5 +282,16 @@ class AuthControllerTest {
         mvc.perform(get("/api/auth/me")
                         .header("Authorization", "Bearer not-a-real-token"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void meReturnsTheIdAndEmailFromTheToken() throws Exception {
+        mvc.perform(get("/api/auth/me")
+                        .with(jwt().jwt(token -> token
+                                .subject("11111111-1111-1111-1111-111111111111")
+                                .claim("email", "test@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("11111111-1111-1111-1111-111111111111"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 }
