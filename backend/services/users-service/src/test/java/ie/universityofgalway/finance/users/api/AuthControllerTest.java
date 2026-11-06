@@ -5,6 +5,7 @@ import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredExceptio
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.User;
 
+import ie.universityofgalway.finance.users.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 
 import java.util.UUID;
 
@@ -33,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * But AuthController needs an AuthService in its constructor.<p>
  * {@code @MockitoBean} creates a mock service to be used by Spring. A bean is a Spring method.
  */
+@Import(SecurityConfig.class)
 @WebMvcTest(AuthController.class)
 class AuthControllerTest {
     @Autowired
@@ -192,9 +195,9 @@ class AuthControllerTest {
     }
 
     @Test
-    void unknownPathReturns404() throws Exception {
+    void unknownPathReturns403ForUnauthenticatedCaller() throws Exception {
         mvc.perform(get("/api/auth/does-not-exist"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
 
     @Test
