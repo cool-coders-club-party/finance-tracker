@@ -109,6 +109,19 @@ public class TransactionExceptionHandler {
                 Map.of(exception.getName(), detail));
     }
 
+    @ExceptionHandler(ExchangeRateUnavailableException.class)
+    public ResponseEntity<ApiErrorResponseDto> handleExchangeRateUnavailable(
+            ExchangeRateUnavailableException exception,
+            HttpServletRequest request
+    ){
+        return error(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Exchange rates are temporarily unavailable.",
+                request,
+                Map.of()
+        );
+    }
+
     private void addErrors(Map<String, String> details,
                            Iterable<FieldError> fieldErrors, Iterable<ObjectError> globalErrors) {
         for (FieldError fieldError : fieldErrors) {

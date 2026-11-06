@@ -36,6 +36,20 @@ export async function getTransactionMetadata(signal) {
   return validateMetadata(await request('/metadata', { signal }));
 }
 
+export async function getTransactionSummary(userId, currency, signal) {
+  const params = new URLSearchParams({ userId, currency });
+  const summary = await request(`/summary?${params}`, { signal });
+  const isAmount = (value) => typeof value === 'number' && Number.isSafeInteger(Math.round(value * 100));
+  if (summary.currency !== currency || !isAmount(summary.income) || !isAmount(summary.expenses)
+      || !isAmount(summary.netIncome) || summary.income < 0 || summary.expenses < 0
+      || !Array.isArray(summary.spendingByCategory)
+      || !summary.spendingByCategory.every((row) => row && typeof row.category === 'string'
+        && /^[A-Z_]+$/.test(row.category) && isAmount(row.amount) && row.amount >= 0)) {
+    throw new TransactionApiError('The transaction summary could not be displayed accurately.');
+  }
+  return summary;
+}
+
 // Expenses for chart
 export function getTransactionHistory(
   userId,
