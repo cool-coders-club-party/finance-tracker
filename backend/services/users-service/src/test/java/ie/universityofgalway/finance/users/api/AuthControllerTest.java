@@ -1,27 +1,34 @@
 package ie.universityofgalway.finance.users.api;
 
+import ie.universityofgalway.finance.users.application.AccessToken;
 import ie.universityofgalway.finance.users.application.AuthService;
+import ie.universityofgalway.finance.users.application.TokenIssuer;
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.User;
 
+import ie.universityofgalway.finance.users.infrastructure.security.JwtTokenIssuer;
+import ie.universityofgalway.finance.users.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -33,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * But AuthController needs an AuthService in its constructor.<p>
  * {@code @MockitoBean} creates a mock service to be used by Spring. A bean is a Spring method.
  */
+@Import(SecurityConfig.class)
 @WebMvcTest(AuthController.class)
 class AuthControllerTest {
     @Autowired
@@ -46,6 +54,12 @@ class AuthControllerTest {
     @MockitoBean
     private AuthService authService; // mock AuthService
 
+    @MockitoBean
+    private TokenIssuer tokenIssuer;
+
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
+
     /**
      * Passing behavior to Mockito for authService to ensure tests run correctly
      * An un-stubbed mock service returns null, which would crash the controller.
@@ -54,6 +68,7 @@ class AuthControllerTest {
     void stubService(){
         when(authService.register(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
         when(authService.login(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
+        when(tokenIssuer.issue(any())).thenReturn(new AccessToken("test-token", 900));
     }
 
     @Test
@@ -192,9 +207,9 @@ class AuthControllerTest {
     }
 
     @Test
-    void unknownPathReturns404() throws Exception {
+    void unknownPathReturns401ForUnauthenticatedCaller() throws Exception {
         mvc.perform(get("/api/auth/does-not-exist"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -240,5 +255,73 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(authService);
+    }
+
+    @Test
+    void loginReturnsAnAccessToken() throws Exception{
+        postLogin(json("test@example.com", "12345678"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("test-token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(900));
+    }
+
+    @Test
+    void failedLoginDoesNotIssueAToken() throws Exception{
+        doThrow(new InvalidCredentialsException()).when(authService).login(anyString(), anyString());
+
+        postLogin(json("test@example.com", "wrong-password"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(tokenIssuer);
+    }
+
+    @Test
+    void meWithoutATokenIsRejected() throws Exception {
+        mvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void meWithAnInvalidTokenIsRejected() throws Exception {
+        mvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer not-a-real-token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void meReturnsTheIdAndEmailFromTheToken() throws Exception {
+        mvc.perform(get("/api/auth/me")
+                        .with(jwt().jwt(token -> token
+                                .subject("11111111-1111-1111-1111-111111111111")
+                                .claim("email", "test@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("11111111-1111-1111-1111-111111111111"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
+    }
+
+    @Test
+    void meAcceptsATokenSignedWithTheRealSecret() throws Exception {
+        UUID id = UUID.randomUUID();
+        JwtTokenIssuer realIssuer = new JwtTokenIssuer(jwtSecret, 15);
+        AccessToken token = realIssuer.issue(new User(id, "test@example.com", "hash"));
+
+        mvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token.value()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
+    }
+
+    @Test
+    void meRejectsATokenSignedWithADifferentSecret() throws Exception {
+        JwtTokenIssuer otherIssuer =
+                new JwtTokenIssuer("a-completely-different-secret-32-bytes-or-more", 15);
+        AccessToken token = otherIssuer.issue(
+                new User(UUID.randomUUID(), "test@example.com", "hash"));
+
+        mvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token.value()))
+                .andExpect(status().isUnauthorized());
     }
 }

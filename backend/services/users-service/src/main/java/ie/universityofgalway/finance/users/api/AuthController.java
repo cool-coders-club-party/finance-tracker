@@ -2,11 +2,16 @@ package ie.universityofgalway.finance.users.api;
 
 import ie.universityofgalway.finance.users.api.dto.LoginRequest;
 import ie.universityofgalway.finance.users.api.dto.RegisterRequest; // pull in DTO
+import ie.universityofgalway.finance.users.application.AccessToken;
+import ie.universityofgalway.finance.users.application.TokenIssuer;
 import ie.universityofgalway.finance.users.domain.User;
 import ie.universityofgalway.finance.users.application.AuthService;
 import jakarta.validation.Valid;
+import org.antlr.v4.runtime.Token;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping; // mapping GETs
 import org.springframework.web.bind.annotation.PostMapping; // mapping POSTs
 import org.springframework.web.bind.annotation.RequestMapping; // declaring endpoint prefixes
@@ -33,8 +38,10 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-    public AuthController(AuthService authService){
+    private final TokenIssuer tokenIssuer;
+    public AuthController(AuthService authService, TokenIssuer tokenIssuer){
         this.authService = authService;
+        this.tokenIssuer = tokenIssuer;
     }
 
     @GetMapping("/ping") // maps GET requests for /ping to this method and declares the endpoint GET /api/auth/ping (prefix + /ping)
@@ -65,8 +72,21 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request){
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request){
         User user = authService.login(request.email(), request.password());
-        return ResponseEntity.ok(Map.of("id", user.id().toString(), "email", user.email()));
+        AccessToken token = tokenIssuer.issue(user);
+        return ResponseEntity.ok(Map.of(
+                "id", user.id().toString(),
+                "email", user.email(),
+                "accessToken", token.value(),
+                "tokenType", "Bearer",
+                "expiresIn", token.expiresInSeconds()));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, String>> me(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(Map.of(
+                "id", jwt.getSubject(),
+                "email", jwt.getClaimAsString("email")));
     }
 }
