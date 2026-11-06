@@ -20,22 +20,11 @@
   position: absolute;
   z-index: 20;
   top: 0.75rem;
-  left: 50%;
+  right: 1rem;
   display: flex;
-  box-sizing: border-box;
-  width: min(calc(100% - 2rem), 18rem);
-  min-height: 3.1rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.35rem 0.55rem 0.35rem 0.7rem;
-  transform: translateX(-50%);
-  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
-  border-radius: 1rem;
-  background-color: color-mix(in oklab, var(--card) 10%, transparent);
-  box-shadow: 0 18px 44px -18px rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(24px) saturate(170%);
-  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  justify-content: flex-end;
+  padding: 0;
   pointer-events: none;
 }
 
@@ -44,9 +33,7 @@
 }
 
 .sm-logo {
-  display: flex;
-  align-items: center;
-  user-select: none;
+  display: none;
 }
 
 .sm-logo-img {
@@ -61,15 +48,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.55rem 0.6rem;
-  border-radius: 0.65rem;
+  padding: 0.55rem 0;
   background: transparent;
   border: none;
   cursor: pointer;
   color: #e9e9ef;
   font-weight: 500;
+  font-size: 1rem;
   line-height: 1;
   overflow: visible;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
 }
 
 .sm-toggle:focus-visible {
