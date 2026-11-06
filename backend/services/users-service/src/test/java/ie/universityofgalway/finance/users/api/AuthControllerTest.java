@@ -7,6 +7,7 @@ import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredExceptio
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.User;
 
+import ie.universityofgalway.finance.users.infrastructure.security.JwtTokenIssuer;
 import ie.universityofgalway.finance.users.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -54,6 +56,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private TokenIssuer tokenIssuer;
+
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
 
     /**
      * Passing behavior to Mockito for authService to ensure tests run correctly
@@ -293,5 +298,30 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("11111111-1111-1111-1111-111111111111"))
                 .andExpect(jsonPath("$.email").value("test@example.com"));
+    }
+
+    @Test
+    void meAcceptsATokenSignedWithTheRealSecret() throws Exception {
+        UUID id = UUID.randomUUID();
+        JwtTokenIssuer realIssuer = new JwtTokenIssuer(jwtSecret, 15);
+        AccessToken token = realIssuer.issue(new User(id, "test@example.com", "hash"));
+
+        mvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token.value()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
+    }
+
+    @Test
+    void meRejectsATokenSignedWithADifferentSecret() throws Exception {
+        JwtTokenIssuer otherIssuer =
+                new JwtTokenIssuer("a-completely-different-secret-32-bytes-or-more", 15);
+        AccessToken token = otherIssuer.issue(
+                new User(UUID.randomUUID(), "test@example.com", "hash"));
+
+        mvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token.value()))
+                .andExpect(status().isUnauthorized());
     }
 }
