@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { StaggeredMenu } from "./StaggeredMenu";
+import Grainient from "./Grainient";
 
 const NAV_ITEMS = [
   { label: "Dashboard", link: "/" },
@@ -29,6 +30,24 @@ export default function DashboardShell({ children }) {
 
   return (
     <>
+    {/*VIDEO SCRIPT*/}
+{/*           <Link */}
+{/*             to="/" */}
+{/*             aria-label="Go to Dashboard" */}
+{/*             className="pointer-events-auto fixed left-4 top-4 z-[39] block size-16" */}
+{/*           > */}
+{/*             <video */}
+{/*               autoPlay */}
+{/*               loop */}
+{/*               muted */}
+{/*               playsInline */}
+{/*               preload="metadata" */}
+{/*               aria-hidden="true" */}
+{/*               className="h-full w-full object-contain" */}
+{/*             > */}
+{/*               <source src="/logo-spin-2.mp4" type="video/mp4" /> */}
+{/*             </video> */}
+{/*           </Link> */}
       <StaggeredMenu
            className="dark"
            position="right"
@@ -42,7 +61,19 @@ export default function DashboardShell({ children }) {
            isFixed
       />
       <div className="dark relative isolate min-h-svh w-full overflow-hidden text-foreground [color-scheme:dark]">
-        <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 bg-[url('/images/DashboardBG.png')] bg-cover bg-center">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 -z-10"
+          style={{ background: "linear-gradient(100deg, #05110f, #065f46, #34d399, #ecfccb)" }}
+        >
+          <Grainient
+            colors={["#03041e", "#3b82f6", "#06b6d4", "#f1cbfc"]}
+            angle={100}
+            bands={3}
+            silk={0.6}
+            flow={1.1}
+            className="h-full w-full"
+          />
           <div className="absolute inset-0 bg-black/20" />
         </div>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-8 pt-24 md:px-8 md:pb-12 md:pt-28">
