@@ -1,10 +1,12 @@
 package ie.universityofgalway.finance.transactions.rest.controller;
 
+import ie.universityofgalway.finance.transactions.entity.TransactionCurrency;
 import ie.universityofgalway.finance.transactions.rest.dto.*;
 import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
 import ie.universityofgalway.finance.transactions.entity.TransactionType;
 import ie.universityofgalway.finance.transactions.service.TransactionHistoryQuery;
 import ie.universityofgalway.finance.transactions.service.TransactionService;
+import ie.universityofgalway.finance.transactions.service.TransactionSummaryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -25,6 +27,7 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final TransactionSummaryService transactionSummaryService;
 
     @PostMapping
     public ResponseEntity<TransactionResponseDto> create(
@@ -74,8 +77,26 @@ public class TransactionController {
     }
 
     @GetMapping("/metadata")
-    public ResponseEntity<TransactionMetadataResponseDto> getMetadata(){
+    public ResponseEntity<TransactionMetadataResponseDto> getMetadata() {
         return ResponseEntity.ok(transactionService.findTransactionMetadata());
+    }
+
+
+    @GetMapping("/summary")
+    public ResponseEntity<TransactionSummaryResponseDto> getTransactionSummary(
+            @Positive @RequestParam("userId") Long userId,
+            @RequestParam("currency") TransactionCurrency transactionCurrency,
+            @RequestParam(value = "from", required = false) LocalDate from,
+            @RequestParam(value = "to", required = false) LocalDate to
+    ) {
+        TransactionSummaryResponseDto transactionSummary = transactionSummaryService.getTransactionSummary(
+                userId,
+                transactionCurrency,
+                from,
+                to
+        );
+        return ResponseEntity.ok(transactionSummary);
+
     }
 
 

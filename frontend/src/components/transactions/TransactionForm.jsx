@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { Link } from 'react-router-dom';
 import { Loader2, Plus, Save } from 'lucide-react';
+import { readTransactionUser, rememberTransactionUser } from '../../lib/transactionUser';
+import { currencyLabel, formatMoney } from '../../lib/money';
 import { saveTransaction } from '../../api/transactions';
 import { categoriesForType, categoryAfterTypeChange, formatEnumLabel } from '../../lib/transactionMetadata';
 
@@ -15,7 +17,7 @@ function localDateTimeNow() {
 
 function initialValues(transaction) {
   return {
-    userId: String(transaction?.userId ?? ''),
+    userId: String(transaction?.userId ?? readTransactionUser()),
     transactionType: transaction?.transactionType ?? '',
     transactionCategory: transaction?.transactionCategory ?? '',
     currency: transaction?.currency ?? '',
@@ -73,7 +75,10 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
     setFeedback({ message: '', details: {} });
     try {
       const saved = await saveTransaction(payload, transaction?.id, controller.signal);
-      if (!controller.signal.aborted) onSaved(saved);
+      if (!controller.signal.aborted) {
+        if (!transaction) rememberTransactionUser(values.userId);
+        onSaved(saved);
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
         setFeedback({ message: error.message, details: error.details ?? {} });
@@ -89,9 +94,18 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
     return message ? <p id={`${id}-${name}-error`} className="text-sm text-destructive">{String(message)}</p> : null;
   }
 
+  let savedAmount = '';
+  if (transaction) {
+    try {
+      savedAmount = formatMoney(transaction.amount, transaction.currency);
+    } catch {
+      savedAmount = 'Unavailable — check the transaction amount and currency.';
+    }
+  }
+
   const fields = [
     ...(!transaction ? [{ name: 'userId', label: 'User ID', type: 'text', inputMode: 'numeric', pattern: '[1-9][0-9]*', required: true }] : []),
-    { name: 'amount', label: 'Amount', type: 'text', inputMode: 'decimal', pattern: '[0-9]{1,17}(\\.[0-9]{1,2})?', required: true },
+    { name: 'amount', label: values.currency ? `Amount (${values.currency})` : 'Amount', type: 'text', inputMode: 'decimal', pattern: '[0-9]{1,17}(\\.[0-9]{1,2})?', required: true },
   ];
 
   return (
@@ -100,6 +114,9 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
         <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
           {feedback.message}
         </div>
+      )}
+      {transaction && (
+        <p className="text-sm text-muted-foreground">Saved amount: <span className="font-medium text-foreground">{savedAmount}</span></p>
       )}
       <fieldset disabled={isSaving} className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
         <legend className="sr-only">Transaction details</legend>
@@ -138,7 +155,7 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
             aria-invalid={Boolean(feedback.details.currency)}
             aria-describedby={`${id}-currency-help${feedback.details.currency ? ` ${id}-currency-error` : ''}`}>
             <option value="">Select a currency</option>
-            {metadata.currencies.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+            {metadata.currencies.map((currency) => <option key={currency} value={currency}>{currencyLabel(currency)}</option>)}
           </select>
           <span id={`${id}-currency-help`} className="text-xs font-normal text-muted-foreground">
             {transaction ? 'Changing currency does not convert the amount.' : 'Choose the currency of the original amount.'}
@@ -154,7 +171,7 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
       </fieldset>
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-end">
         <Button asChild variant="ghost" className="h-11 px-5">
-          <Link to="/dashboard">Cancel</Link>
+          <Link to="/">Cancel</Link>
         </Button>
         <Button type="submit" className="h-11 gap-2 px-5" disabled={isSaving || !pairIsValid || !currencyIsValid}>
           {isSaving ? <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> : transaction ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}

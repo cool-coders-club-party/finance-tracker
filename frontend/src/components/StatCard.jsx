@@ -16,7 +16,7 @@ function StatCard({ title, icon: Icon, available, value, formatter, change, capt
       <CardContent className="text-2xl font-bold">
           {available ? formatter(value) : "Data Unavailable"}
       </CardContent>
-      {available && (
+      {available && Number.isFinite(change) && (
           <CardFooter className="gap-2 test-xs text-muted-foreground">
               <Badge variant={isFavourable ? "secondary" : "destructive"}>
                   <TrendIcon className="size-3" />

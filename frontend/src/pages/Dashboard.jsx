@@ -5,47 +5,23 @@ import DashboardShell from "@/components/DashboardShell";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Wallet, Receipt, TrendingUp, Landmark, Search, Plus, Trash2, RefreshCw, Loader2 } from "lucide-react"
-import { Pie, PieChart, Cell, Label } from "recharts";
-import { getTransactionHistory } from "../api/transactions";
+import SpendingByCurrency from "../components/transactions/SpendingByCurrency";
+import { isValidUserId, readTransactionUser, rememberTransactionUser } from "../lib/transactionUser";
+import useTransactionMetadata from '../hooks/useTransactionMetadata';
+import { currencyLabel } from '../lib/money';
+import { getTransactionSummary } from "../api/transactions";
 
 const formatMoney = (amount) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
 
-const DASHBOARD_USER_ID = 5;
 
-const mockDashboardData = {
-  transactions: {
-    available: false,
-    totalIncome: 3200,
-    totalIncomeChange: 8.2,
-    totalIncomeCaption: "vs. last month",
-    totalIncomePositive: true,
 
-    totalExpenses: 1875,
-    totalExpensesChange: 3.4,
-    totalExpensesCaption: "vs. last month",
-    totalExpensesPositive: false,
-
-    cashBalance: 1325,
-    cashBalanceChange: -1.9,
-    cashBalanceCaption: "across 3 accounts",
-    cashBalancePositive: true,
-
-    expensesByCategory: [
-      { key: "housing", label: "Housing", amount: 900 },
-      { key: "groceries", label: "Groceries", amount: 350 },
-      { key: "transport", label: "Transport", amount: 175 },
-      { key: "entertainment", label: "Entertainment", amount: 225 },
-      { key: "other", label: "Other", amount: 225 },
-    ],
-  },
-  portfolio: {
+const portfolio = {
     available: true,
     investmentValue: 4820,
     investmentValueChange: 5.7,
     investmentValueCaption: "portfolio, 30 days",
     investmentValuePositive: true,
-  },
 };
 
 // ====================== MARKET DATA API IMPLEMENTATION BELOW: FORMATTING, SEARCHING, UPDATING, ETC. ======================
@@ -428,112 +404,93 @@ function InvestmentPortfolioCard() {
   );
 }
 // ====================== MARKET DATA API IMPLEMENTATION ABOVE: FORMATTING, SEARCHING, UPDATING, ETC. ======================
+function TransactionOverview({ userId }) {
+  const metadata = useTransactionMetadata();
+  const preferenceKey = `finance-tracker:transaction-currency:${userId}`;
+  const [preferred, setPreferred] = useState(() => {
+    try { return localStorage.getItem(preferenceKey); } catch { return null; }
+  });
+  const currencies = metadata.data?.currencies ?? [];
+  const currency = currencies.includes(preferred) ? preferred : currencies[0];
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (!currency) return;
+    const controller = new AbortController();
+    getTransactionSummary(userId, currency, controller.signal).then(
+      (summary) => {
+        if (!controller.signal.aborted) setResult({ currency, attempt, summary });
+      },
+      (error) => {
+        if (!controller.signal.aborted) setResult({ currency, attempt, error: error.message });
+      },
+    );
+    return () => controller.abort();
+  }, [userId, currency, attempt]);
+
+  function changeCurrency(event) {
+    const value = event.target.value;
+    setPreferred(value);
+    try { localStorage.setItem(preferenceKey, value); } catch { /* Preference is optional. */ }
+  }
+
+  const current = result?.currency === currency && result?.attempt === attempt ? result : null;
+  const error = metadata.error || current?.error;
+  const summary = current?.summary;
+  const formatter = new Intl.NumberFormat('en-IE', {
+    style: 'currency', currency: currency || 'EUR', currencyDisplay: 'code',
+  });
+  return (
+    <>
+      <Card className="glass bg-card/10">
+        <CardHeader><CardTitle>Transaction summary</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <label className="grid max-w-xs gap-2 text-sm">Transaction display currency
+            <select value={currency || ''} onChange={changeCurrency} disabled={!currencies.length}
+              className="min-h-11 rounded-lg border border-input bg-background/70 px-3 text-foreground">
+              {currencies.map((code) => <option key={code} value={code}>{currencyLabel(code)}</option>)}
+            </select>
+          </label>
+          <p className="text-sm text-muted-foreground">All-time totals use transaction-date exchange rates.</p>
+          {error ? <div role="alert" className="space-y-2">
+            <p>{error}</p>
+            <button type="button" className="rounded-lg border border-input px-4 py-2"
+              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</button>
+          </div> : !summary && <p role="status">Loading transaction summary…</p>}
+        </CardContent>
+      </Card>
+      {summary && <>
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCard title="Total Income" icon={Wallet} available value={summary.income} formatter={formatter.format} />
+          <StatCard title="Total Expenses" icon={Receipt} available value={summary.expenses} formatter={formatter.format} />
+          <StatCard title="Net Income" icon={Landmark} available value={summary.netIncome} formatter={formatter.format} />
+        </div>
+        <SpendingByCurrency summary={summary} />
+      </>}
+    </>
+  );
+}
+
 function Dashboard() {
-    const { transactions, portfolio } = mockDashboardData;
+    const [selectedUserId, setSelectedUserId] = useState(readTransactionUser);
+    const [userIdInput, setUserIdInput] = useState(selectedUserId);
+    const [userIdError, setUserIdError] = useState('');
 
-    // Get transaction expense history.
-    const [expenseHistory, setExpenseHistory] = useState({
-      status: "loading",
-      records: [],
-      error: "",
-    });
 
-    // New abort controller, if we leave dashboard early they don't load.
-    useEffect(() => {
-      const controller = new AbortController();
-
-      async function loadExpenses() {
-        try { // Load first 100 pages
-          const firstPage = await getTransactionHistory(DASHBOARD_USER_ID, {
-            page: 0,
-            size: 100,
-            signal: controller.signal,
-          });
-
-          // Load the all other pages
-          const remainingPages = await Promise.all(
-            Array.from(
-              { length: Math.max(0, firstPage.totalPages - 1) },
-              (_, index) =>
-                getTransactionHistory(DASHBOARD_USER_ID, {
-                  page: index + 1,
-                  size: 100,
-                  signal: controller.signal,
-                }),
-            ),
-          );
-
-          if (controller.signal.aborted) return;
-
-          // Put content into records array, use flatmap to flatten nested structure
-          const records = [
-            ...(firstPage.content ?? []),
-            ...remainingPages.flatMap((page) => page.content ?? []),
-          ];
-
-          // If error return expense history with an error.
-          setExpenseHistory({ status: "ready", records, error: "" });
-        } catch (error) {
-          if (controller.signal.aborted) return;
-          setExpenseHistory({
-            status: "error",
-            records: [],
-            error: error.message,
-          });
-        }
+    function selectTransactionUser(event) {
+      event.preventDefault();
+      const userId = userIdInput.trim();
+      if (!isValidUserId(userId)) {
+        setUserIdError('Enter a positive whole-number user ID within the supported range.');
+        return;
       }
-      // loadExpenses and end useEffect call.
-      loadExpenses();
-      return () => controller.abort();
-    }, []);
+      setUserIdError('');
+      setUserIdInput(userId);
+      rememberTransactionUser(userId);
+      setSelectedUserId(userId);
 
-    // New empty map, find every transaction, skip if not expense.
-    const expensesByCategory = useMemo(() => {
-      const totalsByCategory = new Map();
-
-      for (const record of expenseHistory.records) {
-        if (record.transactionType !== "EXPENSE") continue;
-        // Convert to number.
-        const category = record.transactionCategory;
-        const amount = Number(record.amount);
-        // Skip invalid records
-        if (!category || !Number.isFinite(amount) || amount <= 0) continue;
-        // Make a key and add it to categories total, so we don't have e.g. multiple housing categories
-        // Multiple housing transactions get added together under one housing category, etc.
-        const key = category.toLowerCase();
-        totalsByCategory.set(key, (totalsByCategory.get(key) ?? 0) + amount);
-      }
-      // Turn map int chart data objects we can use. Make a readable label.
-      return Array.from(totalsByCategory, ([key, amount]) => ({
-        key,
-        label: key
-          .replaceAll("_", " ")
-          .replace(/\b\w/g, (letter) => letter.toUpperCase()),
-        amount,
-      })).sort((a, b) => b.amount - a.amount); // Sort from most spending to lowest.
-    }, [expenseHistory.records]); // Tells react when to recalculate.
-
-    const combinedTotal = transactions.cashBalance + portfolio.investmentValue;
-
-    const palette = [
-      "var(--chart-1)",
-      "var(--chart-2)",
-      "var(--chart-3)",
-      "var(--chart-4)",
-      "var(--chart-5)",
-    ];
-
-    const categoryChartConfig = Object.fromEntries(
-        expensesByCategory.map((item, index) => [
-            item.key,
-            { label: item.label, color: palette[index % palette.length] },
-            ])
-    );
-
-    const totalSpent = expensesByCategory.reduce(
-        (sum, item) => sum + item.amount,
-        0
-    );
+    }
 
   return (
       <DashboardShell>
@@ -541,39 +498,31 @@ function Dashboard() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="glass bg-card/10">
+              <CardHeader>
+                <CardTitle>Transaction user</CardTitle>
+                <p className="text-sm text-foreground/80">Until login is connected, enter the same user ID used when creating your transactions.</p>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={selectTransactionUser} className="flex flex-wrap items-end gap-3">
+                  <label className="grid gap-2 text-sm">
+                    User ID
+                    <input type="text" inputMode="numeric" required maxLength={19}
+                      value={userIdInput} onChange={(event) => { setUserIdInput(event.target.value); setUserIdError(''); }}
+                      aria-invalid={Boolean(userIdError)} aria-describedby={userIdError ? 'dashboard-user-error' : undefined}
+                      className="min-h-11 rounded-lg border border-input bg-background/70 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                  </label>
+                  <button type="submit" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">Show summary</button>
+                </form>
+                {userIdError && <p id="dashboard-user-error" role="alert" className="mt-2 text-sm text-destructive">{userIdError}</p>}
+                <p role="status" className="mt-3 text-sm text-foreground/80">
+                  {selectedUserId ? `Showing transactions for user ${selectedUserId}.` : 'Select a user to load their summary.'}
+                </p>
+              </CardContent>
+            </Card>
+            {selectedUserId && <TransactionOverview key={selectedUserId} userId={selectedUserId} />}
         <StatCard
-          title="Total Income"
-          icon={Wallet}
-          available={transactions.available}
-          value={transactions.totalIncome}
-          formatter={formatMoney}
-          change={transactions.totalIncomeChange}
-          caption={transactions.totalIncomeCaption}
-          positiveIsGood={transactions.totalIncomePositive}
-        />
-        <StatCard
-          title="Total Expenses"
-          icon={Receipt}
-          available={transactions.available}
-          value={transactions.totalExpenses}
-          formatter={formatMoney}
-          change={transactions.totalExpensesChange}
-          caption={transactions.totalExpensesCaption}
-          positiveIsGood={transactions.totalExpensesPositive}
-        />
-        <StatCard
-          title="Cash Balance"
-          icon={Landmark}
-          available={transactions.available}
-          value={transactions.cashBalance}
-          formatter={formatMoney}
-          change={transactions.cashBalanceChange}
-          caption={transactions.cashBalanceCaption}
-          positiveIsGood={transactions.cashBalancePositive}
-        />
-        <StatCard
-          title="Investment Value"
+          title="Investment Value (EUR)"
           icon={TrendingUp}
           available={portfolio.available}
           value={portfolio.investmentValue}
@@ -582,108 +531,6 @@ function Dashboard() {
           caption={portfolio.investmentValueCaption}
           positiveIsGood={portfolio.investmentValuePositive}
         />
-      </div>
-
-      <Card className="glass bg-card/10">
-        <CardHeader>
-          <CardTitle>Combined Total</CardTitle>
-        </CardHeader>
-        <CardContent className="text-4xl font-bold">
-          {formatMoney(combinedTotal)}
-        </CardContent>
-      </Card>
-
-      {/* Sample Chart */}
-      {/*            <Card>
-              <CardHeader>
-                <CardTitle>Income vs Expenses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="category" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="amount" fill="var(--color-amount)" radius={4} />
-                  </BarChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>*/}
-
-            <Card className="glass bg-card/10">
-              <CardHeader>
-                <CardTitle>Spending by Category</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-[260px_1fr] md:items-center">
-                <ChartContainer config={categoryChartConfig} className="mx-auto h-[260px] w-[260px]">
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Pie
-                      data={expensesByCategory}
-                      dataKey="amount"
-                      nameKey="key"
-                      innerRadius="62%"
-                      outerRadius="92%"
-                      paddingAngle={2}
-                      cornerRadius={4}
-                    >
-                      {expensesByCategory.map((item) => (
-                        <Cell key={item.key} fill={`var(--color-${item.key})`} />
-                      ))}
-                      <Label
-                        content={({ viewBox }) => {
-                          if (!viewBox || !("cx" in viewBox)) return null;
-                          const { cx, cy } = viewBox;
-                          return (
-                            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-                              <tspan x={cx} y={cy - 10} className="fill-foreground text-2xl font-semibold">
-                                {formatMoney(totalSpent)}
-                              </tspan>
-                              <tspan x={cx} y={cy + 14} className="fill-muted-foreground text-xs">
-                                Total spent
-                              </tspan>
-                            </text>
-                          );
-                        }}
-                      />
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-
-                <ul className="flex flex-col gap-3">
-                    {expensesByCategory.map((item) => {
-                        const share = (item.amount / totalSpent) * 100;
-                        return (
-                            <li key={item.key} className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between gap-3 text-sm">
-                                    <span className="flex items-center gap-2">
-                                        <span
-                                            className="inline-block size-2.5 rounded-full"
-                                            style={{ backgroundColor: categoryChartConfig[item.key].color }}
-                                        />
-                                        {item.label}
-                                    </span>
-                                    <span className="flex items-baseline gap-2">
-                                        <span className="font-medium">{formatMoney(item.amount)}</span>
-                                        <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
-                                    </span>
-                                </div>
-                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
-                                    <div
-                                        className="h-full rounded-full"
-                                        style={{
-                                            width: `${share}%`,
-                                            backgroundColor: categoryChartConfig[item.key].color,
-                                        }}
-                                    />
-                                </div>
-                            </li>
-                            );
-                        })}
-                </ul>
-              </CardContent>
-            </Card>
             <InvestmentPortfolioCard />
       </DashboardShell>
     );
