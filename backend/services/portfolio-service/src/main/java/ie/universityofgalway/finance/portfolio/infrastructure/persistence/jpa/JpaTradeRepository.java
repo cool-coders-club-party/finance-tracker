@@ -16,4 +16,5 @@ public interface JpaTradeRepository extends JpaRepository<TradeEntity, Long> {
             order by t.executedAt asc, t.id asc
             """)
     List<TradeEntity> findAllByPortfolioId(@Param("portfolioId") Long portfolioId);
+
 }

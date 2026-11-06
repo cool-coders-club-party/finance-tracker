@@ -8,6 +8,7 @@ import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.Jp
 import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaTradeRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Component
@@ -35,9 +36,12 @@ public class TradeRepositoryAdapter implements TradeRepository {
         return toDomain(saved);
     }
 
+
     @Override
     public List<Trade> findAllByPortfolioId(Long portfolioId) {
-        return trades.findAllByPortfolioId(portfolioId).stream().map(this::toDomain).toList();
+        return trades.findAllByPortfolioId(portfolioId).stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     private Trade toDomain(TradeEntity e) {

@@ -92,3 +92,116 @@ The portfolio service owns holdings, quantities, market value and profit/loss ca
 market value = quantity × quote price
 ```
 
+---
+
+## Run locally
+
+Requirements: Java 21 and installed frontend dependencies.
+
+Keep the backend and frontend running in separate terminals. Start each terminal from the repository root.
+
+### Backend: development prices
+
+```bash
+# Enter the backend folder.
+cd backend
+
+# Use fixed prices without contacting Twelve Data.
+./mvnw -pl services/market-data-service spring-boot:run \
+  -Dspring-boot.run.profiles=stub
+```
+
+The service runs on `http://localhost:8084`. Stub symbols include `AAPL`, `MSFT` and `TSLA`.
+
+### Frontend
+
+```bash
+# Enter the frontend folder from the repository root.
+cd frontend
+
+# Start the development server.
+npm run dev
+```
+
+Open the printed frontend URL and navigate to `/market-data`.
+
+The Vite development proxy forwards `/market-data/api` requests to the backend on port 8084.
+
+### Backend: Twelve Data prices
+
+Configure the following properties in the ignored local configuration file at:
+
+`backend/services/market-data-service/src/main/resources/application-local.yml`
+
+- `market-data.twelve-data.base-url`: `https://api.twelvedata.com`
+- `market-data.twelve-data.api-key`: your private Twelve Data key
+
+Keep the key out of frontend files, commits, screenshots and issue descriptions.
+
+Stop the stub backend before starting the live provider. From the backend folder:
+
+```bash
+# Activate the Twelve Data implementation and local configuration.
+./mvnw -pl services/market-data-service spring-boot:run \
+  -Dspring-boot.run.profiles=local
+```
+
+## Price history
+
+`GET /api/quotes/{symbol}/history` returns approximately one calendar month of daily closing prices.
+
+The response contains a `points` array with `date` and `close` fields, ordered oldest first.
+
+History has no user-selectable date parameter yet. A history failure does not hide a successful quote on the frontend.
+
+## Demonstration checklist
+
+### Quote lookup and retry
+
+With the stub backend running:
+
+1. Search for ` aapl `, including surrounding spaces. The page displays an AAPL quote.
+2. Search for `NOPE`. The page displays a clear unknown-ticker message.
+3. Search for `MSFT`. A quote appears without refreshing the page.
+4. Stop the backend and search again. The page reports that the service cannot be reached.
+5. Restart the backend and press **Find price** again. The quote appears without refreshing the page.
+
+### Provider unavailable: HTTP 503
+
+Stop the backend, then run this command from the backend folder:
+
+```bash
+# Keep the backend available but deliberately make its provider unreachable.
+# These temporary arguments do not change the saved configuration.
+./mvnw -pl services/market-data-service spring-boot:run \
+  -Dspring-boot.run.profiles=local \
+  -Dspring-boot.run.arguments="--market-data.twelve-data.base-url=http://127.0.0.1:1 --market-data.twelve-data.api-key=test-key"
+```
+
+Search for `AAPL`. With no cached quote, the backend returns HTTP 503 and the page displays:
+
+“Market data is temporarily unavailable. Try again shortly.”
+
+Confirm the status in the browser’s Network panel. Afterwards, stop this backend and restart it using the stub command.
+
+### Stale cached fallback
+
+From the backend folder:
+
+```bash
+# Run deterministic cache tests without contacting Twelve Data.
+./mvnw -pl services/market-data-service \
+  -Dtest=CachingMarketDataProviderTest test
+```
+
+The `returnsStaleCachedQuoteWhenProviderFails` test:
+
+1. Caches a successful quote.
+2. Advances the simulated time beyond the freshness period.
+3. Simulates a provider failure.
+4. Checks that the fallback preserves the price, original timestamp and quote details, with `stale: true`.
+
+When the frontend receives a stale quote, it displays the cached-price warning and the quote timestamp.
+
+The cache is held in memory and is cleared when the backend restarts. Restarting with a broken provider therefore demonstrates 503, rather than stale fallback.
+
