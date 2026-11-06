@@ -5,7 +5,8 @@ networks:
 volumes:
   transaction-db-data:
     driver: local
-
+  users-db-data:
+    driver: local
 
 services:
   transaction-postgres:
@@ -40,3 +41,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  users-postgres:
+    image: postgres:17.5-alpine
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: finance
+    volumes:
+      - users-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "finance", "-d", "users" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
