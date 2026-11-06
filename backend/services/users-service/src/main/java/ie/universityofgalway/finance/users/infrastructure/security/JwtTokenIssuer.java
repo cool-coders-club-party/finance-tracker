@@ -25,6 +25,11 @@ public class JwtTokenIssuer implements TokenIssuer {
     // "${app.jwt.secret}" tells spring to grab the parameter from application.yml
     public JwtTokenIssuer(@Value("${app.jwt.secret}") String secret,
                           @Value("${app.jwt.expiry-minutes}") long expiryMinutes){
+        int length = secret.getBytes(StandardCharsets.UTF_8).length;
+        if(length < 32) { // I had a & instead of a $ 2 lines above, so the secret was smaller than required. This exception would have saved the hour of debugging.
+            throw new IllegalStateException("app.jwt.secret must be at least 32 bytes but was " + length + " (is the JWT_SECRET environment variable set?)");
+        }
+
         SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         this.encoder = new NimbusJwtEncoder(new ImmutableSecret<>(key));
         this.lifetime = Duration.ofMinutes(expiryMinutes);

@@ -33,7 +33,7 @@ public class SecurityConfig {
     public JwtDecoder jwtDecoder(@Value("${app.jwt.secret}") String secret){
         int length = secret.getBytes(StandardCharsets.UTF_8).length;
         if(length < 32){ // I had a & instead of a $ 2 lines above, so the secret was smaller than required. This exception would have saved the hour of debugging.
-            throw new IllegalStateException("app.jwt.secret must be at least 32 bytes but was " + length);
+            throw new IllegalStateException("app.jwt.secret must be at least 32 bytes but was " + length + " (is the JWT_SECRET environment variable set?)");
         }
 
         SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");

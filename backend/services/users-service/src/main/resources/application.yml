@@ -18,5 +18,5 @@ management:
         include: health,info
 app:
   jwt:
-    secret: ${JWT_SECRET:dev-only-secret-change-me-32-bytes-minimum}
+    secret: ${JWT_SECRET}
     expiry-minutes: 15
