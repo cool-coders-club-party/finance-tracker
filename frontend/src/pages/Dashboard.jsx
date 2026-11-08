@@ -1,10 +1,10 @@
+import useAuth from '../hooks/useAuth';
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
 import DashboardShell from "@/components/DashboardShell";
 import { Wallet, Receipt, TrendingUp, Landmark } from "lucide-react"
 import SpendingByCurrency from "../components/transactions/SpendingByCurrency";
-import { isValidUserId, readTransactionUser, rememberTransactionUser } from "../lib/transactionUser";
 import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
@@ -36,7 +36,7 @@ function TransactionOverview({ userId }) {
   useEffect(() => {
     if (!currency) return;
     const controller = new AbortController();
-    getTransactionSummary(userId, currency, controller.signal).then(
+    getTransactionSummary(currency, controller.signal).then(
       (summary) => {
         if (!controller.signal.aborted) setResult({ currency, attempt, summary });
       },
@@ -91,54 +91,14 @@ function TransactionOverview({ userId }) {
 }
 
 function Dashboard() {
-    const [selectedUserId, setSelectedUserId] = useState(readTransactionUser);
-    const [userIdInput, setUserIdInput] = useState(selectedUserId);
-    const [userIdError, setUserIdError] = useState('');
-
-
-    function selectTransactionUser(event) {
-      event.preventDefault();
-      const userId = userIdInput.trim();
-      if (!isValidUserId(userId)) {
-        setUserIdError('Enter a positive whole-number user ID within the supported range.');
-        return;
-      }
-      setUserIdError('');
-      setUserIdInput(userId);
-      rememberTransactionUser(userId);
-      setSelectedUserId(userId);
-
-    }
-
+    const { session } = useAuth();
   return (
       <DashboardShell>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Dashboard</h1>
         </div>
 
-            <Card className="glass bg-card/10">
-              <CardHeader>
-                <CardTitle>Transaction user</CardTitle>
-                <p className="text-sm text-foreground/80">Until login is connected, enter the same user ID used when creating your transactions.</p>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={selectTransactionUser} className="flex flex-wrap items-end gap-3">
-                  <label className="grid gap-2 text-sm">
-                    User ID
-                    <input type="text" inputMode="numeric" required maxLength={19}
-                      value={userIdInput} onChange={(event) => { setUserIdInput(event.target.value); setUserIdError(''); }}
-                      aria-invalid={Boolean(userIdError)} aria-describedby={userIdError ? 'dashboard-user-error' : undefined}
-                      className="min-h-11 rounded-lg border border-input bg-background/70 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-                  </label>
-                  <button type="submit" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">Show summary</button>
-                </form>
-                {userIdError && <p id="dashboard-user-error" role="alert" className="mt-2 text-sm text-destructive">{userIdError}</p>}
-                <p role="status" className="mt-3 text-sm text-foreground/80">
-                  {selectedUserId ? `Showing transactions for user ${selectedUserId}.` : 'Select a user to load their summary.'}
-                </p>
-              </CardContent>
-            </Card>
-            {selectedUserId && <TransactionOverview key={selectedUserId} userId={selectedUserId} />}
+            <TransactionOverview key={session.user.id} userId={session.user.id} />
         <StatCard
           title="Investment Value (EUR)"
           icon={TrendingUp}

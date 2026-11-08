@@ -1,5 +1,8 @@
+import { acceptLogin, logout } from '../src/lib/authSession.js';
+beforeEach(() => acceptLogin({ accessToken: 'test-token', tokenType: 'Bearer', expiresIn: 900, id: 'test-user', email: 'test@example.com' }));
+afterEach(() => logout());
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test, beforeEach, afterEach } from 'node:test';
 import { categoriesForType, categoryAfterTypeChange, formatEnumLabel, validateMetadata } from '../src/lib/transactionMetadata.js';
 import { getTransactionMetadata, getTransaction, saveTransaction } from '../src/api/transactions.js';
 
@@ -46,7 +49,8 @@ test('API uses relative URLs, preserves enum values and decimal text, and expose
   });
   await getTransactionMetadata();
   assert.equal(calls[0].url, '/api/v1/transactions/metadata');
-  const payload = { currency: 'USD', userId: '1', transactionType: 'INCOME', transactionCategory: 'SALARY', amount: '12345678901234567.89' };
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer test-token');
+  const payload = { currency: 'USD', transactionType: 'INCOME', transactionCategory: 'SALARY', amount: '12345678901234567.89' };
   await saveTransaction(payload);
   assert.equal(calls[1].options.method, 'POST');
   assert.deepEqual(JSON.parse(calls[1].options.body), payload);

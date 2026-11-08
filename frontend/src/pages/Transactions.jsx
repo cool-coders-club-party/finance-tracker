@@ -56,7 +56,7 @@ function TransactionEditor({ transactionId }) {
       <main className="space-y-6 text-left">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="!my-0 text-3xl font-bold !text-foreground">{transactionId ? `Edit transaction #${transactionId}` : 'New transaction'}</h1>
+            <h1 className="!my-0 text-3xl font-bold !text-foreground">{transactionId ? 'Edit transaction' : 'New transaction'}</h1>
             <p className="text-sm text-foreground/90">Record your income and expenses with the right category.</p>
           </div>
           {transactionId && (

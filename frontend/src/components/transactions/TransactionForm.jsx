@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { Link } from 'react-router-dom';
 import { Loader2, Plus, Save } from 'lucide-react';
-import { readTransactionUser, rememberTransactionUser } from '../../lib/transactionUser';
 import { currencyLabel, formatMoney } from '../../lib/money';
 import { saveTransaction } from '../../api/transactions';
 import { categoriesForType, categoryAfterTypeChange, formatEnumLabel } from '../../lib/transactionMetadata';
@@ -17,7 +16,6 @@ function localDateTimeNow() {
 
 function initialValues(transaction) {
   return {
-    userId: String(transaction?.userId ?? readTransactionUser()),
     transactionType: transaction?.transactionType ?? '',
     transactionCategory: transaction?.transactionCategory ?? '',
     currency: transaction?.currency ?? '',
@@ -61,7 +59,6 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
       .filter((key) => !transaction || values[key] !== original[key])
       .map((key) => [key, values[key]]));
     if (!transaction) {
-      payload.userId = values.userId;
       // The API requires occurredAt on creation; edits must preserve the stored value.
       payload.occurredAt = localDateTimeNow();
     }
@@ -76,7 +73,6 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
     try {
       const saved = await saveTransaction(payload, transaction?.id, controller.signal);
       if (!controller.signal.aborted) {
-        if (!transaction) rememberTransactionUser(values.userId);
         onSaved(saved);
       }
     } catch (error) {
@@ -104,7 +100,6 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
   }
 
   const fields = [
-    ...(!transaction ? [{ name: 'userId', label: 'User ID', type: 'text', inputMode: 'numeric', pattern: '[1-9][0-9]*', required: true }] : []),
     { name: 'amount', label: values.currency ? `Amount (${values.currency})` : 'Amount', type: 'text', inputMode: 'decimal', pattern: '[0-9]{1,17}(\\.[0-9]{1,2})?', required: true },
   ];
 

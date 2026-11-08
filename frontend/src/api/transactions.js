@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../lib/authSession.js';
 import { validateMetadata } from '../lib/transactionMetadata.js';
 
 const BASE_URL = '/api/v1/transactions';
@@ -13,7 +14,7 @@ export class TransactionApiError extends Error {
 async function request(path, options = {}) {
   let response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    response = await authenticatedFetch(`${BASE_URL}${path}`, {
       ...options,
       headers: { Accept: 'application/json', ...options.headers },
     });
@@ -36,8 +37,8 @@ export async function getTransactionMetadata(signal) {
   return validateMetadata(await request('/metadata', { signal }));
 }
 
-export async function getTransactionSummary(userId, currency, signal) {
-  const params = new URLSearchParams({ userId, currency });
+export async function getTransactionSummary(currency, signal) {
+  const params = new URLSearchParams({ currency });
   const summary = await request(`/summary?${params}`, { signal });
   const isAmount = (value) => typeof value === 'number' && Number.isSafeInteger(Math.round(value * 100));
   if (summary.currency !== currency || !isAmount(summary.income) || !isAmount(summary.expenses)
@@ -52,11 +53,9 @@ export async function getTransactionSummary(userId, currency, signal) {
 
 // Expenses for chart
 export function getTransactionHistory(
-  userId,
   { page = 0, size = 100, type = 'EXPENSE', signal } = {},
 ) {
   const params = new URLSearchParams({
-    userId: String(userId),
     page: String(page),
     size: String(size),
     sortBy: 'date',
@@ -76,7 +75,8 @@ export function saveTransaction(payload, id, signal) {
   return request(id ? `/${encodeURIComponent(id)}` : '', {
     method: id ? 'PATCH' : 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(Object.fromEntries(Object.entries(payload).filter(([key]) =>
+      ['transactionType', 'transactionCategory', 'amount', 'currency', 'description', 'occurredAt'].includes(key)))),
     signal,
   });
 }

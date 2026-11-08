@@ -1,16 +1,43 @@
-# React + Vite
+# Finance Tracker frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+```sh
+npm ci
+npm run dev
+```
 
-Currently, two official plugins are available:
+Open the URL printed by Vite (normally http://localhost:5173).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `/dashboard`: existing dashboard and market-data integration.
+- `/transactions`: create a transaction using metadata-provided types/categories.
+- `/transactions/:transactionId/edit`: load and edit an existing transaction.
 
-## React Compiler
+Run PostgreSQL and Transactions on port 8082 for transaction forms. Vite proxies
+`/api/v1/transactions` to that service; market-data requests use port 8084.
+Creation currently requires a user ID until authentication is integrated.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Metadata is loaded once per page mount (React Strict Mode may cancel and repeat
+the initial development request). Changing types filters locally; valid shared
+categories remain selected, while incompatible selections clear. API failures
+offer retry actions. Backend validation errors appear without clearing the form.
+Amounts are submitted as decimal strings to avoid floating-point conversion.
+Creation automatically sends the current local date/time at submission, following
+the backend's current local date-time contract. Date/time is not editable in the
+form; updates leave the stored timestamp unchanged.
 
-## Expanding the ESLint configuration
+## Checks
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```sh
+npm test
+npm run build
+```
+
+The tests cover metadata compatibility, future enum options, malformed responses,
+request cancellation, decimal/enum payloads, and backend validation errors.
+
+Manual checks:
+
+1. Select Income / Salary, then switch to Expense: Salary clears.
+2. Select Gift and switch between types: Gift remains selected.
+3. Load an edit URL: the saved type/category remain selected.
+4. Save a create/edit form: raw enum values are sent; edits send changed fields only.
+5. With Transactions unavailable, retry loading options after restarting it.

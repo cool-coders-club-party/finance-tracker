@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
+      "/api/auth": { target: "http://localhost:8081", changeOrigin: true },
       "/market-data/api": {
         target: "http://localhost:8084",
         changeOrigin: true,
