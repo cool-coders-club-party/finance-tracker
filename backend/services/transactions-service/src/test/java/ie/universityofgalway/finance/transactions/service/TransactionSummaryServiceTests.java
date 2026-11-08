@@ -62,7 +62,7 @@ class TransactionSummaryServiceTests {
                 new ExchangeRate(USD, EUR, DAY.plusDays(1), new BigDecimal("0.915")));
         given(rates.getRate(EUR, EUR, DAY)).willReturn(new ExchangeRate(EUR, EUR, DAY, BigDecimal.ONE));
         //when
-        var summary = service.getTransactionSummary(42L, EUR, null, null);
+        var summary = service.getTransactionSummary(USER_ID, EUR, null, null);
         //then
         assertThat(summary.spendingByCategory()).containsExactlyInAnyOrder(
                 new CategorySpendingResponseDto(GROCERIES, new BigDecimal("1.82")),
@@ -80,7 +80,7 @@ class TransactionSummaryServiceTests {
         //given
         given(repository.findAll(ArgumentMatchers.<Specification<Transaction>>any())).willReturn(List.of());
         //when
-        var summary = service.getTransactionSummary(42L, GBP, DAY, DAY);
+        var summary = service.getTransactionSummary(USER_ID, GBP, DAY, DAY);
         //then
         assertThat(summary.currency()).isEqualTo(GBP);
         assertThat(List.of(summary.income(), summary.expenses(), summary.netIncome()))
@@ -95,7 +95,7 @@ class TransactionSummaryServiceTests {
         //given
         var end = DAY.minusDays(1);
         //when
-        Throwable error = catchThrowable(() -> service.getTransactionSummary(42L, EUR, DAY, end));
+        Throwable error = catchThrowable(() -> service.getTransactionSummary(USER_ID, EUR, DAY, end));
         //then
         assertThat(error).isInstanceOf(InvalidTransactionHistoryQueryException.class);
         then(repository).shouldHaveNoInteractions();
@@ -109,7 +109,7 @@ class TransactionSummaryServiceTests {
                 .willReturn(List.of(groceries()));
         given(rates.getRate(USD, EUR, DAY)).willThrow(new ExchangeRateUnavailableException("Rate unavailable"));
         //when
-        Throwable error = catchThrowable(() -> service.getTransactionSummary(42L, EUR, null, null));
+        Throwable error = catchThrowable(() -> service.getTransactionSummary(USER_ID, EUR, null, null));
         //then
         assertThat(error).isInstanceOf(ExchangeRateUnavailableException.class);
     }

@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record CreateTransactionRequest(
-        @NotNull @Positive Long userId,
         @NotNull TransactionType transactionType,
         @NotNull TransactionCategory transactionCategory,
         @NotNull TransactionCurrency currency,

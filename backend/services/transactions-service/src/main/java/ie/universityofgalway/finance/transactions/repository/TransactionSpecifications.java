@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public final class TransactionSpecifications {
 
@@ -16,7 +17,7 @@ public final class TransactionSpecifications {
     }
 
     public static Specification<Transaction> forHistory(
-            Long userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to) {
+            UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to) {
         // root = transaction row
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();

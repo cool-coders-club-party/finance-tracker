@@ -27,23 +27,39 @@ class TransactionRepositoryTests {
     @Autowired EntityManager entityManager;
 
     @Test
+    @DisplayName("Only the matching owner can retrieve an active transaction")
+    void givenActiveTransaction_whenAnotherOwnerLooksUp_thenRowIsHidden() {
+        //given
+        Long id = repository.saveAndFlush(groceries()).getId();
+        entityManager.clear();
+
+        //when
+        var ownerResult = repository.findActiveByIdAndUserId(id, USER_ID);
+        var otherResult = repository.findActiveByIdAndUserId(id, OTHER_USER_ID);
+
+        //then
+        assertThat(ownerResult).isPresent();
+        assertThat(otherResult).isEmpty();
+    }
+
+    @Test
     @DisplayName("Soft deletion hides the transaction but retains its amount and currency")
     void givenActiveTransaction_whenSoftDeleted_thenRowIsRetainedButHidden() {
         //given
         Long id = repository.saveAndFlush(groceries()).getId();
 
         //when
-        int affected = repository.softDelete(id);
+        int affected = repository.softDelete(id, USER_ID);
         entityManager.clear();
 
         //then
         assertThat(affected).isOne();
-        assertThat(repository.findActiveById(id)).isEmpty();
+        assertThat(repository.findActiveByIdAndUserId(id, USER_ID)).isEmpty();
         Transaction retained = repository.findById(id).orElseThrow();
         assertThat(retained.getActive()).isFalse();
         assertThat(retained.getAmount()).isEqualByComparingTo("10.50");
         assertThat(retained.getCurrency().name()).isEqualTo("USD");
-        assertThat(repository.softDelete(id)).isZero();
+        assertThat(repository.softDelete(id, USER_ID)).isZero();
     }
 
     @Test
@@ -51,16 +67,16 @@ class TransactionRepositoryTests {
     void givenInactiveTransaction_whenHardDeleted_thenRowIsRemoved() {
         //given
         Long id = repository.saveAndFlush(groceries()).getId();
-        repository.softDelete(id);
+        repository.softDelete(id, USER_ID);
 
         //when
-        int affected = repository.hardDelete(id);
+        int affected = repository.hardDelete(id, USER_ID);
         entityManager.clear();
 
         //then
         assertThat(affected).isOne();
         assertThat(repository.findById(id)).isEmpty();
-        assertThat(repository.hardDelete(id)).isZero();
+        assertThat(repository.hardDelete(id, USER_ID)).isZero();
     }
 
     @Test
@@ -76,7 +92,7 @@ class TransactionRepositoryTests {
         Transaction yesterday = groceries();
         yesterday.setOccurredAt(DAY.minusDays(1).atTime(23, 59));
         Transaction otherUser = groceries();
-        otherUser.setUserId(43L);
+        otherUser.setUserId(OTHER_USER_ID);
         Transaction inactive = groceries();
         inactive.setActive(false);
         Transaction gift = groceries();
@@ -87,8 +103,8 @@ class TransactionRepositoryTests {
         repository.saveAllAndFlush(List.of(first, last, tomorrow, yesterday, otherUser, inactive, gift, income));
 
         //when
-        var matches = repository.findAll(TransactionSpecifications.forHistory(42L, EXPENSE, GROCERIES, DAY, DAY));
-        var expenses = repository.findAll(TransactionSpecifications.forHistory(42L, EXPENSE, null, DAY, DAY));
+        var matches = repository.findAll(TransactionSpecifications.forHistory(USER_ID, EXPENSE, GROCERIES, DAY, DAY));
+        var expenses = repository.findAll(TransactionSpecifications.forHistory(USER_ID, EXPENSE, null, DAY, DAY));
 
         //then
         assertThat(matches).extracting(Transaction::getId).containsExactlyInAnyOrder(first.getId(), last.getId());

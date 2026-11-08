@@ -2,3 +2,7 @@ spring:
   datasource:
     url: jdbc:tc:postgresql:17.5-alpine:///transactions
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+app:
+  jwt:
+    secret: test-only-key-for-transactions-32-bytes-minimum

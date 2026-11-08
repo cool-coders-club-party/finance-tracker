@@ -16,10 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +26,7 @@ public class TransactionSummaryService {
     private final CurrencyConversionService currencyConversionService;
 
     public TransactionSummaryResponseDto getTransactionSummary(
-            Long userId,
+            UUID userId,
             TransactionCurrency targetCurrency,
             LocalDate from,
             LocalDate to
@@ -58,7 +55,7 @@ public class TransactionSummaryService {
         );
     }
 
-    private List<Transaction> getActiveTransactions(Long userId, LocalDate from, LocalDate to) {
+    private List<Transaction> getActiveTransactions(UUID userId, LocalDate from, LocalDate to) {
         return transactionRepository.findAll(
                 TransactionSpecifications.forHistory(userId, null, null, from, to)
         );

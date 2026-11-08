@@ -6,6 +6,8 @@ import ie.universityofgalway.finance.transactions.rest.dto.*;
 import ie.universityofgalway.finance.transactions.service.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static ie.universityofgalway.finance.transactions.util.DataUtils.USER_ID;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TransactionController.class)
+@org.springframework.test.context.ActiveProfiles("test")
+@org.springframework.context.annotation.Import(ie.universityofgalway.finance.transactions.config.SecurityConfig.class)
 class TransactionControllerTests {
     private static final String API = "/api/v1/transactions";
     @Autowired MockMvc mvc;
@@ -36,18 +40,19 @@ class TransactionControllerTests {
     @DisplayName("POST accepts a currency and returns the saved transaction with status 201")
     void givenValidBody_whenCreated_thenReturnsSavedTransaction() throws Exception {
         //given
-        var request = new CreateTransactionRequest(42L, EXPENSE, GROCERIES, USD,
+        var request = new CreateTransactionRequest( EXPENSE, GROCERIES, USD,
                 new BigDecimal("10.50"), null, DAY.atStartOfDay());
-        var saved = new TransactionResponseDto(9L, 42L, EXPENSE, GROCERIES, USD, request.amount(),
+        var saved = new TransactionResponseDto(9L, USER_ID, EXPENSE, GROCERIES, USD, request.amount(),
                 null, request.occurredAt(), DAY.atTime(12, 0));
-        given(transactions.createTransaction(request)).willReturn(saved);
+        given(transactions.createTransaction(request, USER_ID)).willReturn(saved);
         //when
-        var result = mvc.perform(post(API).contentType(APPLICATION_JSON).content("""
-                {"userId":42,"transactionType":"EXPENSE","transactionCategory":"GROCERIES",
+        var result = mvc.perform(post(API).with(jwt().jwt(token -> token.subject(USER_ID.toString()))).contentType(APPLICATION_JSON).content("""
+                {"transactionType":"EXPENSE","transactionCategory":"GROCERIES",
                  "currency":"USD","amount":"10.50","occurredAt":"2025-03-10T00:00:00"}
                 """));
         //then
         result.andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(9))
+                .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
                 .andExpect(jsonPath("$.currency").value("USD")).andExpect(jsonPath("$.amount").value(10.5));
     }
 
@@ -56,24 +61,24 @@ class TransactionControllerTests {
     void givenMissingCurrency_whenCreated_thenReturnsBadRequest() throws Exception {
         //given
         String body = """
-                {"userId":42,"transactionType":"EXPENSE","transactionCategory":"GROCERIES",
+                {"transactionType":"EXPENSE","transactionCategory":"GROCERIES",
                  "amount":"10.50","occurredAt":"2025-03-10T00:00:00"}
                 """;
         //when
-        var result = mvc.perform(post(API).contentType(APPLICATION_JSON).content(body));
+        var result = mvc.perform(post(API).with(jwt().jwt(token -> token.subject(USER_ID.toString()))).contentType(APPLICATION_JSON).content(body));
         //then
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.currency").isString());
         then(transactions).shouldHaveNoInteractions();
     }
 
     @Test
-    @DisplayName("History binds the user, filters and pagination defaults")
+    @DisplayName("History uses the token owner despite a supplied user ID")
     void givenHistoryFilters_whenRequested_thenReturnsPage() throws Exception {
         //given
-        var expected = new TransactionHistoryQuery(42L, EXPENSE, GROCERIES, DAY, null, 0, 20, "date", "desc");
+        var expected = new TransactionHistoryQuery(USER_ID, EXPENSE, GROCERIES, DAY, null, 0, 20, "date", "desc");
         given(transactions.findHistory(expected)).willReturn(new TransactionPageResponseDto(List.of(), 0, 20, 0, 0));
         //when
-        var result = mvc.perform(get(API).param("userId","42").param("type","EXPENSE")
+        var result = mvc.perform(get(API).with(jwt().jwt(token -> token.subject(USER_ID.toString()))).param("userId","999").param("type","EXPENSE")
                 .param("category","GROCERIES").param("from", DAY.toString()));
         //then
         result.andExpect(status().isOk()).andExpect(jsonPath("$.content").isEmpty())
@@ -84,9 +89,9 @@ class TransactionControllerTests {
     @DisplayName("An unknown transaction returns a structured 404")
     void givenUnknownId_whenRead_thenReturnsNotFound() throws Exception {
         //given
-        given(transactions.findTransactionById(9L)).willThrow(new TransactionNotFoundException(9L));
+        given(transactions.findTransactionById(9L, USER_ID)).willThrow(new TransactionNotFoundException(9L));
         //when
-        var result = mvc.perform(get(API + "/9"));
+        var result = mvc.perform(get(API + "/9").with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
         //then
         result.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.path").value(API + "/9"));
@@ -98,7 +103,7 @@ class TransactionControllerTests {
         //given
         String body = "{}";
         //when
-        var result = mvc.perform(patch(API + "/9").contentType(APPLICATION_JSON).content(body));
+        var result = mvc.perform(patch(API + "/9").with(jwt().jwt(token -> token.subject(USER_ID.toString()))).contentType(APPLICATION_JSON).content(body));
         //then
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("Validation failed"));
         then(transactions).shouldHaveNoInteractions();
@@ -110,10 +115,10 @@ class TransactionControllerTests {
         //given
         long id = 9L;
         //when
-        var result = mvc.perform(delete(API + "/{id}", id));
+        var result = mvc.perform(delete(API + "/{id}", id).with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
         //then
         result.andExpect(status().isOk());
-        then(transactions).should().softDelete(id);
+        then(transactions).should().softDelete(id, USER_ID);
         then(transactions).shouldHaveNoMoreInteractions();
     }
 
@@ -123,22 +128,22 @@ class TransactionControllerTests {
         //given
         long id = 9L;
         //when
-        var result = mvc.perform(delete(API + "/{id}", id).param("permanent", "true"));
+        var result = mvc.perform(delete(API + "/{id}", id).with(jwt().jwt(token -> token.subject(USER_ID.toString()))).param("permanent", "true"));
         //then
         result.andExpect(status().isOk());
-        then(transactions).should().hardDelete(id);
+        then(transactions).should().hardDelete(id, USER_ID);
         then(transactions).shouldHaveNoMoreInteractions();
     }
 
     @Test
-    @DisplayName("Summary binds optional dates and returns the selected currency and categories")
+    @DisplayName("Summary uses the token owner despite a supplied user ID")
     void givenDateRange_whenSummaryRequested_thenReturnsCategoryAmounts() throws Exception {
         //given
         var amount = new BigDecimal("9.50");
-        given(summaries.getTransactionSummary(42L, EUR, DAY, DAY)).willReturn(new TransactionSummaryResponseDto(
+        given(summaries.getTransactionSummary(USER_ID, EUR, DAY, DAY)).willReturn(new TransactionSummaryResponseDto(
                 EUR, BigDecimal.ZERO, amount, amount.negate(), List.of(new CategorySpendingResponseDto(GROCERIES, amount))));
         //when
-        var result = mvc.perform(get(API + "/summary").param("userId", "42").param("currency", "EUR")
+        var result = mvc.perform(get(API + "/summary").with(jwt().jwt(token -> token.subject(USER_ID.toString()))).param("userId", "999").param("currency", "EUR")
                 .param("from", DAY.toString()).param("to", DAY.toString()));
         //then
         result.andExpect(status().isOk()).andExpect(jsonPath("$.currency").value("EUR"))
@@ -148,13 +153,13 @@ class TransactionControllerTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"userId=0&currency=EUR", "userId=42&currency=XYZ", "userId=42"})
+    @ValueSource(strings = {"currency=XYZ", "currency=EUR&from=invalid", ""})
     @DisplayName("Invalid summary parameters produce a structured 400")
     void givenInvalidParameters_whenSummaryRequested_thenReturnsBadRequest(String query) throws Exception {
         //given
         String uri = API + "/summary?" + query;
         //when
-        var result = mvc.perform(get(uri));
+        var result = mvc.perform(get(uri).with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
         //then
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.path").value(API + "/summary")).andExpect(jsonPath("$.details").isNotEmpty());
@@ -165,10 +170,10 @@ class TransactionControllerTests {
     @DisplayName("An exchange-rate outage produces a 503 response")
     void givenUnavailableRate_whenSummaryRequested_thenReturnsServiceUnavailable() throws Exception {
         //given
-        given(summaries.getTransactionSummary(42L, EUR, null, null))
+        given(summaries.getTransactionSummary(USER_ID, EUR, null, null))
                 .willThrow(new ExchangeRateUnavailableException("upstream failure"));
         //when
-        var result = mvc.perform(get(API + "/summary").param("userId","42").param("currency","EUR"));
+        var result = mvc.perform(get(API + "/summary").with(jwt().jwt(token -> token.subject(USER_ID.toString()))).param("userId","999").param("currency","EUR"));
         //then
         result.andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("Exchange rates are temporarily unavailable."));
