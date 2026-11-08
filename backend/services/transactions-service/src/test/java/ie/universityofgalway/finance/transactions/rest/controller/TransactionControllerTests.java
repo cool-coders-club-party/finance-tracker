@@ -178,4 +178,151 @@ class TransactionControllerTests {
         result.andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("Exchange rates are temporarily unavailable."));
     }
+
+    @Test
+    @DisplayName("Restore returns the transaction and uses the token owner despite a supplied user ID")
+    void givenDeletedTransaction_whenRestored_thenReturnsTransactionForTokenOwner() throws Exception {
+        //given
+        var restored = new TransactionResponseDto(9L, USER_ID, EXPENSE, GROCERIES, USD,
+                new BigDecimal("10.50"), "Groceries", DAY.atStartOfDay(), DAY.atTime(12, 0));
+        given(transactions.restoreAndGetSoftDeletedTransaction(9L, USER_ID)).willReturn(restored);
+
+        //when
+        var result = mvc.perform(post(API + "/9/restore")
+                .with(jwt().jwt(token -> token.subject(USER_ID.toString())))
+                .param("userId", ie.universityofgalway.finance.transactions.util.DataUtils.OTHER_USER_ID.toString()));
+
+        //then
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.id").value(9))
+                .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.currency").value("USD"))
+                .andExpect(jsonPath("$.amount").value(10.5));
+        then(transactions).should().restoreAndGetSoftDeletedTransaction(9L, USER_ID);
+        then(transactions).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("An ineligible restore returns a structured 404")
+    void givenNoEligibleTransaction_whenRestored_thenReturnsNotFound() throws Exception {
+        //given
+        given(transactions.restoreAndGetSoftDeletedTransaction(9L, USER_ID))
+                .willThrow(new TransactionNotFoundException(9L));
+
+        //when
+        var result = mvc.perform(post(API + "/9/restore")
+                .with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
+
+        //then
+        result.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.path").value(API + "/9/restore"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "invalid"})
+    @DisplayName("Invalid restore IDs are rejected before calling the service")
+    void givenInvalidId_whenRestored_thenReturnsBadRequest(String id) throws Exception {
+        //given
+        String uri = API + "/" + id + "/restore";
+
+        //when
+        var result = mvc.perform(post(uri).with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
+
+        //then
+        result.andExpect(status().isBadRequest());
+        then(transactions).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("Restore requires authentication")
+    void givenNoToken_whenRestored_thenReturnsUnauthorized() throws Exception {
+        //given
+        String uri = API + "/9/restore";
+
+        //when
+        var result = mvc.perform(post(uri));
+
+        //then
+        result.andExpect(status().isUnauthorized());
+        then(transactions).shouldHaveNoInteractions();
+    }
+
+
+    @Test
+    @DisplayName("Deleted history forwards filters and pagination using only the token owner")
+    void givenDeletedHistoryFiltersAndForgedOwner_whenRequested_thenTokenOwnerAndPageAreUsed() throws Exception {
+        //given
+        var query = new TransactionHistoryQuery(USER_ID, EXPENSE, GROCERIES, DAY, DAY, 1, 2, "amount", "asc");
+        var record = new TransactionResponseDto(9L, USER_ID, EXPENSE, GROCERIES, USD,
+                new BigDecimal("10.50"), "Groceries", DAY.atStartOfDay(), DAY.atTime(12, 0));
+        given(transactions.findSoftDeletedTransactions(query))
+                .willReturn(new TransactionPageResponseDto(List.of(record), 1, 2, 3, 2));
+
+        //when
+        var result = mvc.perform(get(API + "/deleted")
+                .with(jwt().jwt(token -> token.subject(USER_ID.toString())))
+                .param("userId", ie.universityofgalway.finance.transactions.util.DataUtils.OTHER_USER_ID.toString())
+                .param("type", "EXPENSE").param("category", "GROCERIES")
+                .param("from", DAY.toString()).param("to", DAY.toString())
+                .param("page", "1").param("size", "2").param("sortBy", "amount").param("direction", "asc"));
+
+        //then
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(2)).andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2)).andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(9))
+                .andExpect(jsonPath("$.content[0].userId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.content[0].currency").value("USD"));
+        then(transactions).should().findSoftDeletedTransactions(query);
+        then(transactions).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("Deleted history uses defaults and returns an empty page when nothing matches")
+    void givenNoDeletedTransactions_whenRequestedWithoutFilters_thenReturnsEmptyDefaultPage() throws Exception {
+        //given
+        var query = new TransactionHistoryQuery(USER_ID, null, null, null, null, 0, 20, "date", "desc");
+        given(transactions.findSoftDeletedTransactions(query))
+                .willReturn(new TransactionPageResponseDto(List.of(), 0, 20, 0, 0));
+
+        //when
+        var result = mvc.perform(get(API + "/deleted").with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
+
+        //then
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.page").value(0)).andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(0)).andExpect(jsonPath("$.totalPages").value(0));
+        then(transactions).should().findSoftDeletedTransactions(query);
+        then(transactions).shouldHaveNoMoreInteractions();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"page=-1", "size=0", "size=101", "type=UNKNOWN", "category=UNKNOWN", "from=invalid", "to=invalid"})
+    @DisplayName("Invalid deleted-history parameters return 400 without calling the service")
+    void givenInvalidDeletedHistoryParameters_whenRequested_thenBadRequest(String query) throws Exception {
+        //given
+        String uri = API + "/deleted?" + query;
+
+        //when
+        var result = mvc.perform(get(uri).with(jwt().jwt(token -> token.subject(USER_ID.toString()))));
+
+        //then
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.path").value(API + "/deleted"));
+        then(transactions).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("Deleted history requires authentication")
+    void givenNoToken_whenDeletedHistoryRequested_thenUnauthorized() throws Exception {
+        //given
+        String uri = API + "/deleted";
+
+        //when
+        var result = mvc.perform(get(uri));
+
+        //then
+        result.andExpect(status().isUnauthorized());
+        then(transactions).shouldHaveNoInteractions();
+    }
+
 }

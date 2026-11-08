@@ -42,26 +42,7 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional(readOnly = true)
     public TransactionPageResponseDto findHistory(TransactionHistoryQuery query) {
-        if (query.from() != null && query.to() != null && query.from().isAfter(query.to())) {
-            throw new InvalidTransactionHistoryQueryException("from must be on or before to");
-        }
-
-        String sortProperty = switch (query.sortBy().toLowerCase(Locale.ROOT)) {
-            case "date", "occurredat" -> "occurredAt";
-            case "amount" -> "amount";
-            default -> throw new InvalidTransactionHistoryQueryException("sortBy must be date or amount");
-        };
-        Sort.Direction direction = switch (query.direction().toLowerCase(Locale.ROOT)) {
-            case "asc" -> Sort.Direction.ASC;
-            case "desc" -> Sort.Direction.DESC;
-            default -> throw new InvalidTransactionHistoryQueryException("direction must be asc or desc");
-        };
-
-        Sort sort = Sort.by(
-                new Sort.Order(direction, sortProperty),
-                new Sort.Order(Sort.Direction.DESC, "id")
-        );
-        PageRequest pageable = PageRequest.of(query.page(), query.size(), sort);
+        PageRequest pageable = createPageRequest(query);
         return transactionMapper.from(transactionRepository.findAll(
                 TransactionSpecifications.forHistory(
                         query.userId(), query.type(), query.category(), query.from(), query.to()), pageable));
@@ -121,6 +102,52 @@ public class TransactionServiceImpl implements TransactionService {
                 categoriesMetadataDto,
                 Arrays.asList(TransactionCurrency.values())
         );
+    }
+
+    @Override
+    @Transactional
+    public TransactionResponseDto restoreAndGetSoftDeletedTransaction(Long transactionId, UUID userId) {
+        Transaction transaction = transactionRepository.findByIdAndUserIdAndActiveFalse(
+                transactionId,
+                userId
+        ).orElseThrow(() -> new TransactionNotFoundException(transactionId));
+
+        transaction.setActive(true);
+        transactionRepository.save(transaction);
+        return transactionMapper.from(transaction);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionPageResponseDto findSoftDeletedTransactions(TransactionHistoryQuery query) {
+        PageRequest pageable = createPageRequest(query);
+
+        return transactionMapper.from(transactionRepository.findAll(
+                TransactionSpecifications.forSoftDeleted(
+                        query.userId(), query.type(), query.category(), query.from(), query.to()), pageable));
+    }
+
+    private PageRequest createPageRequest(TransactionHistoryQuery query) {
+        if (query.from() != null && query.to() != null && query.from().isAfter(query.to())) {
+            throw new InvalidTransactionHistoryQueryException("from must be on or before to");
+        }
+
+        String sortProperty = switch (query.sortBy().toLowerCase(Locale.ROOT)) {
+            case "date", "occurredat" -> "occurredAt";
+            case "amount" -> "amount";
+            default -> throw new InvalidTransactionHistoryQueryException("sortBy must be date or amount");
+        };
+        Sort.Direction direction = switch (query.direction().toLowerCase(Locale.ROOT)) {
+            case "asc" -> Sort.Direction.ASC;
+            case "desc" -> Sort.Direction.DESC;
+            default -> throw new InvalidTransactionHistoryQueryException("direction must be asc or desc");
+        };
+
+        Sort sort = Sort.by(
+                new Sort.Order(direction, sortProperty),
+                new Sort.Order(Sort.Direction.DESC, "id")
+        );
+        return PageRequest.of(query.page(), query.size(), sort);
     }
 
 

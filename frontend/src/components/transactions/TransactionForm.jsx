@@ -2,17 +2,12 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { Link } from 'react-router-dom';
 import { Loader2, Plus, Save } from 'lucide-react';
+import { localDateTime, transactionDate, occurredAtForDate } from '../../lib/transactionDate';
 import { currencyLabel, formatMoney } from '../../lib/money';
 import { saveTransaction } from '../../api/transactions';
 import { categoriesForType, categoryAfterTypeChange, formatEnumLabel } from '../../lib/transactionMetadata';
 
 const inputClass = 'min-h-11 w-full rounded-lg border border-input bg-background/70 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-ring/60 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive';
-
-function localDateTimeNow() {
-  const now = new Date();
-  const pad = (value) => String(value).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-}
 
 function initialValues(transaction) {
   return {
@@ -21,11 +16,12 @@ function initialValues(transaction) {
     currency: transaction?.currency ?? '',
     amount: String(transaction?.amount ?? ''),
     description: transaction?.description ?? '',
+    date: transactionDate(transaction?.occurredAt),
   };
 }
 
 // Both create and edit use the same metadata-driven fields and validation.
-export default function TransactionForm({ metadata, transaction = null, onSaved }) {
+export default function TransactionForm({ metadata, transaction = null, onSaved, cancelTo = "/transactions" }) {
   const id = useId();
   const [values, setValues] = useState(() => initialValues(transaction));
   const [feedback, setFeedback] = useState({ message: '', details: {} });
@@ -58,9 +54,12 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
     const payload = Object.fromEntries(editable
       .filter((key) => !transaction || values[key] !== original[key])
       .map((key) => [key, values[key]]));
-    if (!transaction) {
-      // The API requires occurredAt on creation; edits must preserve the stored value.
-      payload.occurredAt = localDateTimeNow();
+    try {
+      const occurredAt = occurredAtForDate(values.date, transaction?.occurredAt);
+      if (occurredAt !== undefined) payload.occurredAt = occurredAt;
+    } catch (error) {
+      setFeedback({ message: error.message, details: { occurredAt: error.message } });
+      return;
     }
     if (!Object.keys(payload).length) {
       setFeedback({ message: 'No changes to save.', details: {} });
@@ -157,6 +156,15 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
           </span>
           {fieldError('currency')}
         </label>
+        <label className="grid content-start gap-2 text-sm font-medium">
+          <span>Transaction date</span>
+          <input type="date" name="date" required min="0001-01-01" max={localDateTime().slice(0, 10)}
+            value={values.date} onChange={updateField} className={inputClass}
+            aria-invalid={Boolean(feedback.details.occurredAt)}
+            aria-describedby={`${id}-date-help${feedback.details.occurredAt ? ` ${id}-occurredAt-error` : ''}`} />
+          <span id={`${id}-date-help`} className="text-xs font-normal text-muted-foreground">When the transaction happened. This date is also used for currency conversion.</span>
+          {fieldError('occurredAt')}
+        </label>
         <label className="grid content-start gap-2 text-sm font-medium sm:col-span-2">
           <span>Description (optional)</span>
           <textarea name="description" maxLength={500} rows={3} value={values.description} onChange={updateField} className={`${inputClass} min-h-28 resize-y`}
@@ -166,7 +174,7 @@ export default function TransactionForm({ metadata, transaction = null, onSaved 
       </fieldset>
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-end">
         <Button asChild variant="ghost" className="h-11 px-5">
-          <Link to="/">Cancel</Link>
+          <Link to={cancelTo}>Cancel</Link>
         </Button>
         <Button type="submit" className="h-11 gap-2 px-5" disabled={isSaving || !pairIsValid || !currencyIsValid}>
           {isSaving ? <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> : transaction ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}

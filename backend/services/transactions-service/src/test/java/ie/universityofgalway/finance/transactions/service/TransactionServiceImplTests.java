@@ -1,5 +1,13 @@
 package ie.universityofgalway.finance.transactions.service;
 
+import ie.universityofgalway.finance.transactions.exception.InvalidTransactionHistoryQueryException;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import ie.universityofgalway.finance.transactions.entity.Transaction;
 import ie.universityofgalway.finance.transactions.exception.InvalidTransactionCombinationException;
 import ie.universityofgalway.finance.transactions.exception.TransactionNotFoundException;
@@ -130,4 +138,92 @@ class TransactionServiceImplTests {
             assertThat(c.allowedTypes()).containsExactly(EXPENSE);
         });
     }
+
+    @Test
+    @DisplayName("Restore reactivates the transaction and preserves its original details")
+    void givenInactiveTransaction_whenRestored_thenOriginalTransactionIsReactivated() {
+        //given
+        Transaction deleted = groceries();
+        deleted.setId(7L);
+        deleted.setActive(false);
+        deleted.setDescription("Weekly groceries");
+        deleted.setCreatedAt(DAY.atTime(13, 0));
+        var original = Mappers.getMapper(TransactionMapper.class).from(deleted);
+        given(repository.findByIdAndUserIdAndActiveFalse(7L, USER_ID)).willReturn(Optional.of(deleted));
+
+        //when
+        var response = service.restoreAndGetSoftDeletedTransaction(7L, USER_ID);
+
+        //then
+        assertThat(deleted.getActive()).isTrue();
+        assertThat(response).isEqualTo(original);
+        then(repository).should().findByIdAndUserIdAndActiveFalse(7L, USER_ID);
+    }
+
+    @Test
+    @DisplayName("Restore reports not found when no eligible transaction exists")
+    void givenNoEligibleTransaction_whenRestored_thenNotFoundWithoutSaving() {
+        //given
+        given(repository.findByIdAndUserIdAndActiveFalse(7L, USER_ID)).willReturn(Optional.empty());
+
+        //when
+        Throwable error = catchThrowable(() -> service.restoreAndGetSoftDeletedTransaction(7L, USER_ID));
+
+        //then
+        assertThat(error).isInstanceOf(TransactionNotFoundException.class);
+        then(repository).should().findByIdAndUserIdAndActiveFalse(7L, USER_ID);
+        then(repository).shouldHaveNoMoreInteractions();
+    }
+
+
+    @ParameterizedTest
+    @CsvSource({"date,desc,occurredAt,DESC", "occurredAt,asc,occurredAt,ASC", "amount,ASC,amount,ASC"})
+    @DisplayName("Deleted history maps the requested page and uses a stable secondary ID sort")
+    void givenDeletedHistoryQuery_whenRequested_thenPageAndSortArePreserved(
+            String sortBy, String direction, String property, Sort.Direction expectedDirection) {
+        //given
+        var query = new TransactionHistoryQuery(USER_ID, EXPENSE, GROCERIES, DAY, DAY, 1, 2, sortBy, direction);
+        var pageable = PageRequest.of(1, 2, Sort.by(new Sort.Order(expectedDirection, property), Sort.Order.desc("id")));
+        Transaction deleted = groceries();
+        deleted.setId(7L);
+        deleted.setActive(false);
+        given(repository.findAll(org.mockito.ArgumentMatchers.<Specification<Transaction>>any(), eq(pageable)))
+                .willReturn(new PageImpl<>(java.util.List.of(deleted), pageable, 3));
+
+        //when
+        var response = service.findSoftDeletedTransactions(query);
+
+        //then
+        assertThat(response.page()).isEqualTo(1);
+        assertThat(response.size()).isEqualTo(2);
+        assertThat(response.totalElements()).isEqualTo(3);
+        assertThat(response.totalPages()).isEqualTo(2);
+        assertThat(response.content()).singleElement().satisfies(transaction -> {
+            assertThat(transaction.id()).isEqualTo(7L);
+            assertThat(transaction.userId()).isEqualTo(USER_ID);
+            assertThat(transaction.amount()).isEqualByComparingTo("10.50");
+            assertThat(transaction.currency()).isEqualTo(USD);
+        });
+        then(repository).should().findAll(org.mockito.ArgumentMatchers.<Specification<Transaction>>any(), eq(pageable));
+        then(repository).shouldHaveNoMoreInteractions();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"range", "sort", "direction"})
+    @DisplayName("Invalid deleted-history queries fail before accessing the repository")
+    void givenInvalidDeletedHistoryQuery_whenRequested_thenRejectedBeforeQuerying(String invalidField) {
+        //given
+        var query = new TransactionHistoryQuery(USER_ID, null, null,
+                invalidField.equals("range") ? DAY.plusDays(1) : DAY, DAY, 0, 20,
+                invalidField.equals("sort") ? "description" : "date",
+                invalidField.equals("direction") ? "sideways" : "desc");
+
+        //when
+        Throwable error = catchThrowable(() -> service.findSoftDeletedTransactions(query));
+
+        //then
+        assertThat(error).isInstanceOf(InvalidTransactionHistoryQueryException.class);
+        then(repository).shouldHaveNoInteractions();
+    }
+
 }
