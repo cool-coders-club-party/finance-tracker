@@ -91,6 +91,38 @@ public class TransactionController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{transactionId}/restore")
+    public ResponseEntity<TransactionResponseDto> restoreSoftDeletedTransaction(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable @NotNull @Positive Long transactionId
+    ){
+        UUID userId = UUID.fromString(jwt.getSubject());
+        TransactionResponseDto transactionResponseDto =
+                transactionService.restoreAndGetSoftDeletedTransaction(
+                        transactionId,
+                        userId
+                );
+        return ResponseEntity.ok(transactionResponseDto);
+    }
+
+    @GetMapping("/deleted")
+    public ResponseEntity<TransactionPageResponseDto> getSoftDeletedTransactions(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) TransactionCategory category,
+            @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "date") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction
+    ){
+        UUID userId = UUID.fromString(jwt.getSubject());
+        TransactionHistoryQuery query = new TransactionHistoryQuery(
+                userId, type, category, from, to, page, size, sortBy, direction);
+        return ResponseEntity.ok(transactionService.findSoftDeletedTransactions(query));
+    }
+
     @GetMapping("/metadata")
     public ResponseEntity<TransactionMetadataResponseDto> getMetadata() {
         return ResponseEntity.ok(transactionService.findTransactionMetadata());

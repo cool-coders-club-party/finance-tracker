@@ -3,7 +3,9 @@ package ie.universityofgalway.finance.transactions.repository;
 import ie.universityofgalway.finance.transactions.entity.Transaction;
 import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
 import ie.universityofgalway.finance.transactions.entity.TransactionType;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -20,27 +22,44 @@ public final class TransactionSpecifications {
             UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to) {
         // root = transaction row
         return (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
-
-            if (type != null) {
-                predicates.add(criteriaBuilder.equal(root.get("transactionType"), type));
-            }
-            if (category != null) {
-                predicates.add(criteriaBuilder.equal(root.get("transactionCategory"), category));
-            }
-            if (from != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
-                        root.get("occurredAt"), from.atStartOfDay()));
-            }
-            if (to != null) {
-                predicates.add(criteriaBuilder.lessThan(
-                        root.get("occurredAt"), to.plusDays(1).atStartOfDay()));
-            }
+            List<Predicate> predicates = buildFilterPredicates(userId, type, category, from, to, root, criteriaBuilder);
 
             predicates.add(criteriaBuilder.isTrue(root.get("active")));
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    public static Specification<Transaction> forSoftDeleted(
+            UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to) {
+        // root = transaction row
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = buildFilterPredicates(userId, type, category, from, to, root, criteriaBuilder);
+
+            predicates.add(criteriaBuilder.isFalse(root.get("active")));
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private static List<Predicate> buildFilterPredicates(UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to, Root<Transaction> root, CriteriaBuilder criteriaBuilder) {
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
+
+        if (type != null) {
+            predicates.add(criteriaBuilder.equal(root.get("transactionType"), type));
+        }
+        if (category != null) {
+            predicates.add(criteriaBuilder.equal(root.get("transactionCategory"), category));
+        }
+        if (from != null) {
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                    root.get("occurredAt"), from.atStartOfDay()));
+        }
+        if (to != null) {
+            predicates.add(criteriaBuilder.lessThan(
+                    root.get("occurredAt"), to.plusDays(1).atStartOfDay()));
+        }
+        return predicates;
     }
 }

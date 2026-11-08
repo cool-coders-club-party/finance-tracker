@@ -8,7 +8,8 @@ import Grainient from "./Grainient";
 const NAV_ITEMS = [
   { label: "Dashboard", link: "/" },
   { label: "Portfolio", link: "/portfolio"},
-  { label: "Add Transaction", link: "/transactions" },
+  { label: "Transactions", link: "/transactions" },
+  { label: "Add Transaction", link: "/transactions/new" },
 ];
 
 // Shared background, theme, spacing, and navigation for dashboard pages.

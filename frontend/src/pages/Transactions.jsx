@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getTransaction } from '../api/transactions';
-import { CheckCircle2, Loader2, Plus, Receipt, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Receipt, RefreshCw } from 'lucide-react';
 import DashboardShell from '../components/DashboardShell';
 import TransactionForm from '../components/transactions/TransactionForm';
 import { Button } from '../components/ui/button';
@@ -15,10 +15,13 @@ export default function Transactions() {
 
 function TransactionEditor({ transactionId }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedReturn = location.state?.returnTo;
+  const returnTo = typeof requestedReturn === 'string' && /^\/transactions(?:\?.*)?$/.test(requestedReturn)
+    ? requestedReturn : '/transactions';
   const metadata = useTransactionMetadata();
   const [attempt, setAttempt] = useState(0);
   const [record, setRecord] = useState({ status: transactionId ? 'loading' : 'ready', data: null, error: '' });
-  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     if (!transactionId) return;
@@ -39,13 +42,8 @@ function TransactionEditor({ transactionId }) {
     setAttempt((value) => value + 1);
   }
 
-  function handleSaved(transaction) {
-    if (!transactionId) {
-      navigate(`/transactions/${transaction.id}/edit`, { replace: true });
-    } else {
-      setRecord({ status: 'ready', data: transaction, error: '' });
-      setNotice('Transaction saved.');
-    }
+  function handleSaved() {
+    navigate(returnTo, { replace: true });
   }
 
   const isLoading = metadata.status === 'loading' || record.status === 'loading';
@@ -59,11 +57,9 @@ function TransactionEditor({ transactionId }) {
             <h1 className="!my-0 text-3xl font-bold !text-foreground">{transactionId ? 'Edit transaction' : 'New transaction'}</h1>
             <p className="text-sm text-foreground/90">Record your income and expenses with the right category.</p>
           </div>
-          {transactionId && (
-            <Button asChild variant="outline" className="h-10 border-border/70 bg-background/35">
-              <Link to="/transactions"><Plus aria-hidden="true" />New transaction</Link>
-            </Button>
-          )}
+          <Button asChild variant="outline" className="h-10 border-border/70 bg-background/35">
+            <Link to={returnTo}><ArrowLeft aria-hidden="true" />Back to transactions</Link>
+          </Button>
         </header>
         <Card className="glass border border-border/60 bg-card/10">
           <CardHeader className="gap-2 border-b border-border/60 pb-5">
@@ -88,9 +84,8 @@ function TransactionEditor({ transactionId }) {
                 <Loader2 aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />Loading transaction details…
               </p>
             )}
-            {notice && <p role="status" className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/35 p-3 text-sm"><CheckCircle2 aria-hidden="true" className="size-4 text-green-400" />{notice}</p>}
             {isReady && <TransactionForm key={record.data ? JSON.stringify(record.data) : 'new'}
-              metadata={metadata.data} transaction={record.data} onSaved={handleSaved} />}
+              metadata={metadata.data} transaction={record.data} onSaved={handleSaved} cancelTo={returnTo} />}
           </CardContent>
         </Card>
       </main>

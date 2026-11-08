@@ -11,7 +11,7 @@ export class TransactionApiError extends Error {
   }
 }
 
-async function request(path, options = {}) {
+async function request(path, options = {}, allowEmpty = false) {
   let response;
   try {
     response = await authenticatedFetch(`${BASE_URL}${path}`, {
@@ -29,6 +29,7 @@ async function request(path, options = {}) {
       body?.details && typeof body.details === 'object' ? body.details : {},
     );
   }
+  if (allowEmpty && !body) return null;
   if (!body) throw new TransactionApiError('Transactions returned an empty or unreadable response.');
   return body;
 }
@@ -51,9 +52,9 @@ export async function getTransactionSummary(currency, signal) {
   return summary;
 }
 
-// Expenses for chart
+// Defaults preserve existing expense-chart callers; history passes an explicit type.
 export function getTransactionHistory(
-  { page = 0, size = 100, type = 'EXPENSE', signal } = {},
+  { page = 0, size = 100, type = 'EXPENSE', category, from, to, deleted = false, signal } = {},
 ) {
   const params = new URLSearchParams({
     page: String(page),
@@ -62,9 +63,11 @@ export function getTransactionHistory(
     direction: 'desc',
   });
 
-  if (type) params.set('type', type);
+  for (const [key, value] of Object.entries({ type, category, from, to })) {
+    if (value) params.set(key, value);
+  }
 
-  return request(`?${params.toString()}`, { signal });
+  return request(`${deleted ? '/deleted' : ''}?${params.toString()}`, { signal });
 }
 
 export function getTransaction(id, signal) {
@@ -79,4 +82,12 @@ export function saveTransaction(payload, id, signal) {
       ['transactionType', 'transactionCategory', 'amount', 'currency', 'description', 'occurredAt'].includes(key)))),
     signal,
   });
+}
+
+export function deleteTransaction(id, signal) {
+  return request(`/${encodeURIComponent(id)}`, { method: 'DELETE', signal }, true);
+}
+
+export function restoreTransaction(id, signal) {
+  return request(`/${encodeURIComponent(id)}/restore`, { method: 'POST', signal });
 }

@@ -20,4 +20,8 @@ public interface TransactionService {
     void hardDelete(Long transactionId, UUID userId);
 
     TransactionMetadataResponseDto findTransactionMetadata();
+
+    TransactionResponseDto restoreAndGetSoftDeletedTransaction(Long transactionId, UUID userId);
+
+    TransactionPageResponseDto findSoftDeletedTransactions(TransactionHistoryQuery query);
 }

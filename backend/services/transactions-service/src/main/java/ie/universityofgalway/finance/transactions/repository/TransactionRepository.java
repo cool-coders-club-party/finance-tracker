@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,4 +30,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             DELETE Transaction i WHERE i.id = :id AND i.userId = :userId
             """)
     Integer hardDelete(@Param("id") Long transactionId, @Param("userId") UUID userId);
+
+    Optional<Transaction> findByIdAndUserIdAndActiveFalse(Long transactionId, UUID userId);
+
+
 }
