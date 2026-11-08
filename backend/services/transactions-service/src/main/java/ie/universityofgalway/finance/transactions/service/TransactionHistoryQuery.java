@@ -4,9 +4,10 @@ import ie.universityofgalway.finance.transactions.entity.TransactionCategory;
 import ie.universityofgalway.finance.transactions.entity.TransactionType;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record TransactionHistoryQuery(
-        Long userId,
+        UUID userId,
         TransactionType type,
         TransactionCategory category,
         LocalDate from,

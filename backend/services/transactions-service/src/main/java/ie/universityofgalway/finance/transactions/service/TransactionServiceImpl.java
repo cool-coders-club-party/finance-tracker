@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +32,10 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public TransactionResponseDto createTransaction(CreateTransactionRequest request) {
+    public TransactionResponseDto createTransaction(CreateTransactionRequest request, UUID userId) {
         transactionCategoryValidator.validate(request.transactionType(), request.transactionCategory());
         Transaction transaction = transactionMapper.to(request);
+        transaction.setUserId(userId);
         return transactionMapper.from(transactionRepository.save(transaction));
     }
 
@@ -67,15 +69,15 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional(readOnly = true)
-    public TransactionResponseDto findTransactionById(Long transactionId) {
-        return transactionMapper.from(transactionRepository.findActiveById(transactionId)
+    public TransactionResponseDto findTransactionById(Long transactionId, UUID userId) {
+        return transactionMapper.from(transactionRepository.findActiveByIdAndUserId(transactionId, userId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId)));
     }
 
     @Override
     @Transactional
-    public TransactionResponseDto updateTransaction(Long transactionId, UpdateTransactionRequest request) {
-        Transaction transaction = transactionRepository.findActiveById(transactionId)
+    public TransactionResponseDto updateTransaction(Long transactionId, UpdateTransactionRequest request, UUID userId) {
+        Transaction transaction = transactionRepository.findActiveByIdAndUserId(transactionId, userId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId));
 
         TransactionType transactionType = request.transactionType() == null ?
@@ -90,15 +92,15 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public void softDelete(Long transactionId) {
-        Integer deletedTransactions = transactionRepository.softDelete(transactionId);
+    public void softDelete(Long transactionId, UUID userId) {
+        Integer deletedTransactions = transactionRepository.softDelete(transactionId, userId);
         if (deletedTransactions == 0) throw new TransactionNotFoundException(transactionId);
     }
 
     @Override
     @Transactional
-    public void hardDelete(Long transactionId) {
-        Integer deletedTransactions = transactionRepository.hardDelete(transactionId);
+    public void hardDelete(Long transactionId, UUID userId) {
+        Integer deletedTransactions = transactionRepository.hardDelete(transactionId, userId);
         if (deletedTransactions == 0) throw new TransactionNotFoundException(transactionId);
     }
 

@@ -6,10 +6,11 @@ import ie.universityofgalway.finance.transactions.entity.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record TransactionResponseDto(
         Long id,
-        Long userId,
+        UUID userId,
         TransactionType transactionType,
         TransactionCategory transactionCategory,
         TransactionCurrency currency,

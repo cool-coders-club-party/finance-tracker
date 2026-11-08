@@ -42,7 +42,7 @@ class TransactionServiceImplTests {
     @DisplayName("Creation returns the saved ID, currency and original amount")
     void givenValidExpense_whenCreated_thenSavedTransactionIsReturned() {
         //given
-        var request = new CreateTransactionRequest(42L, EXPENSE, GROCERIES, GBP,
+        var request = new CreateTransactionRequest( EXPENSE, GROCERIES, GBP,
                 new BigDecimal("12.34"), "Lunch", DAY.atTime(12, 0));
         given(repository.save(any(Transaction.class))).willAnswer(invocation -> {
             Transaction saved = invocation.getArgument(0);
@@ -50,9 +50,10 @@ class TransactionServiceImplTests {
             return saved;
         });
         //when
-        var response = service.createTransaction(request);
+        var response = service.createTransaction(request, USER_ID);
         //then
         assertThat(response.id()).isEqualTo(17L);
+        assertThat(response.userId()).isEqualTo(USER_ID);
         assertThat(response.currency()).isEqualTo(GBP);
         assertThat(response.amount()).isEqualByComparingTo("12.34");
     }
@@ -61,10 +62,10 @@ class TransactionServiceImplTests {
     @DisplayName("Changing only the denomination preserves the original amount")
     void givenUsdExpense_whenCurrencyPatched_thenOnlyCurrencyChanges() {
         //given
-        given(repository.findActiveById(7L)).willReturn(Optional.of(groceries()));
+        given(repository.findActiveByIdAndUserId(7L, USER_ID)).willReturn(Optional.of(groceries()));
         var patch = new UpdateTransactionRequest(null, null, null, EUR, null, null);
         //when
-        var response = service.updateTransaction(7L, patch);
+        var response = service.updateTransaction(7L, patch, USER_ID);
         //then
         assertThat(response.currency()).isEqualTo(EUR);
         assertThat(response.amount()).isEqualByComparingTo("10.50");
@@ -75,10 +76,10 @@ class TransactionServiceImplTests {
     @DisplayName("An amount-only patch preserves the saved currency")
     void givenUsdExpense_whenAmountPatched_thenCurrencyIsPreserved() {
         //given
-        given(repository.findActiveById(7L)).willReturn(Optional.of(groceries()));
+        given(repository.findActiveByIdAndUserId(7L, USER_ID)).willReturn(Optional.of(groceries()));
         var patch = new UpdateTransactionRequest(new BigDecimal("20.00"), null, null, null, null, null);
         //when
-        var response = service.updateTransaction(7L, patch);
+        var response = service.updateTransaction(7L, patch, USER_ID);
         //then
         assertThat(response.amount()).isEqualByComparingTo("20");
         assertThat(response.currency()).isEqualTo(USD);
@@ -89,10 +90,10 @@ class TransactionServiceImplTests {
     void givenGroceriesExpense_whenChangedToIncome_thenPatchIsRejected() {
         //given
         var saved = groceries();
-        given(repository.findActiveById(7L)).willReturn(Optional.of(saved));
+        given(repository.findActiveByIdAndUserId(7L, USER_ID)).willReturn(Optional.of(saved));
         var patch = new UpdateTransactionRequest(null, null, null, null, INCOME, null);
         //when
-        Throwable error = catchThrowable(() -> service.updateTransaction(7L, patch));
+        Throwable error = catchThrowable(() -> service.updateTransaction(7L, patch, USER_ID));
         //then
         assertThat(error).isInstanceOf(InvalidTransactionCombinationException.class);
         assertThat(saved.getTransactionType()).isEqualTo(EXPENSE);
@@ -102,9 +103,9 @@ class TransactionServiceImplTests {
     @DisplayName("A missing active transaction is reported as not found")
     void givenNoActiveTransaction_whenRead_thenNotFound() {
         //given
-        given(repository.findActiveById(7L)).willReturn(Optional.empty());
+        given(repository.findActiveByIdAndUserId(7L, USER_ID)).willReturn(Optional.empty());
         //when
-        Throwable error = catchThrowable(() -> service.findTransactionById(7L));
+        Throwable error = catchThrowable(() -> service.findTransactionById(7L, USER_ID));
         //then
         assertThat(error).isInstanceOf(TransactionNotFoundException.class);
     }
