@@ -4,26 +4,41 @@ import { useState } from "react";
 const inputClass =
   "mt-1.5 h-11 w-full min-w-0 rounded-lg border border-white/15 bg-black/20 px-3 text-base text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8dc89]/70 sm:text-sm";
 
+// datetime-local expects a local time without a timezone suffix.
+function toLocalDateTime(timestamp) {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+  const localTime = date.getTime() - date.getTimezoneOffset() * 60_000;
+  return new Date(localTime).toISOString().slice(0, 19);
+}
+
 export default function RecordPurchaseForm({
   ticker,
   onTickerChange,
   quantityInputRef,
+  priceInput,
+  onPriceChange,
+  quoteEstimate,
   onSave,
 }) {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   // Keep decimal inputs as text while editing; calculate only a display preview here.
   const [quantityInput, setQuantityInput] = useState("");
-  const [priceInput, setPriceInput] = useState("");
+
+
+
+
   const quantity = Number(quantityInput);
   const price = Number(priceInput);
   const purchaseCost = quantity * price;
   const costPreview =
     quantity > 0 && price > 0 && Number.isFinite(purchaseCost)
       ? new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(purchaseCost)
+        style: "currency",
+        currency: "USD",
+      }).format(purchaseCost)
       : "—";
 
   // datetime-local inputs use the browser's local timezone.
@@ -147,7 +162,7 @@ export default function RecordPurchaseForm({
             name="pricePerShare"
             type="number"
             value={priceInput}
-            onChange={(event) => setPriceInput(event.target.value)}
+            onChange={(event) => onPriceChange(event.target.value)}
             min="0"
             step="any"
             placeholder="e.g. 300.00"
@@ -164,6 +179,7 @@ export default function RecordPurchaseForm({
           <input
             name="purchasedAt"
             type="datetime-local"
+            defaultValue={toLocalDateTime(quoteEstimate?.lookedUpAt)}
             step="1"
             required
             aria-describedby="purchase-timezone"
@@ -171,6 +187,15 @@ export default function RecordPurchaseForm({
           />
         </label>
       </fieldset>
+
+      {quoteEstimate && (
+        <span className="mt-1 block text-xs text-white/75">
+          {quoteEstimate.stale ? "Cached quote estimate" : "Quote estimate"}
+          {quoteEstimate.asOf &&
+            ` as of ${new Date(quoteEstimate.asOf).toLocaleString("en-IE")}`}.
+          Enter the price you actually paid.
+        </span>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-amber-400">
