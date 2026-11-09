@@ -42,7 +42,20 @@ export default function Portfolio() {
 
   // Share only the selected ticker with the purchase form; preserve its other inputs.
   const [purchaseTicker, setPurchaseTicker] = useState("");
+
+  const [purchasePrice, setPurchasePrice] = useState("");
+
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+
+  const [purchaseVersion, setPurchaseVersion] = useState(0);
+  const [quoteEstimate, setQuoteEstimate] = useState(null);
+  const [prefillError, setPrefillError] = useState("");
+
   const purchaseQuantityRef = useRef(null);
+
+  useEffect(() => {
+    if (purchaseOpen) purchaseQuantityRef.current?.focus();
+  }, [purchaseOpen]);
 
   // Changing this number lets the Retry button request the data again.
   const [portfolioReload, setPortfolioReload] = useState(0);
@@ -118,7 +131,7 @@ export default function Portfolio() {
 
     try {
       const result = await getQuote(symbol);
-      setQuote(result);
+      setQuote({ ...result, lookedUpAt: new Date().toISOString() });
 
       // History is useful, but a failure must not hide the quote.
       setIsHistoryLoading(true);
@@ -276,13 +289,33 @@ export default function Portfolio() {
               )}
             </div>
 
-            {/* Keep the form mounted so research and retries do not discard entered details. */}
-            <RecordPurchaseForm
-              ticker={purchaseTicker}
-              onTickerChange={setPurchaseTicker}
-              quantityInputRef={purchaseQuantityRef}
-            />
-            
+            <button
+              type="button"
+              aria-expanded={purchaseOpen}
+              aria-controls="purchase-panel"
+              onClick={() => setPurchaseOpen((open) => !open)}
+            >
+              {purchaseOpen ? "Close purchase form" : "Record purchase"}
+            </button>
+
+            <div id="purchase-panel" hidden={!purchaseOpen}>
+              <RecordPurchaseForm
+                key={purchaseVersion}
+                ticker={purchaseTicker}
+                onTickerChange={(ticker) => {
+                  setPurchaseTicker(ticker);
+                  if (quoteEstimate) {
+                    setPurchasePrice("");
+                    setQuoteEstimate(null);
+                  }
+                }}
+                quantityInputRef={purchaseQuantityRef}
+                priceInput={purchasePrice}
+                onPriceChange={setPurchasePrice}
+                quoteEstimate={quoteEstimate}
+              />
+            </div>
+
           </section>
         </SpotlightCard>
 
@@ -362,13 +395,38 @@ export default function Portfolio() {
                     <button
                       type="button"
                       onClick={() => {
+                        setPrefillError("");
+
+                        const price = Number(quote.price);
+                        if (quote.details?.currency !== "USD" || !Number.isFinite(price) || price <= 0) {
+                          setPrefillError("This quote needs a USD price to fill the purchase form.");
+                          return;
+                        }
+
+                        const form = purchaseQuantityRef.current?.form;
+                        const hasDraft = form && Array.from(new FormData(form).values())
+                          .some((value) => String(value).trim() !== "");
+
+                        if (hasDraft && !window.confirm("Replace your current purchase draft?")) {
+                          return;
+                        }
+
                         setPurchaseTicker(quote.symbol);
-                        purchaseQuantityRef.current?.focus();
+                        setPurchasePrice(String(quote.price));
+                        setQuoteEstimate({
+                          asOf: quote.asOf,
+                          stale: quote.stale,
+                          lookedUpAt: quote.lookedUpAt,
+                        });
+                        setPurchaseVersion((version) => version + 1);
+                        setPurchaseOpen(true);
                       }}
                       className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
                     >
                       Use this stock
                     </button>
+
+                    {prefillError && <p role="alert">{prefillError}</p>}
 
                     {/* Stack statistics on narrow screens so long ranges can fit. */}
                     {details && (

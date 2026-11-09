@@ -2,6 +2,8 @@ package ie.universityofgalway.finance.marketdata.infrastructure;
 
 import ie.universityofgalway.finance.marketdata.domain.MarketDataProvider;
 import ie.universityofgalway.finance.marketdata.domain.Quote;
+import ie.universityofgalway.finance.marketdata.domain.QuoteDetails;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +42,9 @@ public class StubMarketDataProvider implements MarketDataProvider {
             return Optional.empty();
         }
 
-        Quote quote = new Quote(key, price, Instant.now());
+        QuoteDetails details = new QuoteDetails(
+                null, "USD", null, null, null, null, null, null, null, null, null);
+        Quote quote = new Quote(key, price, Instant.now(), false, details);
 
         return Optional.of(quote);
     }
