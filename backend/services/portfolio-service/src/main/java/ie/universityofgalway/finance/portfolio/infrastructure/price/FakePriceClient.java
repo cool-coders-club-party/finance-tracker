@@ -2,6 +2,7 @@ package ie.universityofgalway.finance.portfolio.infrastructure.price;
 
 import ie.universityofgalway.finance.portfolio.application.port.PriceClient;
 import ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ import java.util.Map;
  */
 @Component
 @Profile("!prod") // guards against this ever being wired into a real environment
+@ConditionalOnProperty(name = "price-client.type", havingValue = "fake", matchIfMissing = true)
 public class FakePriceClient implements PriceClient {
 
     private static final Map<String, BigDecimal> PRICES = Map.of(
