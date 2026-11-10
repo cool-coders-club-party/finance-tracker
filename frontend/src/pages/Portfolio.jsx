@@ -654,7 +654,7 @@ export default function Portfolio() {
             />
 
             <MarketRankingCard
-              title="Top 5 movers among tracked stocks"
+              title="Top 5 movers"
               subtitle="Largest daily % moves"
               rows={moverRows}
               footer={moversFooter}
