@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getPortfolios, getHoldings } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
-import { getQuote, getPriceHistory } from "../api/marketData";
+import { getQuote, getPriceHistory, getTopStocks } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
 import StrokeText from "../components/StrokeText";
 import CountUp from "../components/CountUp";
@@ -11,6 +11,18 @@ import PriceHistoryChart from "../components/PriceHistoryChart";
 import RecordPurchaseForm from "../components/RecordPurchaseForm";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
+
+const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+const rankingMarketCap = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 function formatPrice(value) {
   if (value == null) return "—";
@@ -33,6 +45,52 @@ export default function Portfolio() {
   const [history, setHistory] = useState([]);
   const [historyError, setHistoryError] = useState("");
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  const [topStocks, setTopStocks] = useState({ status: "loading" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let expiryTimer;
+
+    async function loadTopStocks() {
+      try {
+        const snapshot = await getTopStocks(controller.signal);
+        if (controller.signal.aborted) return;
+
+        const remainingMs = Date.parse(snapshot.expiresAt) - Date.now();
+        if (remainingMs <= 0) {
+          setTopStocks({ status: "unavailable" });
+          return;
+        }
+
+        setTopStocks({ status: "ready", snapshot });
+        // Clear a stale ranking even if the user leaves the page open.
+        expiryTimer = setTimeout(() => setTopStocks({ status: "unavailable" }), remainingMs);
+      } catch {
+        if (!controller.signal.aborted) setTopStocks({ status: "unavailable" });
+      }
+    }
+
+    loadTopStocks();
+    return () => {
+      controller.abort();
+      clearTimeout(expiryTimer);
+    };
+  }, []);
+
+  const snapshot = topStocks.snapshot;
+  const topStockRows = snapshot?.rows.map(({ ticker, company, marketCapUsd }) => ({
+    ticker,
+    company,
+    metric: rankingMarketCap.format(marketCapUsd),
+  })) ?? [];
+
+  // The date marks when we captured the source, which can differ from the trading date.
+  let rankingFooter = "Fresh ranking unavailable";
+  if (topStocks.status === "loading") rankingFooter = "Loading ranking…";
+  if (snapshot) {
+    rankingFooter = `Snapshot captured ${rankingCaptureDate.format(new Date(snapshot.capturedOn))} · Stock Analysis`;
+  }
 
   // Keep the request status and its data together.
   const [portfolioData, setPortfolioData] = useState({
@@ -530,12 +588,11 @@ export default function Portfolio() {
 
           {/* This follows lookup on small screens and sits beside it on desktop. */}
           <aside aria-label="Market overview" className="min-w-0 space-y-6">
-            {/* Use a sample row to check the layout before loading a ranking. */}
             <MarketRankingCard
               title="Top 5 stocks"
               subtitle="By market capitalisation · US stocks"
-              rows={[{ ticker: "AAPL", company: "Apple Inc.", metric: "$3.42T" }]}
-              footer="Illustrative preview"
+              rows={topStockRows}
+              footer={rankingFooter}
               onSelect={handleRankingSelect}
               disabled={isLoading}
             />

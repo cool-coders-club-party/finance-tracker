@@ -2,6 +2,22 @@ const BASE_URL = (
   import.meta.env.VITE_MARKET_DATA_API_BASE_URL || "/market-data"
 ).replace(/\/$/, "");
 
+export async function getTopStocks(signal) {
+  const response = await fetch(`${BASE_URL}/api/rankings/top-stocks`, { signal });
+  if (!response.ok) {
+    throw new Error("Fresh ranking unavailable");
+  }
+
+  const snapshot = await response.json();
+  if (!Array.isArray(snapshot?.rows) || snapshot.rows.length !== 5 ||
+      !Number.isFinite(Date.parse(snapshot.expiresAt)) ||
+      !Number.isFinite(Date.parse(snapshot.capturedOn))) {
+    throw new Error("Invalid top stocks snapshot");
+  }
+
+  return snapshot;
+}
+
 export async function getQuote(symbol) {
   let response;
 
