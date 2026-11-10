@@ -205,3 +205,8 @@ When the frontend receives a stale quote, it displays the cached-price warning a
 
 The cache is held in memory and is cleared when the backend restarts. Restarting with a broken provider therefore demonstrates 503, rather than stale fallback.
 
+## Top 5 Stocks & movers
+Top 5 Stocks shows the five largest US companies by market cap from a dated Stock Analysis snapshot. We update it manually, and the card hides the ranking when the snapshot expires. 
+Top 5 Movers uses Twelve Data quotes for eight tracked US stocks and shows the five biggest daily percentage moves, up or down. The server caches the movers ranking for 15 minutes to save API credits. Clicking a stock in either card opens it in Stock Lookup.
+
+
