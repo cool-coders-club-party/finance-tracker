@@ -2,13 +2,27 @@
 import { useEffect, useRef, useState } from "react";
 import { getPortfolios, getHoldings } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
-import { getQuote, getPriceHistory } from "../api/marketData";
+import { getQuote, getPriceHistory, getTopStocks } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
 import StrokeText from "../components/StrokeText";
 import CountUp from "../components/CountUp";
 import PriceHistoryChart from "../components/PriceHistoryChart";
 // The form handles purchase inputs and validation.
 import RecordPurchaseForm from "../components/RecordPurchaseForm";
+// Use the shared layout for the market ranking cards.
+import MarketRankingCard from "../components/MarketRankingCard";
+
+const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+const rankingMarketCap = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 function formatPrice(value) {
   if (value == null) return "—";
@@ -31,6 +45,52 @@ export default function Portfolio() {
   const [history, setHistory] = useState([]);
   const [historyError, setHistoryError] = useState("");
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  const [topStocks, setTopStocks] = useState({ status: "loading" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let expiryTimer;
+
+    async function loadTopStocks() {
+      try {
+        const snapshot = await getTopStocks(controller.signal);
+        if (controller.signal.aborted) return;
+
+        const remainingMs = Date.parse(snapshot.expiresAt) - Date.now();
+        if (remainingMs <= 0) {
+          setTopStocks({ status: "unavailable" });
+          return;
+        }
+
+        setTopStocks({ status: "ready", snapshot });
+        // Clear a stale ranking even if the user leaves the page open.
+        expiryTimer = setTimeout(() => setTopStocks({ status: "unavailable" }), remainingMs);
+      } catch {
+        if (!controller.signal.aborted) setTopStocks({ status: "unavailable" });
+      }
+    }
+
+    loadTopStocks();
+    return () => {
+      controller.abort();
+      clearTimeout(expiryTimer);
+    };
+  }, []);
+
+  const snapshot = topStocks.snapshot;
+  const topStockRows = snapshot?.rows.map(({ ticker, company, marketCapUsd }) => ({
+    ticker,
+    company,
+    metric: rankingMarketCap.format(marketCapUsd),
+  })) ?? [];
+
+  // The date marks when we captured the source, which can differ from the trading date.
+  let rankingFooter = "Fresh ranking unavailable";
+  if (topStocks.status === "loading") rankingFooter = "Loading ranking…";
+  if (snapshot) {
+    rankingFooter = `Snapshot captured ${rankingCaptureDate.format(new Date(snapshot.capturedOn))} · Stock Analysis`;
+  }
 
   // Keep the request status and its data together.
   const [portfolioData, setPortfolioData] = useState({
@@ -110,10 +170,22 @@ export default function Portfolio() {
   }, [portfolioReload]);
 
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
+    lookupStock(tickerInput);
+  }
 
-    const symbol = tickerInput.trim().toUpperCase();
+  function handleRankingSelect(ticker) {
+    setTickerInput(ticker);
+    document.getElementById("lookup-heading")?.focus();
+    lookupStock(ticker);
+  }
+
+  // Both entry points use the same quote and history request.
+  async function lookupStock(rawTicker) {
+    if (isLoading) return;
+
+    const symbol = rawTicker.trim().toUpperCase();
 
     if (!symbol) {
       setError("Enter a ticker symbol.");
@@ -323,7 +395,7 @@ export default function Portfolio() {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <SpotlightCard className="min-w-0">
             <section aria-labelledby="lookup-heading" className="min-w-0 space-y-5">
-              <h2 id="lookup-heading" className="text-2xl font-bold">
+              <h2 id="lookup-heading" tabIndex={-1} className="scroll-mt-24 text-2xl font-bold">
                 Stock lookup
               </h2>
 
@@ -516,21 +588,14 @@ export default function Portfolio() {
 
           {/* This follows lookup on small screens and sits beside it on desktop. */}
           <aside aria-label="Market overview" className="min-w-0 space-y-6">
-            <SpotlightCard>
-              <section aria-labelledby="top-stocks-heading" className="space-y-3">
-                <header>
-                  <h2 id="top-stocks-heading" className="text-xl font-bold">
-                    Top 5 stocks
-                  </h2>
-                  <p className="mt-1 text-sm text-white/60">
-                    By market capitalisation · US stocks
-                  </p>
-                </header>
-                <p className="border-t border-white/10 pt-4 text-sm text-white/60">
-                  No ranking loaded.
-                </p>
-              </section>
-            </SpotlightCard>
+            <MarketRankingCard
+              title="Top 5 stocks"
+              subtitle="By market capitalisation · US stocks"
+              rows={topStockRows}
+              footer={rankingFooter}
+              onSelect={handleRankingSelect}
+              disabled={isLoading}
+            />
 
             <SpotlightCard>
               <section aria-labelledby="movers-heading" className="space-y-3">

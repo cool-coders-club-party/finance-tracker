@@ -1,0 +1,12 @@
+{
+  "capturedOn": "2026-11-10",
+  "expiresAt": "2026-11-11T21:00:00Z",
+  "sourceUrl": "https://stockanalysis.com/list/largest-us-companies/",
+  "rows": [
+    { "ticker": "AAPL", "company": "Apple Inc.", "marketCapUsd": 5100000000000 },
+    { "ticker": "NVDA", "company": "NVIDIA Corporation", "marketCapUsd": 4310000000000 },
+    { "ticker": "MSFT", "company": "Microsoft Corporation", "marketCapUsd": 4050000000000 },
+    { "ticker": "GOOGL", "company": "Alphabet Inc.", "marketCapUsd": 3540000000000 },
+    { "ticker": "AMZN", "company": "Amazon.com Inc.", "marketCapUsd": 2890000000000 }
+  ]
+}
