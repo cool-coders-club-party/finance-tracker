@@ -58,6 +58,8 @@ export default function Portfolio() {
   const [history, setHistory] = useState([]);
   const [historyError, setHistoryError] = useState("");
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const lookupGridRef = useRef(null);
+  const [loadingGridHeight, setLoadingGridHeight] = useState(null);
 
   const [topStocks, setTopStocks] = useState({ status: "loading" });
   const [movers, setMovers] = useState({ status: "loading" });
@@ -98,8 +100,8 @@ export default function Portfolio() {
       : "No tracked stocks have daily change data.";
   }
 
-  // Match the card stack to the lookup only when it has a chart to fill the space.
-  const alignRankingCards = Boolean(quote && !isHistoryLoading && !historyError && history.length > 1);
+  const hasLookupChart = Boolean(quote && !isHistoryLoading && !historyError && history.length > 1);
+  const alignRankingCards = hasLookupChart || loadingGridHeight !== null;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -247,6 +249,11 @@ export default function Portfolio() {
       return;
     }
 
+    // Hold the desktop grid at its current height while replacing the quote and chart.
+    if (hasLookupChart && window.matchMedia("(min-width: 64rem)").matches) {
+      setLoadingGridHeight(lookupGridRef.current?.getBoundingClientRect().height ?? null);
+    }
+
     // Clear the previous result before starting a new search.
     setError("");
     setQuote(null);
@@ -271,6 +278,7 @@ export default function Portfolio() {
     } catch (requestError) {
       setError(requestError.message);
     } finally {
+      setLoadingGridHeight(null);
       setIsLoading(false);
     }
   }
@@ -445,7 +453,15 @@ export default function Portfolio() {
         </SpotlightCard>
 
         {/* Stack on smaller screens; use a wider lookup column on desktop. */}
-        <div className={`grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] ${alignRankingCards ? "lg:items-stretch" : ""}`}>
+        <div
+          ref={lookupGridRef}
+          style={loadingGridHeight === null ? undefined : {
+            "--lookup-loading-height": `${loadingGridHeight}px`,
+          }}
+          className={`grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] ${
+            alignRankingCards ? "lg:items-stretch lg:min-h-[var(--lookup-loading-height,0px)]" : ""
+          }`}
+        >
           <SpotlightCard className="min-w-0">
             <section aria-labelledby="lookup-heading" className="min-w-0 space-y-5">
               <h2 id="lookup-heading" tabIndex={-1} className="scroll-mt-24 text-2xl font-bold">
