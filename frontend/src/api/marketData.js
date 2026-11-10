@@ -18,6 +18,27 @@ export async function getTopStocks(signal) {
   return snapshot;
 }
 
+export async function getStockMovers(signal) {
+  const response = await fetch(`${BASE_URL}/api/rankings/movers`, { signal });
+  if (!response.ok) {
+    throw new Error("Stock movers are temporarily unavailable");
+  }
+
+  const ranking = await response.json();
+  if (
+    !Number.isInteger(ranking?.trackedCount) ||
+    !Number.isInteger(ranking.usableCount) ||
+    !Array.isArray(ranking.rows) ||
+    !ranking.rows.every((row) =>
+      row && Number.isFinite(row.percentChange) && Number.isFinite(Date.parse(row.asOf))
+    )
+  ) {
+    throw new Error("Invalid stock movers ranking");
+  }
+
+  return ranking;
+}
+
 export async function getQuote(symbol) {
   let response;
 

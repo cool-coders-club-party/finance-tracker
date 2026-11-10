@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getPortfolios, getHoldings } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
-import { getQuote, getPriceHistory, getTopStocks } from "../api/marketData";
+import { getQuote, getPriceHistory, getTopStocks, getStockMovers } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
 import StrokeText from "../components/StrokeText";
 import CountUp from "../components/CountUp";
@@ -22,6 +22,19 @@ const rankingMarketCap = new Intl.NumberFormat("en-US", {
   notation: "compact",
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
+});
+const moverPercentage = new Intl.NumberFormat("en-IE", {
+  style: "percent",
+  signDisplay: "exceptZero",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const moverQuoteTime = new Intl.DateTimeFormat("en-IE", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "UTC",
 });
 
 function formatPrice(value) {
@@ -47,6 +60,46 @@ export default function Portfolio() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   const [topStocks, setTopStocks] = useState({ status: "loading" });
+  const [movers, setMovers] = useState({ status: "loading" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    // A failed ranking request should leave holdings and stock lookup usable.
+    getStockMovers(controller.signal).then(
+      (ranking) => {
+        if (!controller.signal.aborted) setMovers({ status: "ready", ranking });
+      },
+      () => {
+        if (!controller.signal.aborted) setMovers({ status: "unavailable" });
+      },
+    );
+
+    return () => controller.abort();
+  }, []);
+
+  const moversRanking = movers.ranking;
+  const moverRows = moversRanking?.rows.map(({ ticker, company, percentChange, asOf, stale }) => ({
+    ticker,
+    company,
+    // The quote already expresses the change in percentage points, e.g. 8 for 8%.
+    metric: moverPercentage.format(percentChange / 100),
+    metricClassName: percentChange > 0 ? "text-green-300" : percentChange < 0 ? "text-red-300" : "",
+    asOf,
+    asOfLabel: `${moverQuoteTime.format(new Date(asOf))} UTC`,
+    stale,
+  })) ?? [];
+
+  let moversFooter = "Stock movers are temporarily unavailable.";
+  if (movers.status === "loading") moversFooter = "Loading movers…";
+  if (moversRanking) {
+    moversFooter = moverRows.length > 0
+      ? `Daily change`
+      : "No tracked stocks have daily change data.";
+  }
+
+  // Match the card stack to the lookup only when it has a chart to fill the space.
+  const alignRankingCards = Boolean(quote && !isHistoryLoading && !historyError && history.length > 1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -89,7 +142,7 @@ export default function Portfolio() {
   let rankingFooter = "Fresh ranking unavailable";
   if (topStocks.status === "loading") rankingFooter = "Loading ranking…";
   if (snapshot) {
-    rankingFooter = `Snapshot captured ${rankingCaptureDate.format(new Date(snapshot.capturedOn))} · Stock Analysis`;
+    rankingFooter = `Captured ${rankingCaptureDate.format(new Date(snapshot.capturedOn))}`;
   }
 
   // Keep the request status and its data together.
@@ -392,7 +445,7 @@ export default function Portfolio() {
         </SpotlightCard>
 
         {/* Stack on smaller screens; use a wider lookup column on desktop. */}
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className={`grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] ${alignRankingCards ? "lg:items-stretch" : ""}`}>
           <SpotlightCard className="min-w-0">
             <section aria-labelledby="lookup-heading" className="min-w-0 space-y-5">
               <h2 id="lookup-heading" tabIndex={-1} className="scroll-mt-24 text-2xl font-bold">
@@ -587,31 +640,27 @@ export default function Portfolio() {
           </SpotlightCard>
 
           {/* This follows lookup on small screens and sits beside it on desktop. */}
-          <aside aria-label="Market overview" className="min-w-0 space-y-6">
+          <aside
+            aria-label="Market overview"
+            className={`grid min-w-0 gap-6 ${alignRankingCards ? "lg:auto-rows-fr" : ""}`}
+          >
             <MarketRankingCard
               title="Top 5 stocks"
-              subtitle="By market capitalisation · US stocks"
+              subtitle="By market capitalisation"
               rows={topStockRows}
               footer={rankingFooter}
               onSelect={handleRankingSelect}
               disabled={isLoading}
             />
 
-            <SpotlightCard>
-              <section aria-labelledby="movers-heading" className="space-y-3">
-                <header>
-                  <h2 id="movers-heading" className="text-xl font-bold">
-                    Top 5 movers
-                  </h2>
-                  <p className="mt-1 text-sm text-white/60">
-                    Largest absolute daily change · US stocks
-                  </p>
-                </header>
-                <p className="border-t border-white/10 pt-4 text-sm text-white/60">
-                  No ranking loaded.
-                </p>
-              </section>
-            </SpotlightCard>
+            <MarketRankingCard
+              title="Top 5 movers among tracked stocks"
+              subtitle="Largest daily % moves"
+              rows={moverRows}
+              footer={moversFooter}
+              onSelect={handleRankingSelect}
+              disabled={isLoading}
+            />
           </aside>
         </div>
       </main>
