@@ -137,6 +137,92 @@ body {
   flex-direction: column;
   box-sizing: border-box;
 }
+/* CSS rules for login page specifically. */
+#root:has(.login-page) {
+ width: 100%;
+ max-width: none;
+ margin: 0;
+ text-align: left;
+ border-inline: 0;
+}
+
+.login-page {
+  box-sizing: border-box;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #071714;
+}
+
+.login-card {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+  width: min(1440px, 100%);
+  min-height: min(760px, calc(100svh - 48px));
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 28px;
+  background: #0d1917;
+  color: #f3f7f5;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.login-media {
+  display: grid;
+  place-items: center;
+  min-height: 520px;
+  color: rgb(255 255 255 / 75%);
+  background:
+    radial-gradient(ellipse at 30% 35%, rgb(52 211 153 / 35%), transparent 45%),
+    linear-gradient(145deg, #123b32, #071714 75%);
+}
+
+.login-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 64px);
+  text-align: left;
+}
+
+.login-title {
+  margin: 0 0 28px;
+  color: #f3f7f5;
+  font-size: clamp(2rem, 3.5vw, 3.5rem);
+  line-height: 1.08;
+  text-align: left;
+}
+
+.login-content > .glass {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    padding: 12px;
+  }
+
+  .login-card {
+    grid-template-columns: 1fr;
+    min-height: calc(100svh - 24px);
+    border-radius: 20px;
+  }
+
+  .login-media {
+    min-height: 220px;
+  }
+
+  .login-content {
+    padding: 28px 22px;
+  }
+}
 
 h1,
 h2 {

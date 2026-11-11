@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import DashboardShell from '../components/DashboardShell';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import useAuth from '../hooks/useAuth';
@@ -70,7 +69,17 @@ export default function Login({ registration = false }) {
   if (auth.status === 'loading') return <p role="status" className="p-8">Checking your session…</p>;
   if (auth.session) return <Navigate to={destination} replace />;
   const inputClass = 'min-h-11 rounded-lg border border-input bg-background/70 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-  return <DashboardShell>
+  return (
+      <main className="login-page">
+          <section className="login-card">
+              <div className="login-media">
+                  <p>Video will go here!</p>
+              </div>
+
+              <div className="login-content">
+                  <h1 className="login-title">
+                      {registration ? 'Welcome to Póca!' : 'Welcome back to Póca!'}
+                  </h1>
     <Card className="glass mx-auto w-full max-w-md bg-card/10">
       <CardHeader><CardTitle>{registration ? 'Create account' : 'Sign in'}</CardTitle></CardHeader>
       <CardContent>
@@ -103,5 +112,8 @@ export default function Login({ registration = false }) {
         </p>
       </CardContent>
     </Card>
-  </DashboardShell>;
+  </div>
+  </section>
+  </main>
+  );
 }
