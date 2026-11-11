@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import useAuth from '../hooks/useAuth';
 import { acceptLogin } from '../lib/authSession';
+import Grainient from '../components/Grainient';
 
 export default function Login({ registration = false }) {
   const auth = useAuth();
@@ -70,10 +71,28 @@ export default function Login({ registration = false }) {
   if (auth.session) return <Navigate to={destination} replace />;
   const inputClass = 'min-h-11 rounded-lg border border-input bg-background/70 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
   return (
-      <main className="login-page">
+      <main className="login-page dark">
+          <div aria-hidden="true" className="login-background">
+            <Grainient
+              colors={["#03041e", "#3b82f6", "#06b6d4", "#f1cbfc"]}
+              angle={100}
+              bands={3}
+              silk={0.6}
+              flow={1.1}
+              className="h-full w-full"
+            />
+            <div className="login-background-shade" />
+          </div>
+
           <section className="login-card">
               <div className="login-media">
-                  <p>Video will go here!</p>
+                <video className="login-video-backdrop" autoPlay loop muted playsInline aria-hidden="true">
+                  <source src="/LoginSpinWithBackground.mp4" type="video/mp4" />
+                </video>
+
+                <video className="login-video" autoPlay loop muted playsInline aria-hidden="true">
+                  <source src="/LoginSpinWithBackground.mp4" type="video/mp4" />
+                </video>
               </div>
 
               <div className="login-content">
