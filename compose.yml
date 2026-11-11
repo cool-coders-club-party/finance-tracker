@@ -7,6 +7,8 @@ volumes:
     driver: local
   users-db-data:
     driver: local
+  portfolio-db-data:
+    driver: local
 
 services:
   transaction-postgres:
@@ -54,6 +56,23 @@ services:
       - users-db-data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "finance", "-d", "users" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  portfolio-db:
+    image: postgres:17.5-alpine
+    container_name: portfolio-db
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: portfolio_dev
+    ports:
+      - "5436:5432"
+    volumes:
+      - portfolio-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U portfolio -d portfolio" ]
       interval: 10s
       timeout: 5s
       retries: 20
