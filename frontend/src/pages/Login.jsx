@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import DashboardShell from '../components/DashboardShell';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import useAuth from '../hooks/useAuth';
 import { acceptLogin } from '../lib/authSession';
+import Grainient from '../components/Grainient';
+import TextType from '../components/TextType';
 
 export default function Login({ registration = false }) {
   const auth = useAuth();
@@ -70,7 +71,37 @@ export default function Login({ registration = false }) {
   if (auth.status === 'loading') return <p role="status" className="p-8">Checking your session…</p>;
   if (auth.session) return <Navigate to={destination} replace />;
   const inputClass = 'min-h-11 rounded-lg border border-input bg-background/70 px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-  return <DashboardShell>
+  return (
+      <main className="login-page dark">
+          <div aria-hidden="true" className="login-background">
+            <Grainient
+              colors={["#03041e", "#3b82f6", "#06b6d4", "#f1cbfc"]}
+              angle={100}
+              bands={3}
+              silk={0.6}
+              flow={1.1}
+              className="h-full w-full"
+            />
+            <div className="login-background-shade" />
+          </div>
+          <section className="login-card">
+              <div className="login-media">
+                <video className="login-video" autoPlay loop muted playsInline aria-hidden="true">
+                  <source src="/LoginSpinWithBackground.mp4" type="video/mp4" />
+                </video>
+              </div>
+              <div className="login-content">
+                  <h1 className="login-title">
+                      <TextType
+                        as="span"
+                        text={registration ? 'Welcome to Póca!' : 'Welcome back to Póca!'}
+                        typingSpeed={65}
+                        initialDelay={250}
+                        loop={false}
+                        showCursor
+                        cursorStyle="underscore"
+                      />
+                  </h1>
     <Card className="glass mx-auto w-full max-w-md bg-card/10">
       <CardHeader><CardTitle>{registration ? 'Create account' : 'Sign in'}</CardTitle></CardHeader>
       <CardContent>
@@ -103,5 +134,8 @@ export default function Login({ registration = false }) {
         </p>
       </CardContent>
     </Card>
-  </DashboardShell>;
+  </div>
+  </section>
+  </main>
+  );
 }

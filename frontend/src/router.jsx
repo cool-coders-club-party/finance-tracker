@@ -15,12 +15,12 @@ import Portfolio from "./pages/Portfolio";
 const router = createBrowserRouter([
     { path: '/login', element: <Login key="login" /> },
     { path: '/register', element: <Login key="register" registration /> },
-    { element: <RequireAuth />, children: [
+//     { element: <RequireAuth />, children: [
         { path: '/', element: <Dashboard /> },
         { path: '/transactions', element: <TransactionHistory /> },
         { path: '/transactions/new', element: <Transactions /> },
         { path: '/transactions/:transactionId/edit', element: <Transactions /> },
-    ] },
+//    ] },
     { path: '/portfolio', element: <Portfolio /> },
     { path: '/market-data', element: <Navigate to="/portfolio" /> },
 ]);

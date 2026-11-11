@@ -137,6 +137,134 @@ body {
   flex-direction: column;
   box-sizing: border-box;
 }
+/* CSS rules for login page specifically. */
+#root:has(.login-page) {
+ width: 100%;
+ max-width: none;
+ margin: 0;
+ text-align: left;
+ border-inline: 0;
+}
+
+.login-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(100deg, #05110f, #065f46, #34d399, #ecfccb);
+}
+
+.login-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.login-background-shade {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 20%);
+}
+
+.login-card {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: min(1440px, 100%);
+  min-height: min(760px, calc(100svh - 48px));
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.login-media {
+  background: #071014;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  min-height: 520px;
+  color: rgb(255 255 255 / 75%);
+}
+
+.login-video-backdrop,
+.login-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.login-video-backdrop {
+  object-fit: cover;
+  filter: blur(24px) brightness(0.45);
+  transform: scale(1.08);
+}
+
+.login-video {
+  object-position: center;
+  object-fit: cover;
+}
+
+.login-media::after {
+ content: "";
+ position: absolute;
+ inset: 0;
+ z-index: 2;
+ pointer-events: none;
+ /* box-shadow: inset 0 0 36px 14px rgb(0 0 0 / 55%); */
+}
+
+.login-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 64px);
+  text-align: left;
+}
+
+.login-title {
+  margin: 0 0 28px;
+  color: #f3f7f5;
+  font-size: clamp(2rem, 3.5vw, 3.5rem);
+  line-height: 1.08;
+  text-align: left;
+}
+
+.login-content > .glass {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    padding: 12px;
+  }
+
+  .login-card {
+    grid-template-columns: 1fr;
+    min-height: calc(100svh - 24px);
+    border-radius: 20px;
+  }
+
+  .login-media {
+    min-height: 220px;
+  }
+
+  .login-content {
+    padding: 28px 22px;
+  }
+}
 
 h1,
 h2 {

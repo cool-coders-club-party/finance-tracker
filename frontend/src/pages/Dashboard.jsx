@@ -91,14 +91,14 @@ function TransactionOverview({ userId }) {
 }
 
 function Dashboard() {
-    const { session } = useAuth();
+//     const { session } = useAuth();
   return (
       <DashboardShell>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Dashboard</h1>
         </div>
 
-            <TransactionOverview key={session.user.id} userId={session.user.id} />
+            {/* <TransactionOverview key={session.user.id} userId={session.user.id} /> */}
         <StatCard
           title="Investment Value (EUR)"
           icon={TrendingUp}
