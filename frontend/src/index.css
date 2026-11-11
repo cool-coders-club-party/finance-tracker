@@ -174,7 +174,7 @@ body {
 .login-card {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   width: min(1440px, 100%);
   min-height: min(760px, calc(100svh - 48px));
   overflow: hidden;

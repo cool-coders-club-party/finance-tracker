@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import useAuth from '../hooks/useAuth';
 import { acceptLogin } from '../lib/authSession';
 import Grainient from '../components/Grainient';
+import TextType from '../components/TextType';
 
 export default function Login({ registration = false }) {
   const auth = useAuth();
@@ -83,21 +84,23 @@ export default function Login({ registration = false }) {
             />
             <div className="login-background-shade" />
           </div>
-
           <section className="login-card">
               <div className="login-media">
-                <video className="login-video-backdrop" autoPlay loop muted playsInline aria-hidden="true">
-                  <source src="/LoginSpinWithBackground.mp4" type="video/mp4" />
-                </video>
-
                 <video className="login-video" autoPlay loop muted playsInline aria-hidden="true">
                   <source src="/LoginSpinWithBackground.mp4" type="video/mp4" />
                 </video>
               </div>
-
               <div className="login-content">
                   <h1 className="login-title">
-                      {registration ? 'Welcome to Póca!' : 'Welcome back to Póca!'}
+                      <TextType
+                        as="span"
+                        text={registration ? 'Welcome to Póca!' : 'Welcome back to Póca!'}
+                        typingSpeed={65}
+                        initialDelay={250}
+                        loop={false}
+                        showCursor
+                        cursorStyle="underscore"
+                      />
                   </h1>
     <Card className="glass mx-auto w-full max-w-md bg-card/10">
       <CardHeader><CardTitle>{registration ? 'Create account' : 'Sign in'}</CardTitle></CardHeader>
