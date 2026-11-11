@@ -18,3 +18,9 @@ curl -i -X POST http://localhost:8083/api/portfolios -H "Content-Type: applicati
 
 get all trades for user 1:
 curl http://localhost:8083/api/portfolios/1/trades
+
+testing jwt implementation using this test
+>curl -i -X POST http://localhost:8081/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"nisll@test.com\",\"password\":\"KulveTaroth\"}"
+
+2nd test account
+curl -i -X POST http://localhost:8081/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"lydon@test.com\",\"password\":\"KulveTaroth\"}"
