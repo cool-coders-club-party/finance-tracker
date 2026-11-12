@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Repository
 public class JpaRefreshTokenRepository implements RefreshTokenRepository {
 
     private final RefreshTokenJpaRepository jpa;

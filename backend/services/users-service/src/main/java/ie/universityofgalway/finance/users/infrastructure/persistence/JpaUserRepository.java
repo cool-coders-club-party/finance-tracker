@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Adapter that implements the {@link UserRepository} port using PostgreSQL
@@ -92,6 +93,15 @@ public class JpaUserRepository implements UserRepository {
         Optional<UserEntity> found = jpa.findByEmail(email); // Spring Data builds a database query based on the method name "findByEmail"
         if (found.isEmpty()){ // if no matching email
             return Optional.empty(); // the caller decides how to handle a missing user
+        }
+        return Optional.of(toDomain(found.get()));
+    }
+
+    @Override
+    public Optional<User> findById(UUID id){
+        Optional<UserEntity> found = jpa.findById(id);
+        if(found.isEmpty()){
+            return Optional.empty();
         }
         return Optional.of(toDomain(found.get()));
     }

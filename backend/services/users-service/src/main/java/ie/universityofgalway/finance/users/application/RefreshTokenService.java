@@ -3,6 +3,9 @@ package ie.universityofgalway.finance.users.application;
 import ie.universityofgalway.finance.users.domain.InvalidRefreshTokenException;
 import ie.universityofgalway.finance.users.domain.RefreshToken;
 import ie.universityofgalway.finance.users.domain.RefreshTokenRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -15,13 +18,15 @@ import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 
+@Service
 public class RefreshTokenService {
 
     private final RefreshTokenRepository repository;
     private final Duration lifetime;
     private final SecureRandom random = new SecureRandom();
 
-    public RefreshTokenService(RefreshTokenRepository repository, long expiryDays){
+    public RefreshTokenService(RefreshTokenRepository repository,
+                               @Value("${app.jwt.refresh-expiry-days}") long expiryDays){
         this.repository = repository;
         this.lifetime = Duration.ofDays(expiryDays);
     }
@@ -47,6 +52,7 @@ public class RefreshTokenService {
      * @param rawToken token to be rotated
      * @return the rotated token
      */
+    @Transactional
     public RotatedToken rotate(String rawToken){
         String tokenHash = hash(rawToken);
         Optional<RefreshToken> found = repository.findByTokenHash(tokenHash);
@@ -68,6 +74,7 @@ public class RefreshTokenService {
      * Logout. Deletes a refresh token
      * @param rawToken token to be deleted
      */
+    @Transactional
     public void revoke(String rawToken){
         repository.deleteByTokenHash(hash(rawToken));
     }
