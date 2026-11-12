@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
@@ -37,7 +38,8 @@ class PortfolioControllerSecurityTest {
     @Test
     void listPortfolios_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/portfolios"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
@@ -45,7 +47,8 @@ class PortfolioControllerSecurityTest {
         mockMvc.perform(post("/api/portfolios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Sneaky\"}"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
@@ -53,7 +56,9 @@ class PortfolioControllerSecurityTest {
         // No jwt() shortcut here, so the real JwtDecoder from SecurityConfig runs.
         mockMvc.perform(get("/api/portfolios")
                         .header("Authorization", "Bearer not-a-real-token"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+
     }
 
     @Test

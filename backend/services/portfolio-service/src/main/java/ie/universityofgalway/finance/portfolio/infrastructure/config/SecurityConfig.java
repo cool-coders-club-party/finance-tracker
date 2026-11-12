@@ -31,7 +31,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // CORS preflight
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint(new JsonAuthenticationEntryPoint()));
         return http.build();
     }
 
