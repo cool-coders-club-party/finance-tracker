@@ -1,17 +1,15 @@
-package ie.universityofgalway.finance.reporting.csv;
+package ie.universityofgalway.finance.reporting.api.csv;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
-import ie.universityofgalway.finance.reporting.portfolio.PortfolioClient;
-import ie.universityofgalway.finance.reporting.transactions.TransactionsClient;
+import ie.universityofgalway.finance.reporting.domain.model.FinancialReport;
+import ie.universityofgalway.finance.reporting.domain.model.ReportInvestment;
+import ie.universityofgalway.finance.reporting.domain.model.ReportTransaction;
 
 @Component
 public class FinancialReportCsvWriter {
@@ -19,39 +17,37 @@ public class FinancialReportCsvWriter {
     private static final DateTimeFormatter DATE_TIME_FORMAT =
             DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public byte[] write(
-            UUID userId,
-            LocalDate from,
-            LocalDate to,
-            List<TransactionsClient.Transaction> transactions,
-            List<PortfolioClient.HoldingPerformance> investments) {
-
+    public byte[] write(FinancialReport report) {
         StringBuilder csv = new StringBuilder();
 
         appendRow(csv,
-                "User ID "+ userId +"- Financial Summary from " + from + " to " + to, "", "");
+                "User ID " + report.userId()
+                        + " - Financial Summary from "
+                        + report.from() + " to " + report.to(),
+                "", "", "");
 
-        appendRow(csv, "", "", "");
-        appendRow(csv, "TRANSACTIONS", "", "");
+        appendRow(csv, "", "", "", "");
+        appendRow(csv, "TRANSACTIONS", "", "", "");
         appendRow(csv, "AMOUNT", "CURRENCY", "CATEGORY", "DATE & TIME");
 
-        for (TransactionsClient.Transaction transaction : transactions) {
+        for (ReportTransaction transaction : report.transactions()) {
             appendRow(csv,
                     formatAmount(transaction.amount()),
                     transaction.currency(),
-                    transaction.transactionCategory(),
+                    transaction.category(),
                     formatDateTime(transaction.occurredAt()));
         }
 
-        appendRow(csv, "", "", "");
-        appendRow(csv, "INVESTMENTS", "", "");
-        appendRow(csv, "AMOUNT INVESTED", "CURRENT PRICE", "TICKER");
+        appendRow(csv, "", "", "", "");
+        appendRow(csv, "INVESTMENTS", "", "", "");
+        appendRow(csv, "AMOUNT INVESTED", "CURRENT PRICE", "TICKER", "");
 
-        for (PortfolioClient.HoldingPerformance investment : investments) {
+        for (ReportInvestment investment : report.investments()) {
             appendRow(csv,
-                    formatAmount(investment.costBasis()),
+                    formatAmount(investment.amountInvested()),
                     formatAmount(investment.currentPrice()),
-                    investment.ticker());
+                    investment.ticker(),
+                    "");
         }
 
         return csv.toString().getBytes(StandardCharsets.UTF_8);

@@ -18,30 +18,25 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import ie.universityofgalway.finance.reporting.csv.FinancialReportCsvWriter;
-import ie.universityofgalway.finance.reporting.portfolio.PortfolioReportService;
-import ie.universityofgalway.finance.reporting.transactions.TransactionsReportService;
+import ie.universityofgalway.finance.reporting.application.usecase.GenerateFinancialReport;
+import ie.universityofgalway.finance.reporting.domain.model.FinancialReport;
+import ie.universityofgalway.finance.reporting.api.csv.FinancialReportCsvWriter;
 
 @RestController
 @RequestMapping("/api/reports")
 public class FinancialReportController {
 
-    private final TransactionsReportService transactionsReportService;
-    private final PortfolioReportService portfolioReportService;
+    private final GenerateFinancialReport generateFinancialReport;
     private final FinancialReportCsvWriter csvWriter;
 
     public FinancialReportController(
-            TransactionsReportService transactionsReportService,
-            PortfolioReportService portfolioReportService,
+            GenerateFinancialReport generateFinancialReport,
             FinancialReportCsvWriter csvWriter) {
-        this.transactionsReportService = transactionsReportService;
-        this.portfolioReportService = portfolioReportService;
+        this.generateFinancialReport = generateFinancialReport;
         this.csvWriter = csvWriter;
     }
 
-    @GetMapping(
-            value = "/export",
-            produces = "text/csv")
+    @GetMapping(value = "/export", produces = "text/csv")
     public ResponseEntity<byte[]> export(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam
@@ -56,16 +51,10 @@ public class FinancialReportController {
         }
 
         UUID userId = UUID.fromString(jwt.getSubject());
-        String jwtToken = jwt.getTokenValue();
+        FinancialReport report = generateFinancialReport.generate(
+                userId, from, to, jwt.getTokenValue());
 
-        var transactions =
-                transactionsReportService.getTransactions(from, to, jwtToken);
-        var investments =
-                portfolioReportService.getInvestments(jwtToken);
-
-        byte[] csv = csvWriter.write(
-                userId, from, to, transactions, investments);
-
+        byte[] csv = csvWriter.write(report);
         String filename = "financial-summary-" + from + "-to-" + to + ".csv";
 
         return ResponseEntity.ok()
