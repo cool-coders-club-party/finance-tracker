@@ -10,8 +10,14 @@ spring:
       ddl-auto: update
 server:
   port: 8086
+jwt:
+  secret: ${JWT_SECRET}
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+reporting:
+  clients:
+    transactions-base-url: http://localhost:8082
+    portfolio-base-url: http://localhost:8083

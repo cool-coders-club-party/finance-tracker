@@ -1,4 +1,4 @@
-package ie.universityofgalway.finance.reporting.infrastructure.config;
+package ie.universityofgalway.finance.reporting;
 
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
