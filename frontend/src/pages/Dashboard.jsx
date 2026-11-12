@@ -8,11 +8,10 @@ import SpendingByCurrency from "../components/transactions/SpendingByCurrency";
 import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
+import FinancialReportExport from '../components/FinancialReportExport';
 
 const formatMoney = (amount) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
-
-
 
 const portfolio = {
     available: true,
@@ -109,6 +108,7 @@ function Dashboard() {
           caption={portfolio.investmentValueCaption}
           positiveIsGood={portfolio.investmentValuePositive}
         />
+        <FinancialReportExport />
       </DashboardShell>
     );
 }
