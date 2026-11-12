@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${PORTFOLIO_DB_URL:jdbc:postgresql://localhost:5432/portfolio}
+    url: ${PORTFOLIO_DB_URL:jdbc:postgresql://localhost:5436/portfolio}
     username: ${PORTFOLIO_DB_USER:portfolio}
     password: ${PORTFOLIO_DB_PASSWORD:portfolio_dev}
   jpa:
