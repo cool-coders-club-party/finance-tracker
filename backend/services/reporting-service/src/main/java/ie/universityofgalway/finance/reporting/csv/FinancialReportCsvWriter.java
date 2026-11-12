@@ -29,9 +29,7 @@ public class FinancialReportCsvWriter {
         StringBuilder csv = new StringBuilder();
 
         appendRow(csv,
-                "User ID - Financial Summary from " + from + " to " + to,
-                "",
-                "");
+                "User ID "+ userId +"- Financial Summary from " + from + " to " + to, "", "");
 
         appendRow(csv, "", "", "");
         appendRow(csv, "TRANSACTIONS", "", "");
@@ -74,9 +72,7 @@ public class FinancialReportCsvWriter {
             }
 
             String value = cells[i] == null ? "" : cells[i];
-            csv.append('"')
-                    .append(value.replace("\"", "\"\""))
-                    .append('"');
+            csv.append('"').append(value.replace("\"", "\"\"")).append('"');
         }
 
         csv.append("\r\n");
