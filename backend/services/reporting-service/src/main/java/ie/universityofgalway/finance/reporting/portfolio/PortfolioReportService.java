@@ -21,8 +21,14 @@ public class PortfolioReportService {
                 portfolioClient.getPortfolios(jwtToken);
 
         for (PortfolioClient.Portfolio portfolio : portfolios) {
-            investments.addAll(
-                    portfolioClient.getPerformance(portfolio.id(), jwtToken));
+            List<PortfolioClient.HoldingPerformance> holdings =
+                    portfolioClient.getPerformance(portfolio.id(), jwtToken);
+
+            for (PortfolioClient.HoldingPerformance holding : holdings) {
+                if (holding.quantity().signum() > 0) {
+                    investments.add(holding);
+                }
+            }
         }
 
         return List.copyOf(investments);
