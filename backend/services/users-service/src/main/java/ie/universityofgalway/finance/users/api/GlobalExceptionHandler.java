@@ -3,8 +3,7 @@ package ie.universityofgalway.finance.users.api;
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
 import ie.universityofgalway.finance.users.domain.InvalidRefreshTokenException;
-import jakarta.validation.constraints.Email;
-import org.apache.coyote.Response;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

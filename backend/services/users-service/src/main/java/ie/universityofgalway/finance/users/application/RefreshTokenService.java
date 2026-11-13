@@ -18,6 +18,14 @@ import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Manages the lifecycle of refresh tokens.
+ *
+ * <p>A refresh token is a random value that a client exchanges for a new
+ * access token once theirs expires. Only a SHA-256 hash of each token is stored in the database.
+ * This ensures the database does not reveal valid tokens in the event of a leak.
+ * The raw token is returned to the client once, when it's created by {@link #issue(UUID)}</p>
+ */
 @Service
 public class RefreshTokenService {
 
@@ -48,7 +56,13 @@ public class RefreshTokenService {
     }
 
     /**
-     * swaps a valid token for a new one
+     * Swaps a valid refresh token for a new one (created by {@link #issue(UUID)})
+     *
+     * Clients pass their raw tokens to this method,
+     * The raw token is hashed and then checked against the database.
+     * If a match is found, the token is deleted from the database
+     * {@link #issue(UUID)} is called to issue a new refresh token.
+     *
      * @param rawToken token to be rotated
      * @return the rotated token
      */
@@ -71,7 +85,10 @@ public class RefreshTokenService {
     }
 
     /**
-     * Logout. Deletes a refresh token
+     * The mechanism that drives "logout" functionality.
+     * Deletes a refresh token from the database.
+     * This will block the user from interacting with the
+     * service until they log in again.
      * @param rawToken token to be deleted
      */
     @Transactional
@@ -95,9 +112,14 @@ public class RefreshTokenService {
     }
 
     /**
+     * Hashes a raw token with SHA-256 for safe storage
      *
-     * @param rawToken
-     * @return
+     * <p>The same input produces the same hash, so a token can be hashed again and
+     * checked against the stored value. No need to store the raw token server-side</p>
+     *
+     * @param rawToken the raw token to hash
+     * @return the SHA-256 hash as a lowercase hexadecimal string
+     * @throws IllegalStateException if the SHA-256 algorithm is not available in the JVM
      */
     private String hash(String rawToken) {
         try {
