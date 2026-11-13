@@ -4,7 +4,6 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import ie.universityofgalway.finance.users.application.AccessToken;
 import ie.universityofgalway.finance.users.application.TokenIssuer;
 import ie.universityofgalway.finance.users.domain.User;
-//import io.jsonwebtoken.security.MacAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
@@ -16,6 +15,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * {@link TokenIssuer} implementation that creates signed JWT access tokens.
+ *
+ * <p>Tokens are signed with HMAC-SHA256 (HS256) using the shared secret from the
+ * {@code app.jwt.secret} property. The same secret is used by the decoder in
+ * {@link SecurityConfig#jwtDecoder(String)} to verify them, so the two must remain consistent</p>
+ */
 @Component
 public class JwtTokenIssuer implements TokenIssuer {
 
@@ -23,6 +29,15 @@ public class JwtTokenIssuer implements TokenIssuer {
     private final Duration lifetime;
     
     // "${app.jwt.secret}" tells spring to grab the parameter from application.yml
+    /**
+     * Creates the issuer from the application configuration. Spring supplies the arguments
+     * from the {@code app.jwt.secret} and {@code app.jwt.expiry-minutes} properties in {@code application.yml}.
+     *
+     * @param secret        the signing secret; must be at least 32 bytes (256 bits), as
+     *                      HMAC-SHA256 requires
+     * @param expiryMinutes how many minutes an issued access token stays valid
+     * @throws IllegalStateException if the secret is shorter than 32 bytes
+     */
     public JwtTokenIssuer(@Value("${app.jwt.secret}") String secret,
                           @Value("${app.jwt.expiry-minutes}") long expiryMinutes){
         int length = secret.getBytes(StandardCharsets.UTF_8).length;

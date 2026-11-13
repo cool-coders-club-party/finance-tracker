@@ -9,9 +9,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * JPA mapping of the Refresh Tokens table. Persistence only.
- * The rest of the application works with the domain RefreshToken record.
- * This table stores refresh tokens and the users they belong to.
+ * JPA mapping of the {@code refresh_tokens} table. Persistence only.
+ *
+ * <p>The rest of the application works with the domain {@link ie.universityofgalway.finance.users.domain.RefreshToken} record.
+ * {@link JpaRefreshTokenRepository} converts between the two.
+ * Each row is one refresh token identified by the hash of the raw token, the user it belongs to and when it expires.
  */
 @Entity
 @Table(name="refresh_tokens")
