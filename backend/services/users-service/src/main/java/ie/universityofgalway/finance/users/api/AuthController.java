@@ -78,10 +78,13 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request){
         User user = authService.login(request.email(), request.password());
         AccessToken token = tokenIssuer.issue(user);
+        String refreshToken = refreshTokenService.issue(user.id());
+
         return ResponseEntity.ok(Map.of(
                 "id", user.id().toString(),
                 "email", user.email(),
                 "accessToken", token.value(),
+                "refreshToken", refreshToken,
                 "tokenType", "Bearer",
                 "expiresIn", token.expiresInSeconds()));
     }

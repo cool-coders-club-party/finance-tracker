@@ -72,6 +72,7 @@ class AuthControllerTest {
         when(authService.register(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
         when(authService.login(anyString(), anyString())).thenAnswer(inv -> new User(UUID.randomUUID(), inv.getArgument(0), "hash"));
         when(tokenIssuer.issue(any())).thenReturn(new AccessToken("test-token", 900));
+        when(refreshTokenService.issue(any())).thenReturn("refresh-token");
     }
 
     @Test
@@ -226,6 +227,7 @@ class AuthControllerTest {
                 .doesNotContainIgnoringCase("password");
     }
 
+    /* LOGIN ENDPOINT TESTS */
     @Test
     void loginWithValidBodyReturns200WithIdAndEmail() throws Exception {
         postLogin(VALID_JSON_BODY)
@@ -277,8 +279,17 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(tokenIssuer);
+        verifyNoInteractions(refreshTokenService);
     }
 
+    @Test
+    void loginReturnsARefreshToken() throws Exception {
+        postLogin(json("test@example.com", "12345678"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refreshToken").value("refresh-token"));
+    }
+
+    /* ME ENDPOINT TESTS */
     @Test
     void meWithoutATokenIsRejected() throws Exception {
         mvc.perform(get("/api/auth/me"))
@@ -328,6 +339,7 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    /* REFRESH ENDPOINT TESTS */
     @Test
     void refreshReturnsNewTokensWithoutNeedingAnAccessToken() throws Exception {
         UUID id = UUID.randomUUID();
@@ -368,6 +380,7 @@ class AuthControllerTest {
         verifyNoInteractions(refreshTokenService);
     }
 
+    /* LOGOUT ENDPOINT TESTS */
     @Test
     void logoutRevokesTheTokenAndReturns204() throws Exception {
         mvc.perform(post("/api/auth/logout")
