@@ -8,20 +8,22 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Adapter that implements the {@link UserRepository} port using PostgreSQL
  * through Spring Data JPA.
- * <br>
- * Domain {@link User} objects are converted to {@link UserEntity} objects on
+ *
+ * <p>Domain {@link User} objects are converted to {@link UserEntity} objects on
  * the way in and back again on the way out, so the rest of the application
- * never handles JPA objects and does not depend on how users are stored.
- * <br><br>
- * Note for future me:<br>
+ * never handles JPA objects and does not depend on how users are stored.</p>
+ * <p></p>
+ *
+ * <p>Note for future me:<br>
  * In this class you'll see Spring Data's ability to generate database queries
  * derived from method names. These are called derived queries.<br>
  * You can write queries manually with {@code @Query} and bind them to methods
- * Or you can use named queries, defined in the orm.xml
+ * Or you can use named queries, defined in the orm.xml</p>
  */
 @Repository
 public class JpaUserRepository implements UserRepository {
@@ -62,6 +64,7 @@ public class JpaUserRepository implements UserRepository {
      *
      * @param user the domain user to store
      * @return the stored user as is in the table
+     * @throws EmailAlreadyRegisteredException if the email exists in the database
      */
     @Override
     public User save(User user){
@@ -92,6 +95,15 @@ public class JpaUserRepository implements UserRepository {
         Optional<UserEntity> found = jpa.findByEmail(email); // Spring Data builds a database query based on the method name "findByEmail"
         if (found.isEmpty()){ // if no matching email
             return Optional.empty(); // the caller decides how to handle a missing user
+        }
+        return Optional.of(toDomain(found.get()));
+    }
+
+    @Override
+    public Optional<User> findById(UUID id){
+        Optional<UserEntity> found = jpa.findById(id);
+        if(found.isEmpty()){
+            return Optional.empty();
         }
         return Optional.of(toDomain(found.get()));
     }

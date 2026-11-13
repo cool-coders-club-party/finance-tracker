@@ -10,8 +10,10 @@ import java.util.UUID;
  * @param passwordHash hashed password
  */
 public record User(UUID id, String email, String passwordHash) {
+
     /**
-     * Overriding toString() to omit the hashed password
+     * Overriding toString() to omit the hashed password, preventing leaks into logs or error messages
+     *
      * @return fields of the User class, omitting the hashed password
      */
     @Override

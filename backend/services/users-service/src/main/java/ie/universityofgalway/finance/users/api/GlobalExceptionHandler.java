@@ -2,7 +2,8 @@ package ie.universityofgalway.finance.users.api;
 
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
-import jakarta.validation.constraints.Email;
+import ie.universityofgalway.finance.users.domain.InvalidRefreshTokenException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,6 +26,12 @@ public class GlobalExceptionHandler {
     // HTTP 401
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException e){
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", 401, "message", e.getMessage()));
+    }
+
+    //HTTP 401
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidRefreshToken(InvalidRefreshTokenException e){
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", 401, "message", e.getMessage()));
     }
 }

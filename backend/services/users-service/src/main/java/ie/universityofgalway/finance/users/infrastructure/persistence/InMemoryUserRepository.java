@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -37,5 +38,15 @@ public class InMemoryUserRepository implements UserRepository{
     public Optional<User> findByEmail(String email){
         // returns a User if one is found, returns an empty Optional if not
         return Optional.ofNullable(usersByEmail.get(email));
+    }
+
+    @Override
+    public Optional<User> findById(UUID id) {
+        for (User user : usersByEmail.values()) {
+            if (user.id().equals(id)) {
+                return Optional.of(user);
+            }
+        }
+        return Optional.empty();
     }
 }
