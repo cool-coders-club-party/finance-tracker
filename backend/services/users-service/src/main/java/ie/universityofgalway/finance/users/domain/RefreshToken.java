@@ -8,12 +8,12 @@ import java.time.Instant;
  * A refresh token lets a user obtain a new access token
  * without logging in again. It lives longer than an Access Token.
  *
- * <p>
- * Only a SHA-256 hash of the token is stored. So a database leak
+ *
+ * <p>Only a SHA-256 hash of the token is stored. So a database leak
  * cannot be used to refresh sessions as the raw value is never stored.
  * The raw token is returned to the client once (when it is issued).
  * Tokens are valid for 7 days by default, configured via
- * {@code app.jwt.refresh-expiry-days}
+ * {@code app.jwt.refresh-expiry-days}</p>
  *
  * @param id ID of the RefreshToken
  * @param userId ID of the user who owns the RefreshToken
