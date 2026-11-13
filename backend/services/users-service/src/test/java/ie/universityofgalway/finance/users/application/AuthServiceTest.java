@@ -1,9 +1,6 @@
 package ie.universityofgalway.finance.users.application;
 
-import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
-import ie.universityofgalway.finance.users.domain.User;
-import ie.universityofgalway.finance.users.domain.UserRepository;
-import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
+import ie.universityofgalway.finance.users.domain.*;
 
 import io.jsonwebtoken.security.Password;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,5 +124,22 @@ class AuthServiceTest {
         User result = service.login("  Test@Example.COM ", "12345678");
 
         assertThat(result).isEqualTo(stored);
+    }
+
+    @Test
+    void getUserReturnsTheUser(){
+        UUID id = UUID.randomUUID();
+        User user = new User(id, "test@example.com", "hash");
+        when(users.findById(id)).thenReturn(Optional.of(user));
+
+        assertThat(service.getUser(id)).isEqualTo(user);
+    }
+
+    @Test
+    void getUserThrowsWhenTheUserDoesNotExist(){
+        // when users.findById() is called with any arguments, return an empty optional (simulate a user not existing)
+        when(users.findById(any())).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRefreshTokenException.class, ()-> service.getUser(UUID.randomUUID()));
     }
 }

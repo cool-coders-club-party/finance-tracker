@@ -1,9 +1,6 @@
 package ie.universityofgalway.finance.users.application;
 
-import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
-import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
-import ie.universityofgalway.finance.users.domain.User;
-import ie.universityofgalway.finance.users.domain.UserRepository;
+import ie.universityofgalway.finance.users.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
@@ -63,5 +60,22 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
         return user;
+    }
+
+    /**
+     * Helper method to find a user by ID for a refresh token.
+     * A refresh token that has no user is invalid, so is an
+     * unknown token. They throw the same exception as to prevent
+     * someone from using the endpoints to brute force valid tokens
+     *
+     * @param id the user to search the database for
+     * @return the user (if found) otherwise, otherwise an empty Optional.
+     */
+    public User getUser(UUID id){
+        Optional<User> found = users.findById(id);
+        if(found.isEmpty()){
+            throw new InvalidRefreshTokenException();
+        }
+        return found.get();
     }
 }

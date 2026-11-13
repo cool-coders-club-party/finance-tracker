@@ -1,13 +1,13 @@
 package ie.universityofgalway.finance.users.api;
 
 import ie.universityofgalway.finance.users.api.dto.LoginRequest;
+import ie.universityofgalway.finance.users.api.dto.RefreshTokenRequest;
 import ie.universityofgalway.finance.users.api.dto.RegisterRequest; // pull in DTO
-import ie.universityofgalway.finance.users.application.AccessToken;
-import ie.universityofgalway.finance.users.application.TokenIssuer;
+import ie.universityofgalway.finance.users.application.*;
 import ie.universityofgalway.finance.users.domain.User;
-import ie.universityofgalway.finance.users.application.AuthService;
 import jakarta.validation.Valid;
 import org.antlr.v4.runtime.Token;
+import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,9 +39,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final TokenIssuer tokenIssuer;
-    public AuthController(AuthService authService, TokenIssuer tokenIssuer){
+    private final RefreshTokenService refreshTokenService;
+
+    public AuthController(AuthService authService, TokenIssuer tokenIssuer, RefreshTokenService refreshTokenService){
         this.authService = authService;
         this.tokenIssuer = tokenIssuer;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @GetMapping("/ping") // maps GET requests for /ping to this method and declares the endpoint GET /api/auth/ping (prefix + /ping)
@@ -88,5 +91,27 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "id", jwt.getSubject(),
                 "email", jwt.getClaimAsString("email")));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, Object>> refresh(@Valid @RequestBody RefreshTokenRequest request){
+        RotatedToken rotated = refreshTokenService.rotate(request.refreshToken());
+        User user = authService.getUser(rotated.userId());
+        AccessToken accessToken = tokenIssuer.issue(user);
+
+        return ResponseEntity.ok(Map.of(
+                "id", user.id().toString(),
+                "email", user.email(),
+                "accessToken", accessToken.value(),
+                "refreshToken", rotated.refreshToken(),
+                "tokenType", "Bearer",
+                "expiresIn", accessToken.expiresInSeconds()
+        ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request){
+        refreshTokenService.revoke(request.refreshToken());
+        return ResponseEntity.noContent().build();
     }
 }

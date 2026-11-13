@@ -1,10 +1,9 @@
 package ie.universityofgalway.finance.users.api;
 
-import ie.universityofgalway.finance.users.application.AccessToken;
-import ie.universityofgalway.finance.users.application.AuthService;
-import ie.universityofgalway.finance.users.application.TokenIssuer;
+import ie.universityofgalway.finance.users.application.*;
 import ie.universityofgalway.finance.users.domain.EmailAlreadyRegisteredException;
 import ie.universityofgalway.finance.users.domain.InvalidCredentialsException;
+import ie.universityofgalway.finance.users.domain.InvalidRefreshTokenException;
 import ie.universityofgalway.finance.users.domain.User;
 
 import ie.universityofgalway.finance.users.infrastructure.security.JwtTokenIssuer;
@@ -43,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 @WebMvcTest(AuthController.class)
 class AuthControllerTest {
+
     @Autowired
     private MockMvc mvc; // spoof HTTP requests
 
@@ -56,6 +56,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private TokenIssuer tokenIssuer;
+
+    @MockitoBean
+    private RefreshTokenService refreshTokenService;
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;
@@ -323,5 +326,65 @@ class AuthControllerTest {
         mvc.perform(get("/api/auth/me")
                         .header("Authorization", "Bearer " + token.value()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void refreshReturnsNewTokensWithoutNeedingAnAccessToken() throws Exception {
+        UUID id = UUID.randomUUID();
+        User user = new User(id, "test@example.com", "hash");
+        when(refreshTokenService.rotate("old-refresh-token")).thenReturn(new RotatedToken(id, "new-refresh-token"));
+        when(authService.getUser(id)).thenReturn(user);
+
+        mvc.perform(post("/api/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refreshToken\": \"old-refresh-token\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.accessToken").value("test-token"))
+                .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(900));
+    }
+
+    @Test
+    void refreshWithAnInvalidTokenReturns401() throws Exception {
+        when(refreshTokenService.rotate(anyString())).thenThrow(new InvalidRefreshTokenException());
+
+        mvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\": \"bad-token\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid refresh token"));
+    }
+
+    @Test
+    void refreshWithABlankTokenReturns400() throws Exception {
+        mvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\": \"\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(refreshTokenService);
+    }
+
+    @Test
+    void logoutRevokesTheTokenAndReturns204() throws Exception {
+        mvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\": \"some-token\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(refreshTokenService).revoke("some-token");
+    }
+
+    @Test
+    void logoutWithABlankTokenReturns400() throws Exception {
+        mvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\": \"\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(refreshTokenService);
     }
 }
