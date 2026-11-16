@@ -1,9 +1,11 @@
+import { authenticatedFetch } from "./fetch.js";
+
 // Both Portfolio endpoints return arrays.
 async function getPortfolioList(path, signal) {
   let response;
 
   try {
-    response = await fetch(`/portfolio-api/api/portfolios${path}`, {
+    response = await authenticatedFetch(`/portfolio-api/api/portfolios${path}`, {
       signal,
     });
   } catch (error) {
