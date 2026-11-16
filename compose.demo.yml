@@ -1,0 +1,79 @@
+services:
+  market-data-service:
+    image: poca-market-data:demo
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.demo
+      args:
+        SERVICE: market-data-service
+    environment:
+      SPRING_PROFILES_ACTIVE: "${POCA_MARKET_DATA_PROFILE:-stub}"
+      SPRING_APPLICATION_JSON: >-
+        {"market-data":{"twelve-data":{"base-url":"https://api.twelvedata.com","api-key":"${POCA_TWELVE_DATA_API_KEY:-}"}}}
+    ports:
+      - "127.0.0.1:8084:8084"
+
+  portfolio-service:
+    image: poca-portfolio:demo
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.demo
+      args:
+        SERVICE: portfolio-service
+    environment:
+      JWT_SECRET: "${POCA_JWT_SECRET:?Set POCA_JWT_SECRET in the demo env file}"
+      PORTFOLIO_DB_URL: jdbc:postgresql://portfolio-db:5432/portfolio
+      SPRING_APPLICATION_JSON: '{"market-data":{"base-url":"http://market-data-service:8084"}}'
+    depends_on:
+      portfolio-db:
+        condition: service_healthy
+      market-data-service:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8083:8083"
+
+  users-service:
+    image: poca-users:demo
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.demo
+      args:
+        SERVICE: users-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://users-postgres:5432/users
+      APP_JWT_SECRET: "${POCA_JWT_SECRET:?Set POCA_JWT_SECRET in the demo env file}"
+    depends_on:
+      users-postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8081:8081"
+
+  transactions-service:
+    image: poca-transactions:demo
+    build:
+      context: ./backend/services/transactions-service
+      dockerfile: Dockerfile.demo
+    environment:
+      POSTGRES_HOST: transaction-postgres
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: transaction-redis
+      APP_JWT_SECRET: "${POCA_JWT_SECRET:?Set POCA_JWT_SECRET in the demo env file}"
+    depends_on:
+      transaction-postgres:
+        condition: service_healthy
+      transaction-redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8082:8082"
+
+  portfolio-db:
+    ports: !reset []
+
+  users-postgres:
+    ports: !reset []
+
+  transaction-postgres:
+    ports: !reset []
+
+  transaction-redis:
+    ports: !reset []
