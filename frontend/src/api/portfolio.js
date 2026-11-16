@@ -1,4 +1,4 @@
-import { authenticatedFetch } from "./fetch.js";
+import { authenticatedFetch } from "../lib/authSession.js";
 
 // Both Portfolio endpoints return arrays.
 async function getPortfolioList(path, signal) {
