@@ -17,11 +17,8 @@ public class PortfolioApiAdapter implements PortfolioReportPort {
 
     private final RestClient restClient;
 
-    public PortfolioApiAdapter(
-            @Value("${reporting.clients.portfolio-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .build();
+    public PortfolioApiAdapter(RestClient.Builder restClientBuilder, @Value("${reporting.clients.portfolio-base-url}") String baseUrl) {
+        this.restClient = restClientBuilder.baseUrl(baseUrl).build();
     }
 
     @Override

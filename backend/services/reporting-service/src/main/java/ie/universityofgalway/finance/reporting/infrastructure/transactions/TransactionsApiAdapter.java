@@ -22,11 +22,8 @@ public class TransactionsApiAdapter implements TransactionReportPort {
 
     private final RestClient restClient;
 
-    public TransactionsApiAdapter(
-            @Value("${reporting.clients.transactions-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .build();
+    public TransactionsApiAdapter(RestClient.Builder restClientBuilder, @Value("${reporting.clients.transactions-base-url}") String baseUrl) {
+        this.restClient = restClientBuilder.baseUrl(baseUrl).build();
     }
 
     @Override
