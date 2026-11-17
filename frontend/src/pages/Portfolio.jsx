@@ -1,7 +1,7 @@
 // useEffect loads Portfolio data when the page opens.
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getPortfolios, getHoldings } from "../api/portfolio";
+import { getPortfolios, getValuation } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
 import { getQuote, getPriceHistory, getTopStocks, getStockMovers } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
@@ -13,6 +13,7 @@ import RecordPurchaseForm from "../components/RecordPurchaseForm";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
 import useAuth from "../hooks/useAuth";
+import { formatMoney, valuationReason } from "../lib/valuation.js";
 
 const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
   dateStyle: "medium",
@@ -211,9 +212,10 @@ export default function Portfolio() {
         // Its name will be visible so the user knows which one is selected.
         const selectedPortfolio = portfolios[0] ?? null;
 
-        const holdings = selectedPortfolio
-          ? await getHoldings(selectedPortfolio.id, controller.signal)
-          : [];
+        const valuation = selectedPortfolio
+          ? await getValuation(selectedPortfolio.id, controller.signal)
+          : null;
+        const holdings = valuation?.holdings ?? [];
 
         // Ignore results if the page was left while requests were running.
         if (controller.signal.aborted) return;
@@ -223,6 +225,7 @@ export default function Portfolio() {
           status: "ready",
           portfolio: selectedPortfolio,
           holdings,
+          valuation,
           error: "",
         });
       } catch (error) {
@@ -347,23 +350,32 @@ export default function Portfolio() {
             </div>
 
             {/* Missing data is shown as a dash, never as a misleading zero balance. */}
-            {/* Match the table's equal thirds without horizontal gaps shifting the columns. */}
+            {/* Totals use the backend calculations, including its completeness policy. */}
             <dl className="grid gap-y-4 sm:grid-cols-3">
               <div>
                 <dt className="text-sm text-white/80">Current value</dt>
-                <dd className="mt-1 text-2xl font-semibold">—</dd>
+                <dd className="mt-1 text-2xl font-semibold">{formatMoney(portfolioData.valuation?.currentValue, portfolioData.valuation?.currency)}</dd>
               </div>
 
               <div>
-                <dt className="text-sm text-white/80">Invested</dt>
-                <dd className="mt-1 text-2xl font-semibold">—</dd>
+                <dt className="text-sm text-white/80">Cost of current holdings</dt>
+                <dd className="mt-1 text-2xl font-semibold">{formatMoney(portfolioData.valuation?.costBasis, portfolioData.valuation?.currency)}</dd>
               </div>
 
               <div>
                 <dt className="text-sm text-white/80">Unrealised gain / loss</dt>
-                <dd className="mt-1 text-2xl font-semibold">—</dd>
+                <dd className="mt-1 text-2xl font-semibold">{formatMoney(portfolioData.valuation?.unrealisedGainLoss, portfolioData.valuation?.currency)}</dd>
               </div>
             </dl>
+
+            {portfolioData.valuation && !portfolioData.valuation.complete && (
+              <p className="text-sm text-amber-400" role="status">
+                Valuation incomplete: {portfolioData.valuation.unavailableHoldings} holding(s) unavailable. Portfolio totals are unavailable.
+              </p>
+            )}
+            {portfolioData.valuation?.stale && (
+              <p className="text-sm text-amber-400">Valuation includes cached prices. Check each quote’s timestamp.</p>
+            )}
 
             {/* Announce loading and results without interrupting the user. */}
             <div aria-live="polite" className="border-t border-white/10 pt-5">
@@ -412,13 +424,8 @@ export default function Portfolio() {
                   {/* Contain table scrolling so the whole page stays within the screen. */}
                   {portfolioData.holdings.length > 0 && (
                     <div className="overflow-x-auto">
-                      {/* Equal columns keep headings and values aligned as data changes. */}
-                      <table className="w-full table-fixed text-left text-sm">
-                        <colgroup>
-                          <col className="w-1/3" />
-                          <col className="w-1/3" />
-                          <col className="w-1/3" />
-                        </colgroup>
+                      {/* Keep quote timestamps and unavailable reasons beside each holding. */}
+                      <table className="w-full min-w-[760px] text-left text-sm">
                         <thead className="border-b border-white/10 text-white/80">
                           <tr>
                             <th scope="col" className="pb-3 font-medium">Stock</th>
@@ -428,6 +435,9 @@ export default function Portfolio() {
                             <th scope="col" className="pb-3 text-left font-medium">
                               Average price paid
                             </th>
+                            <th scope="col" className="pb-3 font-medium">Current price / quote time</th>
+                            <th scope="col" className="pb-3 font-medium">Current value</th>
+                            <th scope="col" className="pb-3 font-medium">Unrealised gain / loss</th>
                           </tr>
                         </thead>
 
@@ -441,15 +451,20 @@ export default function Portfolio() {
                                 {holding.quantity}
                               </td>
                               <td className="py-4 text-left tabular-nums">
-                                {formatPrice(holding.avgPurchasePrice)}
+                                {formatPrice(holding.avgPurchasePrice)} {holding.currency ?? "(currency unknown)"}
                               </td>
+                              <td className="py-4 pr-3">
+                                {formatMoney(holding.quote?.price, holding.quote?.currency)}
+                                {holding.quote?.asOf && <span className="block text-xs text-white/75">As of {new Date(holding.quote.asOf).toLocaleString("en-IE")}</span>}
+                                {holding.quote?.stale && <span className="block text-xs text-amber-400">Cached price — live quote unavailable</span>}
+                                {!holding.valuationAvailable && <span className="block text-xs text-amber-400">{valuationReason(holding.unavailableReason)}</span>}
+                              </td>
+                              <td className="py-4">{formatMoney(holding.currentValue, holding.currency)}</td>
+                              <td className="py-4">{formatMoney(holding.unrealisedGainLoss, holding.currency)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      <p className="mt-2 text-xs text-white/75">
-                        Purchase-price currency unavailable.
-                      </p>
                     </div>
                   )}
                 </div>

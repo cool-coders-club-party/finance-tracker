@@ -11,11 +11,18 @@ public class Holding {
     private final Long id;
     private final Long portfolioId;
     private final String ticker;
+    private final String currency;
     private BigDecimal quantity;
     private BigDecimal avgPurchasePrice;
 
     public Holding(Long id, Long portfolioId, String ticker,
                    BigDecimal quantity, BigDecimal avgPurchasePrice) {
+        this(id, portfolioId, ticker, quantity, avgPurchasePrice, null);
+    }
+
+    public Holding(Long id, Long portfolioId, String ticker,
+                   BigDecimal quantity, BigDecimal avgPurchasePrice, String currency) {
+        this.currency = currency;
         this.id = id;
         this.portfolioId = portfolioId;
         this.ticker = ticker;
@@ -24,7 +31,11 @@ public class Holding {
     }
 
     public static Holding open(Long portfolioId, String ticker) {
-        return new Holding(null, portfolioId, ticker, BigDecimal.ZERO, BigDecimal.ZERO);
+        return open(portfolioId, ticker, null);
+    }
+
+    public static Holding open(Long portfolioId, String ticker, String currency) {
+        return new Holding(null, portfolioId, ticker, BigDecimal.ZERO, BigDecimal.ZERO, currency);
     }
 
     public Trade buy(BigDecimal qty, BigDecimal price, Instant at) {
@@ -51,6 +62,8 @@ public class Holding {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
     }
+
+    public String getCurrency() { return currency; }
 
     public Long getId() { return id; }
     public Long getPortfolioId() { return portfolioId; }

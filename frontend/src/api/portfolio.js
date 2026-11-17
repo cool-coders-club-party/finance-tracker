@@ -1,7 +1,7 @@
 import { authenticatedFetch } from "../lib/authSession.js";
 
-// Both Portfolio endpoints return arrays.
-async function getPortfolioList(path, signal) {
+// Keep transport errors consistent for the list and valuation endpoints.
+async function getPortfolioData(path, signal) {
   let response;
 
   try {
@@ -12,7 +12,7 @@ async function getPortfolioList(path, signal) {
     // Preserve cancellation when the user leaves the page.
     if (error.name === "AbortError") throw error;
 
-    throw new Error("Cannot reach Portfolio. Try again shortly.");
+    throw new Error("Cannot reach Portfolio. Try again shortly.", { cause: error });
   }
 
   if (!response.ok) {
@@ -24,11 +24,6 @@ async function getPortfolioList(path, signal) {
   }
 
   const data = await response.json();
-
-  // Reject an unexpected response instead of crashing while rendering rows.
-  if (!Array.isArray(data)) {
-    throw new Error("Portfolio returned an unexpected response.");
-  }
 
   return data;
 }
@@ -44,4 +39,18 @@ export function getHoldings(portfolioId, signal) {
     `/${encodeURIComponent(portfolioId)}/holdings`,
     signal
   );
+}
+
+async function getPortfolioList(path, signal) {
+  const data = await getPortfolioData(path, signal);
+  if (!Array.isArray(data)) throw new Error("Portfolio returned an unexpected response.");
+  return data;
+}
+
+export async function getValuation(portfolioId, signal) {
+  const data = await getPortfolioData(`/${encodeURIComponent(portfolioId)}/valuation`, signal);
+  if (!data || !Array.isArray(data.holdings) || typeof data.complete !== "boolean") {
+    throw new Error("Portfolio returned an unexpected valuation response.");
+  }
+  return data;
 }

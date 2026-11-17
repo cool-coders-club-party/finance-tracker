@@ -26,6 +26,7 @@ class RepositoryAdaptersTest {
     @Autowired private PortfolioRepositoryAdapter portfolios;
     @Autowired private HoldingRepositoryAdapter holdings;
     @Autowired private TradeRepositoryAdapter trades;
+    @Autowired private jakarta.persistence.EntityManager entityManager;
 
     @Test
     void savedPortfolioGetsAnIdAndIsOnlyVisibleToItsOwner() {
@@ -51,6 +52,20 @@ class RepositoryAdaptersTest {
         assertThat(holdings.findByPortfolioId(portfolio.getId())).hasSize(1);
         assertThat(updated.getQuantity()).isEqualByComparingTo("20");
         assertThat(updated.getAvgPurchasePrice()).isEqualByComparingTo("150");
+    }
+
+    @Test
+    void holdingCurrencySurvivesReloadWithoutInventingLegacyCurrency() {
+        Portfolio portfolio = portfolios.save(Portfolio.create("user-1", "Main"));
+        Holding saved = holdings.save(new Holding(null, portfolio.getId(), "AAPL",
+                new BigDecimal("2.5"), new BigDecimal("100"), "USD"));
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(holdings.findByPortfolioIdAndTicker(portfolio.getId(), "AAPL").orElseThrow().getCurrency())
+                .isEqualTo("USD");
+        assertThat(saved.getCurrency()).isEqualTo("USD");
+        Holding legacy = holdings.save(Holding.open(portfolio.getId(), "MSFT"));
+        assertThat(legacy.getCurrency()).isNull();
     }
 
     @Test
