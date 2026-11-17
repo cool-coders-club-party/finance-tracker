@@ -22,6 +22,8 @@ import ie.universityofgalway.finance.reporting.domain.model.ReportTransaction;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import ie.universityofgalway.finance.reporting.domain.model.ReportInvestment;
+
 class GenerateFinancialReportTest {
 
     private TransactionReportPort transactionReportPort;
@@ -73,5 +75,32 @@ class GenerateFinancialReportTest {
         var report = useCase.generate(UUID.randomUUID(), from, to, "test-token");
 
         assertThat(report.transactions()).containsExactly(older, newer);
+    }
+
+    @Test
+    void includesOnlyInvestmentsWithPositiveQuantity() {
+        LocalDate from = LocalDate.of(2026, 3, 1);
+        LocalDate to = LocalDate.of(2026, 3, 31);
+
+        ReportInvestment openPosition = new ReportInvestment(
+                "AAPL",
+                new BigDecimal("3"),
+                new BigDecimal("450.00"),
+                new BigDecimal("175.00"));
+
+        ReportInvestment closedPosition = new ReportInvestment(
+                "MSFT",
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                null);
+
+        when(transactionReportPort.getTransactions(from, to, "test-token"))
+                .thenReturn(List.of());
+        when(portfolioReportPort.getPortfolioPositions("test-token"))
+                .thenReturn(List.of(closedPosition, openPosition));
+
+        var report = useCase.generate(UUID.randomUUID(), from, to, "test-token");
+
+        assertThat(report.investments()).containsExactly(openPosition);
     }
 }
