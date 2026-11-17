@@ -40,12 +40,13 @@ public class TransactionsApiAdapter implements TransactionReportPort {
         int totalPages;
 
         do {
+            int currentPage = page;
             TransactionPageResponse response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/api/v1/transactions")
                             .queryParam("from", from)
                             .queryParam("to", to)
-                            .queryParam("page", page)
+                            .queryParam("page", currentPage)
                             .queryParam("size", PAGE_SIZE)
                             .queryParam("sortBy", "date")
                             .queryParam("direction", "asc")
