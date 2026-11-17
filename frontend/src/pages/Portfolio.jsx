@@ -1,5 +1,6 @@
 // useEffect loads Portfolio data when the page opens.
 import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { getPortfolios, getHoldings } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
 import { getQuote, getPriceHistory, getTopStocks, getStockMovers } from "../api/marketData";
@@ -11,6 +12,7 @@ import PriceHistoryChart from "../components/PriceHistoryChart";
 import RecordPurchaseForm from "../components/RecordPurchaseForm";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
+import useAuth from "../hooks/useAuth";
 
 const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
   dateStyle: "medium",
@@ -48,6 +50,9 @@ function formatPrice(value) {
 
 //This page will hold both stock lookup and the user's holdings
 export default function Portfolio() {
+  const { status: authStatus, session } = useAuth();
+  const userId = authStatus === "ready" ? session?.user.id : undefined;
+  const location = useLocation();
   const [tickerInput, setTickerInput] = useState("");
 
   const [quote, setQuote] = useState(null);
@@ -148,12 +153,10 @@ export default function Portfolio() {
   }
 
   // Keep the request status and its data together.
-  const [portfolioData, setPortfolioData] = useState({
-    status: "loading",
-    portfolio: null,
-    holdings: [],
-    error: "",
-  });
+  const [portfolioResult, setPortfolioResult] = useState(null);
+  const portfolioData = userId && portfolioResult?.userId === userId
+    ? portfolioResult
+    : { status: "loading", portfolio: null, holdings: [], error: "" };
 
   // Share only the selected ticker with the purchase form; preserve its other inputs.
   const [purchaseTicker, setPurchaseTicker] = useState("");
@@ -168,6 +171,17 @@ export default function Portfolio() {
 
   const purchaseQuantityRef = useRef(null);
 
+  const [previousUserId, setPreviousUserId] = useState(userId);
+  if (previousUserId !== userId) {
+    setPreviousUserId(userId);
+    setPortfolioResult(null);
+    setPurchaseOpen(false);
+    setPurchaseTicker("");
+    setPurchasePrice("");
+    setQuoteEstimate(null);
+    setPrefillError("");
+  }
+
   useEffect(() => {
     if (purchaseOpen) purchaseQuantityRef.current?.focus();
   }, [purchaseOpen]);
@@ -176,10 +190,13 @@ export default function Portfolio() {
   const [portfolioReload, setPortfolioReload] = useState(0);
 
   useEffect(() => {
+    if (!userId) return;
+
     const controller = new AbortController();
 
     async function loadPortfolio() {
-      setPortfolioData({
+      setPortfolioResult({
+        userId,
         status: "loading",
         portfolio: null,
         holdings: [],
@@ -188,6 +205,7 @@ export default function Portfolio() {
 
       try {
         const portfolios = await getPortfolios(controller.signal);
+        if (controller.signal.aborted) return;
 
         // Initially display the first available portfolio.
         // Its name will be visible so the user knows which one is selected.
@@ -200,7 +218,8 @@ export default function Portfolio() {
         // Ignore results if the page was left while requests were running.
         if (controller.signal.aborted) return;
 
-        setPortfolioData({
+        setPortfolioResult({
+          userId,
           status: "ready",
           portfolio: selectedPortfolio,
           holdings,
@@ -209,7 +228,8 @@ export default function Portfolio() {
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        setPortfolioData({
+        setPortfolioResult({
+          userId,
           status: "error",
           portfolio: null,
           holdings: [],
@@ -222,7 +242,7 @@ export default function Portfolio() {
 
     // Cancel unfinished requests when leaving the page or retrying.
     return () => controller.abort();
-  }, [portfolioReload]);
+  }, [userId, portfolioReload]);
 
 
   function handleSubmit(event) {
@@ -347,7 +367,21 @@ export default function Portfolio() {
 
             {/* Announce loading and results without interrupting the user. */}
             <div aria-live="polite" className="border-t border-white/10 pt-5">
-              {portfolioData.status === "loading" && (
+              {authStatus === "loading" && (
+                <p className="text-sm text-white/60">Checking your session…</p>
+              )}
+
+              {authStatus === "ready" && !userId && (
+                <Link
+                  to="/login"
+                  state={{ from: location.pathname + location.search }}
+                  className="text-sm text-[#b8dc89] underline"
+                >
+                  Sign in to view your holdings
+                </Link>
+              )}
+
+              {userId && portfolioData.status === "loading" && (
                 <p className="text-sm text-white/60">Loading your holdings…</p>
               )}
 
@@ -422,32 +456,36 @@ export default function Portfolio() {
               )}
             </div>
 
-            <button
-              type="button"
-              aria-expanded={purchaseOpen}
-              aria-controls="purchase-panel"
-              onClick={() => setPurchaseOpen((open) => !open)}
-            >
-              {purchaseOpen ? "Close purchase form" : "Record purchase"}
-            </button>
+            {userId && (
+              <>
+                <button
+                  type="button"
+                  aria-expanded={purchaseOpen}
+                  aria-controls="purchase-panel"
+                  onClick={() => setPurchaseOpen((open) => !open)}
+                >
+                  {purchaseOpen ? "Close purchase form" : "Record purchase"}
+                </button>
 
-            <div id="purchase-panel" hidden={!purchaseOpen}>
-              <RecordPurchaseForm
-                key={purchaseVersion}
-                ticker={purchaseTicker}
-                onTickerChange={(ticker) => {
-                  setPurchaseTicker(ticker);
-                  if (quoteEstimate) {
-                    setPurchasePrice("");
-                    setQuoteEstimate(null);
-                  }
-                }}
-                quantityInputRef={purchaseQuantityRef}
-                priceInput={purchasePrice}
-                onPriceChange={setPurchasePrice}
-                quoteEstimate={quoteEstimate}
-              />
-            </div>
+                <div id="purchase-panel" hidden={!purchaseOpen}>
+                  <RecordPurchaseForm
+                    key={`${userId}:${purchaseVersion}`}
+                    ticker={purchaseTicker}
+                    onTickerChange={(ticker) => {
+                      setPurchaseTicker(ticker);
+                      if (quoteEstimate) {
+                        setPurchasePrice("");
+                        setQuoteEstimate(null);
+                      }
+                    }}
+                    quantityInputRef={purchaseQuantityRef}
+                    priceInput={purchasePrice}
+                    onPriceChange={setPurchasePrice}
+                    quoteEstimate={quoteEstimate}
+                  />
+                </div>
+              </>
+            )}
 
           </section>
         </SpotlightCard>
@@ -533,42 +571,45 @@ export default function Portfolio() {
                     </div>
 
                     {/* Prefill only the ticker; a live quote is not the user's purchase price. */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrefillError("");
+                    {userId && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPrefillError("");
 
-                        const price = Number(quote.price);
-                        if (quote.details?.currency !== "USD" || !Number.isFinite(price) || price <= 0) {
-                          setPrefillError("This quote needs a USD price to fill the purchase form.");
-                          return;
-                        }
+                            const price = Number(quote.price);
+                            if (quote.details?.currency !== "USD" || !Number.isFinite(price) || price <= 0) {
+                              setPrefillError("This quote needs a USD price to fill the purchase form.");
+                              return;
+                            }
 
-                        const form = purchaseQuantityRef.current?.form;
-                        const hasDraft = form && Array.from(new FormData(form).values())
-                          .some((value) => String(value).trim() !== "");
+                            const form = purchaseQuantityRef.current?.form;
+                            const hasDraft = form && Array.from(new FormData(form).values())
+                              .some((value) => String(value).trim() !== "");
 
-                        if (hasDraft && !window.confirm("Replace your current purchase draft?")) {
-                          return;
-                        }
+                            if (hasDraft && !window.confirm("Replace your current purchase draft?")) {
+                              return;
+                            }
 
-                        setPurchaseTicker(quote.symbol);
-                        setPurchasePrice(String(quote.price));
-                        setQuoteEstimate({
-                          asOf: quote.asOf,
-                          stale: quote.stale,
-                          lookedUpAt: quote.lookedUpAt,
-                        });
-                        setPurchaseVersion((version) => version + 1);
-                        setPurchaseOpen(true);
-                      }}
-                      className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
-                    >
-                      Use this stock
-                    </button>
+                            setPurchaseTicker(quote.symbol);
+                            setPurchasePrice(String(quote.price));
+                            setQuoteEstimate({
+                              asOf: quote.asOf,
+                              stale: quote.stale,
+                              lookedUpAt: quote.lookedUpAt,
+                            });
+                            setPurchaseVersion((version) => version + 1);
+                            setPurchaseOpen(true);
+                          }}
+                          className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
+                        >
+                          Use this stock
+                        </button>
 
-                    {prefillError && <p role="alert">{prefillError}</p>}
-
+                        {prefillError && <p role="alert">{prefillError}</p>}
+                      </>
+                    )}
                     {/* Stack statistics on narrow screens so long ranges can fit. */}
                     {details && (
                       <dl className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-2">
