@@ -1,9 +1,3 @@
-/*
-========================================
-Router setup for three placeholder pages
-========================================
-*/
-
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import RequireAuth from "./components/RequireAuth";
@@ -20,9 +14,9 @@ const router = createBrowserRouter([
         { path: '/transactions', element: <TransactionHistory /> },
         { path: '/transactions/new', element: <Transactions /> },
         { path: '/transactions/:transactionId/edit', element: <Transactions /> },
-   ] },
-    { path: '/portfolio', element: <Portfolio /> },
-    { path: '/market-data', element: <Navigate to="/portfolio" /> },
+        { path: '/portfolio', element: <Portfolio /> },
+        { path: '/market-data', element: <Navigate to="/portfolio" replace /> },
+    ] },
 ]);
 
 export default router;
