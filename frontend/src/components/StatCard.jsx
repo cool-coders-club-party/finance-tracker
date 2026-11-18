@@ -9,7 +9,7 @@ function StatCard({ title, icon: Icon, available, value, formatter, change, capt
   const hasTrend = Number.isFinite(change);
 
   return (
-    <Card className="glass bg-card/10">
+    <Card className="glass bg-card/40">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardAction> {Icon && <Icon className="size-4 text-mutated-foreground" />} </CardAction>

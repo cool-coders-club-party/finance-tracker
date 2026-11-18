@@ -48,7 +48,7 @@ export default function FinancialReportExport() {
   }
 
   return (
-    <Card className="glass bg-card/10">
+    <Card className="glass bg-card/40">
       <CardHeader>
         <CardTitle>Export financial report</CardTitle>
       </CardHeader>

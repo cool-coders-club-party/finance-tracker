@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 
 const THEMES = {
   dark: {
-    surface: '#111111',
+    surface: 'rgba(17, 17, 17, 0.55)',
     border: 'rgba(255, 255, 255, 0.08)',
     shadow: '0 24px 48px -24px rgba(0, 0, 0, 0.6)',
     light: '#ffffff',
@@ -45,7 +45,7 @@ const falloff = (color, softness) => {
 };
 
 const CARD =
-  'relative isolate overflow-hidden rounded-3xl p-8 [background-color:var(--spotlight-card-surface)] [box-shadow:var(--spotlight-card-shadow)]';
+  'glass relative isolate overflow-hidden rounded-3xl p-8 [background-color:var(--spotlight-card-surface)] [box-shadow:var(--spotlight-card-shadow)]';
 
 const SpotlightCard = ({
   children,
