@@ -292,15 +292,16 @@ export default function Portfolio() {
     <DashboardShell>
       {/* Use the available width while preventing children from widening the page. */}
       <main className="mx-auto w-full min-w-0 max-w-6xl space-y-6 text-left">
-        <header className="flex flex-col items-center gap-2 text-center">
+        <header className="flex flex-col items-start gap-2 text-left">
 
           <h1 className="w-full">
             <StrokeText
-              className="mx-auto max-w-[520px]"
+              align="left"
+              className="max-w-[520px]"
               text="Portfolio"
               fontSize={64}
               letterSpacing={-2}
-              strokeColor="#b8dc89"
+              strokeColor="#f1cbfc"
               fillColor="currentColor"
               drawDuration={1.1}
               stagger={0.04}

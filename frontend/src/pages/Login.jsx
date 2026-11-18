@@ -102,7 +102,7 @@ export default function Login({ registration = false }) {
                         cursorStyle="underscore"
                       />
                   </h1>
-    <Card className="glass mx-auto w-full max-w-md bg-card/10">
+    <Card className="glass mx-auto w-full max-w-md bg-card/40">
       <CardHeader><CardTitle>{registration ? 'Create account' : 'Sign in'}</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={signIn} className="space-y-5">

@@ -7,6 +7,7 @@ import TransactionForm from '../components/transactions/TransactionForm';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import useTransactionMetadata from '../hooks/useTransactionMetadata';
+import StrokeText from '../components/StrokeText';
 
 export default function Transactions() {
   const { transactionId } = useParams();
@@ -54,14 +55,26 @@ function TransactionEditor({ transactionId }) {
       <main className="space-y-6 text-left">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="!my-0 text-3xl font-bold !text-foreground">{transactionId ? 'Edit transaction' : 'New transaction'}</h1>
+            <h1 className="!my-0 w-full">
+              <StrokeText
+                className="max-w-[520px]"
+                text={transactionId ? 'Edit Transaction' : 'New Transaction'}
+                fontSize={64}
+                letterSpacing={-2}
+                strokeColor="#f1cbfc"
+                fillColor="currentColor"
+                drawDuration={1.1}
+                stagger={0.04}
+                fillDelay={0.1}
+              />
+            </h1>
             <p className="text-sm text-foreground/90">Record your income and expenses with the right category.</p>
           </div>
           <Button asChild variant="outline" className="h-10 border-border/70 bg-background/35">
             <Link to={returnTo}><ArrowLeft aria-hidden="true" />Back to transactions</Link>
           </Button>
         </header>
-        <Card className="glass border border-border/60 bg-card/10">
+        <Card className="glass border border-border/60 bg-card/40">
           <CardHeader className="gap-2 border-b border-border/60 pb-5">
             <CardTitle className="flex items-center gap-2"><Receipt aria-hidden="true" className="size-4 text-muted-foreground" />Transaction details</CardTitle>
             <CardDescription>Choose a type to see its available categories.</CardDescription>
