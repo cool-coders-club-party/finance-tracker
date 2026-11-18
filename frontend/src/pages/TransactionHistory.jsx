@@ -9,6 +9,7 @@ import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { deleteTransaction, getTransactionHistory, restoreTransaction } from '../api/transactions';
 import { formatMoney } from '../lib/money';
 import { formatEnumLabel } from '../lib/transactionMetadata';
+import StrokeText from '../components/StrokeText';
 
 const fieldClass = 'min-h-11 w-full rounded-lg border border-input bg-background/70 px-3 text-sm text-foreground';
 const emptyFilters = { from: '', to: '', type: '', category: '' };
@@ -159,12 +160,24 @@ export default function TransactionHistory() {
     <main className="space-y-6 text-left">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="!my-0 text-3xl font-bold !text-foreground">Transactions</h1>
+          <h1 className="!my-0 w-full">
+            <StrokeText
+              className="max-w-[520px]"
+              text="Transactions"
+              fontSize={64}
+              letterSpacing={-2}
+              strokeColor="#f1cbfc"
+              fillColor="currentColor"
+              drawDuration={1.1}
+              stagger={0.04}
+              fillDelay={0.1}
+            />
+          </h1>
           <p className="text-sm text-foreground/90">Your income and expenses, in their original currencies.</p>
         </div>
         <Button asChild className="h-11"><Link to="/transactions/new" state={{ returnTo }}><Plus aria-hidden="true" />New transaction</Link></Button>
       </header>
-      <Card className="glass border border-border/60 bg-card/10">
+      <Card className="glass border border-border/60 bg-card/40">
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Transaction status">
             <Button variant={!deleted ? 'default' : 'outline'} className="h-10" aria-pressed={!deleted} onClick={() => updateQuery({ view: '', page: 0 })}>Active</Button>
@@ -175,7 +188,7 @@ export default function TransactionHistory() {
         </CardContent>
       </Card>
       {notice && <p role="status" className="rounded-lg border border-border/60 bg-background/35 p-4 text-sm">{notice}</p>}
-      <Card className="glass overflow-hidden border border-border/60 bg-card/10">
+      <Card className="glass overflow-hidden border border-border/60 bg-card/40">
         <CardContent className="space-y-5" aria-busy={!current}>
           {!current ? <p role="status" className="py-12 text-center text-sm text-muted-foreground">Loading transactions…</p>
             : current.error ? <div role="alert" className="space-y-3 py-6">

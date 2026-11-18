@@ -60,7 +60,7 @@ export default function DashboardShell({ children }) {
            logoUrl="/poca-logo.png"
            menuButtonColor="#f8fafc"
            openMenuButtonColor="#f8fafc"
-           accentColor="#b8dc89"
+           accentColor="#f1cbfc"
            displaySocials={false}
            isFixed
       />
