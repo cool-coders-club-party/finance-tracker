@@ -9,6 +9,7 @@ import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
 import FinancialReportExport from '../components/FinancialReportExport';
+import StrokeText from '../components/StrokeText';
 
 function TransactionOverview({ userId }) {
   const metadata = useTransactionMetadata();
@@ -49,7 +50,7 @@ function TransactionOverview({ userId }) {
   });
   return (
     <>
-      <Card className="glass bg-card/10">
+      <Card className="glass bg-card/40">
         <CardHeader><CardTitle>Transaction summary</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <label className="grid max-w-xs gap-2 text-sm">Transaction display currency
@@ -83,7 +84,20 @@ function Dashboard() {
   return (
       <DashboardShell>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="!my-0 w-full">
+            <StrokeText
+              align="left"
+              className="max-w-[520px]"
+              text="Dashboard"
+              fontSize={64}
+              letterSpacing={-2}
+              strokeColor="#f1cbfc"
+              fillColor="currentColor"
+              drawDuration={1.1}
+              stagger={0.04}
+              fillDelay={0.1}
+            />
+          </h1>
         </div>
 
         <TransactionOverview key={session.user.id} userId={session.user.id} />
