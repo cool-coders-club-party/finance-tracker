@@ -26,7 +26,11 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)          // stateless API, no cookies
-                .cors(Customizer.withDefaults())                // reuse your existing CorsConfig
+                // No CORS: the browser always reaches this service through a same-origin proxy
+                // (Vite's /portfolio-api proxy in development, Caddy in deployment). A localhost-only
+                // CORS allow-list made Spring reject every POST from the deployed site with 403,
+                // because browsers send an Origin header on POSTs even to their own site.
+                .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // CORS preflight
