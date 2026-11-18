@@ -16,7 +16,7 @@ export default function SpendingByCurrency({ summary }) {
   ]));
 
   return (
-    <Card className="glass bg-card/10">
+    <Card className="glass bg-card/40">
       <CardHeader><CardTitle>Spending by Category</CardTitle></CardHeader>
       <CardContent>
         {categories.length === 0 ? <p className="text-sm text-muted-foreground">No expenses recorded yet.</p> : (

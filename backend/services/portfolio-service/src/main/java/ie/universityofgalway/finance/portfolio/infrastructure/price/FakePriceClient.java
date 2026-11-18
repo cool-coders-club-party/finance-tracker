@@ -2,11 +2,13 @@ package ie.universityofgalway.finance.portfolio.infrastructure.price;
 
 import ie.universityofgalway.finance.portfolio.application.port.PriceClient;
 import ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException;
+import ie.universityofgalway.finance.portfolio.domain.model.MarketQuote;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -34,5 +36,11 @@ public class FakePriceClient implements PriceClient {
             throw new InvalidSymbolException(ticker);
         }
         return price;
+    }
+
+    // Buying needs quote metadata (currency) as well as the price.
+    @Override
+    public MarketQuote getQuote(String ticker) {
+        return new MarketQuote(ticker.toUpperCase(), getPrice(ticker), "USD", Instant.now(), false);
     }
 }

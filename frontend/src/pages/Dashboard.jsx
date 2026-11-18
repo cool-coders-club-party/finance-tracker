@@ -3,24 +3,13 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
 import DashboardShell from "@/components/DashboardShell";
-import { Wallet, Receipt, TrendingUp, Landmark } from "lucide-react"
+import { Wallet, Receipt, Landmark } from "lucide-react"
 import SpendingByCurrency from "../components/transactions/SpendingByCurrency";
 import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
-
-const formatMoney = (amount) =>
-  new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
-
-
-
-const portfolio = {
-    available: true,
-    investmentValue: 4820,
-    investmentValueChange: 5.7,
-    investmentValueCaption: "portfolio, 30 days",
-    investmentValuePositive: true,
-};
+import FinancialReportExport from '../components/FinancialReportExport';
+import StrokeText from '../components/StrokeText';
 
 function TransactionOverview({ userId }) {
   const metadata = useTransactionMetadata();
@@ -61,7 +50,7 @@ function TransactionOverview({ userId }) {
   });
   return (
     <>
-      <Card className="glass bg-card/10">
+      <Card className="glass bg-card/40">
         <CardHeader><CardTitle>Transaction summary</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <label className="grid max-w-xs gap-2 text-sm">Transaction display currency
@@ -91,24 +80,28 @@ function TransactionOverview({ userId }) {
 }
 
 function Dashboard() {
-//     const { session } = useAuth();
+  const { session } = useAuth();
   return (
       <DashboardShell>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="!my-0 w-full">
+            <StrokeText
+              align="left"
+              className="max-w-[520px]"
+              text="Dashboard"
+              fontSize={64}
+              letterSpacing={-2}
+              strokeColor="#f1cbfc"
+              fillColor="currentColor"
+              drawDuration={1.1}
+              stagger={0.04}
+              fillDelay={0.1}
+            />
+          </h1>
         </div>
 
-            {/* <TransactionOverview key={session.user.id} userId={session.user.id} /> */}
-        <StatCard
-          title="Investment Value (EUR)"
-          icon={TrendingUp}
-          available={portfolio.available}
-          value={portfolio.investmentValue}
-          formatter={formatMoney}
-          change={portfolio.investmentValueChange}
-          caption={portfolio.investmentValueCaption}
-          positiveIsGood={portfolio.investmentValuePositive}
-        />
+        <TransactionOverview key={session.user.id} userId={session.user.id} />
+        <FinancialReportExport />
       </DashboardShell>
     );
 }

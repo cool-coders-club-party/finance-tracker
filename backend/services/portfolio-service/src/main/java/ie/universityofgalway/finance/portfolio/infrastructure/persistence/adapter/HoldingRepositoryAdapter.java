@@ -36,6 +36,7 @@ public class HoldingRepositoryAdapter implements HoldingRepository {
         HoldingEntity entity = holding.getId() == null
                 ? new HoldingEntity(portfolios.getReferenceById(holding.getPortfolioId()), holding.getTicker())
                 : holdings.findById(holding.getId()).orElseThrow();
+        entity.setCurrency(holding.getCurrency());
         entity.setQuantity(holding.getQuantity());
         entity.setAvgPurchasePrice(holding.getAvgPurchasePrice());
         return toDomain(holdings.save(entity));
@@ -43,6 +44,6 @@ public class HoldingRepositoryAdapter implements HoldingRepository {
 
     private Holding toDomain(HoldingEntity e) {
         return new Holding(e.getId(), e.getPortfolio().getId(), e.getTicker(),
-                e.getQuantity(), e.getAvgPurchasePrice());
+                e.getQuantity(), e.getAvgPurchasePrice(), e.getCurrency());
     }
 }

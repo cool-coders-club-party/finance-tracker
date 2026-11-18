@@ -1,6 +1,7 @@
 // useEffect loads Portfolio data when the page opens.
 import { useEffect, useRef, useState } from "react";
-import { getPortfolios, getHoldings } from "../api/portfolio";
+import { Link, useLocation } from "react-router-dom";
+import { buy, createPortfolio, getPortfolios, getTrades, getValuation, sell } from "../api/portfolio";
 import DashboardShell from "../components/DashboardShell";
 import { getQuote, getPriceHistory, getTopStocks, getStockMovers } from "../api/marketData";
 import SpotlightCard from "../components/SpotlightCard";
@@ -9,8 +10,12 @@ import CountUp from "../components/CountUp";
 import PriceHistoryChart from "../components/PriceHistoryChart";
 // The form handles purchase inputs and validation.
 import RecordPurchaseForm from "../components/RecordPurchaseForm";
+import SellSharesForm from "../components/SellSharesForm";
+import TradeHistory from "../components/TradeHistory";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
+import useAuth from "../hooks/useAuth";
+import { formatMoney, valuationReason } from "../lib/valuation.js";
 
 const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
   dateStyle: "medium",
@@ -48,6 +53,9 @@ function formatPrice(value) {
 
 //This page will hold both stock lookup and the user's holdings
 export default function Portfolio() {
+  const { status: authStatus, session } = useAuth();
+  const userId = authStatus === "ready" ? session?.user.id : undefined;
+  const location = useLocation();
   const [tickerInput, setTickerInput] = useState("");
 
   const [quote, setQuote] = useState(null);
@@ -148,71 +156,120 @@ export default function Portfolio() {
   }
 
   // Keep the request status and its data together.
-  const [portfolioData, setPortfolioData] = useState({
-    status: "loading",
-    portfolio: null,
-    holdings: [],
-    error: "",
-  });
+  const [portfolioResult, setPortfolioResult] = useState(null);
+  const portfolioData = userId && portfolioResult?.userId === userId
+    ? portfolioResult
+    : { status: "loading", portfolio: null, holdings: [], error: "" };
 
   // Share only the selected ticker with the purchase form; preserve its other inputs.
   const [purchaseTicker, setPurchaseTicker] = useState("");
 
-  const [purchasePrice, setPurchasePrice] = useState("");
-
   const [purchaseOpen, setPurchaseOpen] = useState(false);
 
-  const [purchaseVersion, setPurchaseVersion] = useState(0);
+  // The last looked-up quote, shown in the buy form as a price estimate.
   const [quoteEstimate, setQuoteEstimate] = useState(null);
-  const [prefillError, setPrefillError] = useState("");
 
   const purchaseQuantityRef = useRef(null);
+
+  // The holding whose sell form is open, if any.
+  const [sellingTicker, setSellingTicker] = useState(null);
+  const sellQuantityRef = useRef(null);
+
+  // A short confirmation after a buy or sale, announced to screen readers.
+  const [tradeNotice, setTradeNotice] = useState("");
+
+  const [newPortfolioName, setNewPortfolioName] = useState("My portfolio");
+  const [createState, setCreateState] = useState({ saving: false, error: "" });
+
+  const [previousUserId, setPreviousUserId] = useState(userId);
+  if (previousUserId !== userId) {
+    setPreviousUserId(userId);
+    setPortfolioResult(null);
+    setPurchaseOpen(false);
+    setPurchaseTicker("");
+    setQuoteEstimate(null);
+    setSellingTicker(null);
+    setTradeNotice("");
+  }
 
   useEffect(() => {
     if (purchaseOpen) purchaseQuantityRef.current?.focus();
   }, [purchaseOpen]);
 
-  // Changing this number lets the Retry button request the data again.
+  useEffect(() => {
+    if (sellingTicker) sellQuantityRef.current?.focus();
+  }, [sellingTicker]);
+
+  // Changing this number requests the data again (Retry, or after a trade).
   const [portfolioReload, setPortfolioReload] = useState(0);
 
   useEffect(() => {
+    if (!userId) return;
+
     const controller = new AbortController();
 
     async function loadPortfolio() {
-      setPortfolioData({
-        status: "loading",
-        portfolio: null,
-        holdings: [],
-        error: "",
-      });
+      // After a trade, keep showing the current table while it refreshes
+      // instead of flashing back to "Loading your holdings…".
+      setPortfolioResult((previous) =>
+        previous?.userId === userId && previous.status === "ready"
+          ? previous
+          : {
+            userId,
+            status: "loading",
+            portfolio: null,
+            holdings: [],
+            trades: [],
+            error: "",
+          }
+      );
 
       try {
         const portfolios = await getPortfolios(controller.signal);
+        if (controller.signal.aborted) return;
 
         // Initially display the first available portfolio.
         // Its name will be visible so the user knows which one is selected.
         const selectedPortfolio = portfolios[0] ?? null;
 
-        const holdings = selectedPortfolio
-          ? await getHoldings(selectedPortfolio.id, controller.signal)
-          : [];
+        // Trade history is secondary: if it fails, still show the valuation.
+        const [valuation, tradesResult] = selectedPortfolio
+          ? await Promise.all([
+            getValuation(selectedPortfolio.id, controller.signal),
+            getTrades(selectedPortfolio.id, controller.signal).then(
+              (trades) => ({ trades, error: "" }),
+              (error) => {
+                if (error.name === "AbortError") throw error;
+                return { trades: [], error: error.message };
+              },
+            ),
+          ])
+          : [null, { trades: [], error: "" }];
+        // Fully sold holdings stay in the database with zero shares; hide them.
+        const holdings = (valuation?.holdings ?? []).filter((holding) => Number(holding.quantity) > 0);
 
         // Ignore results if the page was left while requests were running.
         if (controller.signal.aborted) return;
 
-        setPortfolioData({
+        setPortfolioResult({
+          userId,
           status: "ready",
           portfolio: selectedPortfolio,
           holdings,
+          valuation,
+          trades: tradesResult.trades,
+          tradesError: tradesResult.error,
           error: "",
         });
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        setPortfolioData({
+        setPortfolioResult({
+          userId,
           status: "error",
           portfolio: null,
           holdings: [],
+          trades: [],
           error: error.message,
         });
       }
@@ -222,7 +279,46 @@ export default function Portfolio() {
 
     // Cancel unfinished requests when leaving the page or retrying.
     return () => controller.abort();
-  }, [portfolioReload]);
+  }, [userId, portfolioReload]);
+
+  const portfolioId = portfolioData.portfolio?.id;
+
+  async function handleBuy({ ticker, quantity, price, executedAt }) {
+    setTradeNotice("");
+    await buy(portfolioId, ticker, quantity, { price, executedAt });
+    setTradeNotice(
+      executedAt
+        ? `Recorded ${quantity} ${ticker} bought on ${new Date(executedAt).toLocaleString("en-IE")}.`
+        : `Bought ${quantity} ${ticker}.`
+    );
+    setPortfolioReload((current) => current + 1);
+  }
+
+  async function handleSell({ ticker, quantity }) {
+    setTradeNotice("");
+    await sell(portfolioId, ticker, quantity);
+    setSellingTicker(null);
+    setTradeNotice(`Sold ${quantity} ${ticker}.`);
+    setPortfolioReload((current) => current + 1);
+  }
+
+  async function handleCreatePortfolio(event) {
+    event.preventDefault();
+    const name = newPortfolioName.trim();
+    if (!name) {
+      setCreateState({ saving: false, error: "Enter a name for your portfolio." });
+      return;
+    }
+
+    setCreateState({ saving: true, error: "" });
+    try {
+      await createPortfolio(name);
+      setCreateState({ saving: false, error: "" });
+      setPortfolioReload((current) => current + 1);
+    } catch (error) {
+      setCreateState({ saving: false, error: error.message });
+    }
+  }
 
 
   function handleSubmit(event) {
@@ -292,15 +388,16 @@ export default function Portfolio() {
     <DashboardShell>
       {/* Use the available width while preventing children from widening the page. */}
       <main className="mx-auto w-full min-w-0 max-w-6xl space-y-6 text-left">
-        <header className="flex flex-col items-center gap-2 text-center">
+        <header className="flex flex-col items-start gap-2 text-left">
 
           <h1 className="w-full">
             <StrokeText
-              className="mx-auto max-w-[520px]"
+              align="left"
+              className="max-w-[520px]"
               text="Portfolio"
               fontSize={64}
               letterSpacing={-2}
-              strokeColor="#b8dc89"
+              strokeColor="#f1cbfc"
               fillColor="currentColor"
               drawDuration={1.1}
               stagger={0.04}
@@ -327,27 +424,50 @@ export default function Portfolio() {
             </div>
 
             {/* Missing data is shown as a dash, never as a misleading zero balance. */}
-            {/* Match the table's equal thirds without horizontal gaps shifting the columns. */}
+            {/* Totals use the backend calculations, including its completeness policy. */}
             <dl className="grid gap-y-4 sm:grid-cols-3">
               <div>
                 <dt className="text-sm text-white/80">Current value</dt>
-                <dd className="mt-1 text-2xl font-semibold">—</dd>
+                <dd className="mt-1 text-2xl font-semibold">{formatMoney(portfolioData.valuation?.currentValue, portfolioData.valuation?.currency)}</dd>
               </div>
 
               <div>
-                <dt className="text-sm text-white/80">Invested</dt>
-                <dd className="mt-1 text-2xl font-semibold">—</dd>
+                <dt className="text-sm text-white/80">Cost of current holdings</dt>
+                <dd className="mt-1 text-2xl font-semibold">{formatMoney(portfolioData.valuation?.costBasis, portfolioData.valuation?.currency)}</dd>
               </div>
 
               <div>
                 <dt className="text-sm text-white/80">Unrealised gain / loss</dt>
-                <dd className="mt-1 text-2xl font-semibold">—</dd>
+                <dd className="mt-1 text-2xl font-semibold">{formatMoney(portfolioData.valuation?.unrealisedGainLoss, portfolioData.valuation?.currency)}</dd>
               </div>
             </dl>
 
+            {portfolioData.valuation && !portfolioData.valuation.complete && (
+              <p className="text-sm text-amber-400" role="status">
+                Valuation incomplete: {portfolioData.valuation.unavailableHoldings} holding(s) unavailable. Portfolio totals are unavailable.
+              </p>
+            )}
+            {portfolioData.valuation?.stale && (
+              <p className="text-sm text-amber-400">Valuation includes cached prices. Check each quote’s timestamp.</p>
+            )}
+
             {/* Announce loading and results without interrupting the user. */}
             <div aria-live="polite" className="border-t border-white/10 pt-5">
-              {portfolioData.status === "loading" && (
+              {authStatus === "loading" && (
+                <p className="text-sm text-white/60">Checking your session…</p>
+              )}
+
+              {authStatus === "ready" && !userId && (
+                <Link
+                  to="/login"
+                  state={{ from: location.pathname + location.search }}
+                  className="text-sm text-[#b8dc89] underline"
+                >
+                  Sign in to view your holdings
+                </Link>
+              )}
+
+              {userId && portfolioData.status === "loading" && (
                 <p className="text-sm text-white/60">Loading your holdings…</p>
               )}
 
@@ -369,7 +489,35 @@ export default function Portfolio() {
 
               {portfolioData.status === "ready" && (
                 <div className="space-y-4">
-                  {!portfolioData.portfolio && <p>You have no portfolios yet.</p>}
+                  {!portfolioData.portfolio && (
+                    <form onSubmit={handleCreatePortfolio} className="space-y-3">
+                      <p>You have no portfolios yet. Create one to start buying shares.</p>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <label className="min-w-0 flex-1 text-sm text-white/85">
+                          Portfolio name
+                          <input
+                            type="text"
+                            value={newPortfolioName}
+                            onChange={(event) => setNewPortfolioName(event.target.value)}
+                            maxLength={255}
+                            required
+                            disabled={createState.saving}
+                            className="mt-1.5 h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 text-white"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={createState.saving}
+                          className="min-h-11 rounded-lg bg-[#b8dc89] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                        >
+                          {createState.saving ? "Creating…" : "Create portfolio"}
+                        </button>
+                      </div>
+                      {createState.error && (
+                        <p role="alert" className="text-sm text-amber-400">{createState.error}</p>
+                      )}
+                    </form>
+                  )}
 
                   {portfolioData.portfolio && portfolioData.holdings.length === 0 && (
                     <p>You have no holdings in this portfolio yet.</p>
@@ -378,13 +526,8 @@ export default function Portfolio() {
                   {/* Contain table scrolling so the whole page stays within the screen. */}
                   {portfolioData.holdings.length > 0 && (
                     <div className="overflow-x-auto">
-                      {/* Equal columns keep headings and values aligned as data changes. */}
-                      <table className="w-full table-fixed text-left text-sm">
-                        <colgroup>
-                          <col className="w-1/3" />
-                          <col className="w-1/3" />
-                          <col className="w-1/3" />
-                        </colgroup>
+                      {/* Keep quote timestamps and unavailable reasons beside each holding. */}
+                      <table className="w-full min-w-[760px] text-left text-sm [&_td]:pr-4 [&_th]:pr-4">
                         <thead className="border-b border-white/10 text-white/80">
                           <tr>
                             <th scope="col" className="pb-3 font-medium">Stock</th>
@@ -393,6 +536,12 @@ export default function Portfolio() {
                             </th>
                             <th scope="col" className="pb-3 text-left font-medium">
                               Average price paid
+                            </th>
+                            <th scope="col" className="pb-3 font-medium">Current price / quote time</th>
+                            <th scope="col" className="pb-3 font-medium">Current value</th>
+                            <th scope="col" className="pb-3 font-medium">Unrealised gain / loss</th>
+                            <th scope="col" className="pb-3 font-medium">
+                              <span className="sr-only">Actions</span>
                             </th>
                           </tr>
                         </thead>
@@ -407,50 +556,105 @@ export default function Portfolio() {
                                 {holding.quantity}
                               </td>
                               <td className="py-4 text-left tabular-nums">
-                                {formatPrice(holding.avgPurchasePrice)}
+                                {formatPrice(holding.avgPurchasePrice)} {holding.currency ?? "(currency unknown)"}
+                              </td>
+                              <td className="py-4 pr-3">
+                                {formatMoney(holding.quote?.price, holding.quote?.currency)}
+                                {holding.quote?.asOf && <span className="block text-xs text-white/75">As of {new Date(holding.quote.asOf).toLocaleString("en-IE")}</span>}
+                                {holding.quote?.stale && <span className="block text-xs text-amber-400">Cached price — live quote unavailable</span>}
+                                {!holding.valuationAvailable && <span className="block text-xs text-amber-400">{valuationReason(holding.unavailableReason)}</span>}
+                              </td>
+                              <td className="py-4">{formatMoney(holding.currentValue, holding.currency)}</td>
+                              <td className="py-4">{formatMoney(holding.unrealisedGainLoss, holding.currency)}</td>
+                              <td className="py-4 text-right">
+                                <button
+                                  type="button"
+                                  aria-expanded={sellingTicker === holding.ticker}
+                                  aria-controls="sell-panel"
+                                  onClick={() => {
+                                    setTradeNotice("");
+                                    setSellingTicker((current) =>
+                                      current === holding.ticker ? null : holding.ticker
+                                    );
+                                  }}
+                                  className="rounded-lg border border-red-300/40 px-3 py-1.5 text-sm text-red-300"
+                                >
+                                  Sell<span className="sr-only"> {holding.ticker}</span>
+                                </button>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      <p className="mt-2 text-xs text-white/75">
-                        Purchase-price currency unavailable.
-                      </p>
                     </div>
+                  )}
+
+                  {(() => {
+                    const sellingHolding = portfolioData.holdings.find(
+                      (holding) => holding.ticker === sellingTicker
+                    );
+                    return sellingHolding && (
+                      <div id="sell-panel">
+                        <SellSharesForm
+                          key={sellingHolding.ticker}
+                          holding={sellingHolding}
+                          quantityInputRef={sellQuantityRef}
+                          onSell={handleSell}
+                          onCancel={() => setSellingTicker(null)}
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  {tradeNotice && (
+                    <p role="status" className="text-sm text-green-300">{tradeNotice}</p>
                   )}
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              aria-expanded={purchaseOpen}
-              aria-controls="purchase-panel"
-              onClick={() => setPurchaseOpen((open) => !open)}
-            >
-              {purchaseOpen ? "Close purchase form" : "Record purchase"}
-            </button>
+            {/* Buying needs a portfolio to put the shares in. */}
+            {userId && portfolioId != null && (
+              <>
+                <button
+                  type="button"
+                  aria-expanded={purchaseOpen}
+                  aria-controls="purchase-panel"
+                  onClick={() => setPurchaseOpen((open) => !open)}
+                  className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
+                >
+                  {purchaseOpen ? "Close form" : "Add shares"}
+                </button>
 
-            <div id="purchase-panel" hidden={!purchaseOpen}>
-              <RecordPurchaseForm
-                key={purchaseVersion}
-                ticker={purchaseTicker}
-                onTickerChange={(ticker) => {
-                  setPurchaseTicker(ticker);
-                  if (quoteEstimate) {
-                    setPurchasePrice("");
-                    setQuoteEstimate(null);
-                  }
-                }}
-                quantityInputRef={purchaseQuantityRef}
-                priceInput={purchasePrice}
-                onPriceChange={setPurchasePrice}
-                quoteEstimate={quoteEstimate}
-              />
-            </div>
+                <div id="purchase-panel" hidden={!purchaseOpen}>
+                  <RecordPurchaseForm
+                    key={userId}
+                    ticker={purchaseTicker}
+                    onTickerChange={setPurchaseTicker}
+                    quantityInputRef={purchaseQuantityRef}
+                    quoteEstimate={quoteEstimate}
+                    onSave={handleBuy}
+                  />
+                </div>
+              </>
+            )}
 
           </section>
         </SpotlightCard>
+
+        {portfolioData.status === "ready" && portfolioData.portfolio && (
+          <SpotlightCard>
+            <section aria-labelledby="trades-heading" className="space-y-5">
+              <h2 id="trades-heading" className="text-2xl font-bold">
+                Trade history
+              </h2>
+              <TradeHistory
+                trades={portfolioData.trades ?? []}
+                error={portfolioData.tradesError}
+              />
+            </section>
+          </SpotlightCard>
+        )}
 
         {/* Stack on smaller screens; use a wider lookup column on desktop. */}
         <div
@@ -532,43 +736,29 @@ export default function Portfolio() {
                       )}
                     </div>
 
-                    {/* Prefill only the ticker; a live quote is not the user's purchase price. */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrefillError("");
-
-                        const price = Number(quote.price);
-                        if (quote.details?.currency !== "USD" || !Number.isFinite(price) || price <= 0) {
-                          setPrefillError("This quote needs a USD price to fill the purchase form.");
-                          return;
-                        }
-
-                        const form = purchaseQuantityRef.current?.form;
-                        const hasDraft = form && Array.from(new FormData(form).values())
-                          .some((value) => String(value).trim() !== "");
-
-                        if (hasDraft && !window.confirm("Replace your current purchase draft?")) {
-                          return;
-                        }
-
-                        setPurchaseTicker(quote.symbol);
-                        setPurchasePrice(String(quote.price));
-                        setQuoteEstimate({
-                          asOf: quote.asOf,
-                          stale: quote.stale,
-                          lookedUpAt: quote.lookedUpAt,
-                        });
-                        setPurchaseVersion((version) => version + 1);
-                        setPurchaseOpen(true);
-                      }}
-                      className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
-                    >
-                      Use this stock
-                    </button>
-
-                    {prefillError && <p role="alert">{prefillError}</p>}
-
+                    {/* Open the buy form for this stock, using the quote as an estimate. */}
+                    {userId && portfolioId != null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPurchaseTicker(quote.symbol);
+                          setQuoteEstimate({
+                            symbol: quote.symbol,
+                            price: quote.price,
+                            currency: details?.currency,
+                            asOf: quote.asOf,
+                            stale: quote.stale,
+                          });
+                          setPurchaseOpen(true);
+                          // The form may already be open; focus the shares field either way.
+                          purchaseQuantityRef.current?.focus();
+                          document.getElementById("portfolio-heading")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
+                      >
+                        Buy this stock
+                      </button>
+                    )}
                     {/* Stack statistics on narrow screens so long ranges can fit. */}
                     {details && (
                       <dl className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-2">

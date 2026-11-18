@@ -36,7 +36,8 @@ const getDashPattern = (strokeStyle, dashLength, strokeWidth) => {
 
 const StrokeText = ({
   text = DEFAULT_TEXT,
-  strokeColor = '#A78BFA',
+  align = 'center',
+  strokeColor = '#f1cbfc',
   fillColor = 'currentColor',
   strokeWidth = 1.4,
   drawDuration = 1.6,
@@ -335,7 +336,7 @@ const StrokeText = ({
       aria-label={String(text ?? '')}
     >
       <svg
-        className="mx-auto block h-auto w-full overflow-visible"
+        className={`${align === 'left' ? '' : 'mx-auto'} block h-auto w-full overflow-visible`}
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid meet"
         aria-hidden="true"

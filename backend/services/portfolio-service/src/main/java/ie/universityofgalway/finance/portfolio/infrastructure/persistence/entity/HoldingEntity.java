@@ -30,6 +30,13 @@ public class HoldingEntity {
     private BigDecimal avgPurchasePrice = BigDecimal.ZERO;
 
 
+    // Nullable for legacy rows: their purchase currency cannot be inferred from a live quote.
+    @Column(length = 3)
+    private String currency;
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
+
     protected HoldingEntity() {
         // JPA
     }
