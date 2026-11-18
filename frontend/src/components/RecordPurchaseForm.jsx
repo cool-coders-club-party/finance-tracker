@@ -4,61 +4,57 @@ import { useState } from "react";
 const inputClass =
   "mt-1.5 h-11 w-full min-w-0 rounded-lg border border-white/15 bg-black/20 px-3 text-base text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8dc89]/70 sm:text-sm";
 
-// datetime-local expects a local time without a timezone suffix.
-function toLocalDateTime(timestamp) {
-  if (!timestamp) return "";
-
-  const date = new Date(timestamp);
+// datetime-local works in the browser's local time, without a timezone suffix.
+function toLocalDateTime(date) {
   const localTime = date.getTime() - date.getTimezoneOffset() * 60_000;
-  return new Date(localTime).toISOString().slice(0, 19);
+  return new Date(localTime).toISOString().slice(0, 16);
 }
 
+function formatAmount(value, currency) {
+  return new Intl.NumberFormat("en-IE", {
+    style: "currency",
+    currency: currency || "USD",
+  }).format(value);
+}
+
+// Two ways to add shares:
+// - "now": buy at the live market price (the backend fetches it).
+// - "earlier": record a purchase already made elsewhere, at the price and time it happened.
 export default function RecordPurchaseForm({
   ticker,
   onTickerChange,
   quantityInputRef,
-  priceInput,
-  onPriceChange,
   quoteEstimate,
   onSave,
 }) {
+  const [mode, setMode] = useState("now");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  // Keep decimal inputs as text while editing; calculate only a display preview here.
+  // Keep decimal inputs as text while editing.
   const [quantityInput, setQuantityInput] = useState("");
+  const [priceInput, setPriceInput] = useState("");
+  const [purchasedAtInput, setPurchasedAtInput] = useState("");
 
-
-
+  const isEarlier = mode === "earlier";
+  const symbol = ticker.trim().toUpperCase();
+  // Only use the estimate while it still belongs to the ticker in the field.
+  const estimate = quoteEstimate?.symbol === symbol ? quoteEstimate : null;
+  const currency = estimate?.currency || "USD";
 
   const quantity = Number(quantityInput);
-  const price = Number(priceInput);
-  const purchaseCost = quantity * price;
-  const costPreview =
-    quantity > 0 && price > 0 && Number.isFinite(purchaseCost)
-      ? new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(purchaseCost)
-      : "—";
+  const unitPrice = isEarlier ? Number(priceInput) : Number(estimate?.price);
+  const total = quantity * unitPrice;
+  const totalPreview =
+    quantity > 0 && unitPrice > 0 && Number.isFinite(total) ? formatAmount(total, currency) : "—";
 
-  // datetime-local inputs use the browser's local timezone.
-  // Display it so the user knows how their entered time will be interpreted.
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
 
-    // Read the inputs using their name attributes.
-    const formData = new FormData(event.currentTarget);
-    const ticker = String(formData.get("ticker")).trim().toUpperCase();
-    const quantity = Number(formData.get("quantity"));
-    const pricePerShare = Number(formData.get("pricePerShare"));
-    const purchasedAt = new Date(String(formData.get("purchasedAt")));
-
-    // Browser validation handles required fields.
-    // These checks enforce additional rules before contacting the backend.
-    if (!/^[A-Z]{1,5}$/.test(ticker)) {
+    // Mirror the backend's validation for a faster, clearer message.
+    if (!/^[A-Z]{1,5}$/.test(symbol)) {
       setError("Enter a ticker containing 1–5 letters.");
       return;
     }
@@ -68,39 +64,35 @@ export default function RecordPurchaseForm({
       return;
     }
 
-    if (!Number.isFinite(pricePerShare) || pricePerShare <= 0) {
-      setError("Enter a price per share greater than zero.");
-      return;
-    }
+    const purchase = { ticker: symbol, quantity };
 
-    if (
-      !Number.isFinite(purchasedAt.getTime()) ||
-      purchasedAt.getTime() > Date.now()
-    ) {
-      setError("Enter a valid purchase date and time that is not in the future.");
-      return;
-    }
+    if (isEarlier) {
+      const price = Number(priceInput);
+      const purchasedAt = new Date(purchasedAtInput);
 
-    // Do not submit to the old endpoint before backend support is ready.
-    if (typeof onSave !== "function") {
-      setError("Purchase recording is not available yet.");
-      return;
+      if (!Number.isFinite(price) || price <= 0) {
+        setError("Enter the price per share you paid.");
+        return;
+      }
+      if (!Number.isFinite(purchasedAt.getTime()) || purchasedAt.getTime() > Date.now()) {
+        setError("Enter a purchase date and time that is not in the future.");
+        return;
+      }
+
+      purchase.price = price;
+      // Send an unambiguous UTC timestamp.
+      purchase.executedAt = purchasedAt.toISOString();
     }
 
     setIsSaving(true);
 
     try {
-      // Convert local date/time to an unambiguous UTC timestamp.
-      // onSave will be supplied by Portfolio.jsx when integration is ready.
-      await onSave({
-        ticker,
-        quantity,
-        pricePerShare,
-        currency: "USD",
-        purchasedAt: purchasedAt.toISOString(),
-      });
+      await onSave(purchase);
+      // Clear the amounts so a second click can't repeat the same purchase by accident.
+      setQuantityInput("");
+      setPriceInput("");
     } catch (saveError) {
-      // Keep the form mounted and preserve its inputs so the user can retry.
+      // Keep the inputs so the user can retry.
       setError(saveError.message || "Could not save the purchase. Try again.");
     } finally {
       setIsSaving(false);
@@ -113,16 +105,49 @@ export default function RecordPurchaseForm({
       aria-labelledby="purchase-form-heading"
       className="space-y-4 border-t border-white/10 pt-5"
     >
-      <header>
+      <header className="space-y-3">
         <h3 id="purchase-form-heading" className="text-base font-semibold text-white">
-          Add a purchase
+          Add shares
         </h3>
+
+        <fieldset disabled={isSaving} className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/85">
+          <legend className="sr-only">How are you adding these shares?</legend>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="purchase-mode"
+              value="now"
+              checked={!isEarlier}
+              onChange={() => setMode("now")}
+            />
+            Buy now at market price
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="purchase-mode"
+              value="earlier"
+              checked={isEarlier}
+              onChange={() => {
+                setMode("earlier");
+                // Start from "now" so a same-day purchase only needs the time adjusted.
+                if (!purchasedAtInput) setPurchasedAtInput(toLocalDateTime(new Date()));
+              }}
+            />
+            Record an earlier purchase
+          </label>
+        </fieldset>
+
+        <p className="text-xs text-white/75">
+          {isEarlier
+            ? "Enter the price you actually paid and when you bought, e.g. from your broker's confirmation."
+            : "Shares are bought at the current market price when you confirm."}
+        </p>
       </header>
 
-      {/* A compact desktop row becomes two columns, then one, as space narrows. */}
       <fieldset
         disabled={isSaving}
-        className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.1fr)_minmax(0,1.8fr)]"
+        className={`grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 ${isEarlier ? "lg:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.6fr)]" : ""}`}
       >
         <legend className="sr-only">Purchase details</legend>
 
@@ -156,44 +181,51 @@ export default function RecordPurchaseForm({
           />
         </label>
 
-        <label className="min-w-0 text-sm text-white/85">
-          Price / share (USD)
-          <input
-            name="pricePerShare"
-            type="number"
-            value={priceInput}
-            onChange={(event) => onPriceChange(event.target.value)}
-            min="0"
-            step="any"
-            placeholder="e.g. 300.00"
-            required
-            className={inputClass}
-          />
-        </label>
+        {isEarlier && (
+          <>
+            <label className="min-w-0 text-sm text-white/85">
+              Price paid / share ({currency})
+              <input
+                name="price"
+                type="number"
+                value={priceInput}
+                onChange={(event) => setPriceInput(event.target.value)}
+                min="0"
+                step="any"
+                placeholder={estimate ? `today ≈ ${Number(estimate.price).toFixed(2)}` : "e.g. 180.00"}
+                required
+                className={inputClass}
+              />
+            </label>
 
-        <label className="min-w-0 text-sm text-white/85">
-          Date &amp; time
-          <span id="purchase-timezone" className="ml-2 text-xs text-white/75">
-            {timezone}
-          </span>
-          <input
-            name="purchasedAt"
-            type="datetime-local"
-            defaultValue={toLocalDateTime(quoteEstimate?.lookedUpAt)}
-            step="1"
-            required
-            aria-describedby="purchase-timezone"
-            className={inputClass}
-          />
-        </label>
+            <label className="min-w-0 text-sm text-white/85">
+              Date &amp; time bought
+              <span id="purchase-timezone" className="ml-2 text-xs text-white/75">
+                {timezone}
+              </span>
+              <input
+                name="purchasedAt"
+                type="datetime-local"
+                value={purchasedAtInput}
+                onChange={(event) => setPurchasedAtInput(event.target.value)}
+                max={toLocalDateTime(new Date())}
+                required
+                aria-describedby="purchase-timezone"
+                className={inputClass}
+              />
+            </label>
+          </>
+        )}
       </fieldset>
 
-      {quoteEstimate && (
+      {!isEarlier && estimate && (
         <span className="mt-1 block text-xs text-white/75">
-          {quoteEstimate.stale ? "Cached quote estimate" : "Quote estimate"}
-          {quoteEstimate.asOf &&
-            ` as of ${new Date(quoteEstimate.asOf).toLocaleString("en-IE")}`}.
-          Enter the price you actually paid.
+          {estimate.stale ? "Cached quote" : "Quote"}: {Number(estimate.price).toLocaleString("en-IE", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })} {estimate.currency}
+          {estimate.asOf && ` as of ${new Date(estimate.asOf).toLocaleString("en-IE")}`}.
+          The final price may differ slightly.
         </span>
       )}
 
@@ -203,31 +235,24 @@ export default function RecordPurchaseForm({
         </p>
       )}
 
-      {/* One quiet total line replaces a stack of repeated currency and helper notes. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-sm text-white/85">Total (USD)</span>
+          <span className="text-sm text-white/85">{isEarlier ? "Total paid" : "Estimated total"}</span>
           <output className="text-lg font-semibold tabular-nums text-white">
-            {costPreview}
+            {totalPreview}
           </output>
-          <span className="text-xs text-white/75">excl. fees</span>
+          {!isEarlier && !estimate && (
+            <span className="text-xs text-white/75">look up the stock to see an estimate</span>
+          )}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {typeof onSave !== "function" && (
-            <p id="purchase-save-status" className="text-xs text-amber-200">
-              Saving unavailable
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={isSaving || typeof onSave !== "function"}
-            aria-describedby={typeof onSave !== "function" ? "purchase-save-status" : undefined}
-            className="min-h-11 rounded-lg bg-[#b8dc89] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-          >
-            {isSaving ? "Saving…" : "Save purchase"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="min-h-11 rounded-lg bg-[#b8dc89] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+        >
+          {isSaving ? "Saving…" : isEarlier ? "Record purchase" : "Buy shares"}
+        </button>
       </div>
     </form>
   );

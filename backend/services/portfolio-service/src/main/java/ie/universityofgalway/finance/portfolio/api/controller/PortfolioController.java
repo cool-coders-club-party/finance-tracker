@@ -65,7 +65,8 @@ public class PortfolioController {
                                                @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
-        var holding = portfolioService.buy(portfolioId, userId, request.ticker(), request.quantity());
+        var holding = portfolioService.buy(portfolioId, userId, request.ticker(), request.quantity(),
+                request.price(), request.executedAt());
         return ResponseEntity.ok(HoldingResponse.from(holding));
     }
 
@@ -75,6 +76,10 @@ public class PortfolioController {
                                                 @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
+        // Backdating is only supported for buys; don't silently ignore the fields.
+        if (request.price() != null || request.executedAt() != null) {
+            throw new IllegalArgumentException("Recording an earlier sale is not supported yet");
+        }
         var holding = portfolioService.sell(portfolioId, userId, request.ticker(), request.quantity());
         return ResponseEntity.ok(HoldingResponse.from(holding));
     }
