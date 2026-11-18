@@ -8,6 +8,7 @@ import ie.universityofgalway.finance.portfolio.domain.exception.InsufficientShar
 import ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException;
 import ie.universityofgalway.finance.portfolio.domain.exception.PortfolioNotFoundException;
 import ie.universityofgalway.finance.portfolio.domain.model.Holding;
+import ie.universityofgalway.finance.portfolio.domain.model.MarketQuote;
 import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
 import ie.universityofgalway.finance.portfolio.domain.model.Trade;
 import ie.universityofgalway.finance.portfolio.domain.model.TradeType;
@@ -21,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +55,10 @@ class PortfolioServiceTest {
         return new BigDecimal(value);
     }
 
+    private static MarketQuote quote(String symbol, String price) {
+        return new MarketQuote(symbol, bd(price), "USD", Instant.parse("2026-11-18T10:00:00Z"), false);
+    }
+
     private void callerOwnsPortfolio() {
         when(portfolioRepository.findByIdAndUserId(1L, "user-1")).thenReturn(Optional.of(portfolio));
     }
@@ -62,7 +68,7 @@ class PortfolioServiceTest {
     @Test
     void buyCreatesHoldingWhenNoneExistsAndSavesHoldingBeforeItsTrade() {
         callerOwnsPortfolio();
-        when(priceClient.getPrice("AAPL")).thenReturn(bd("192.45"));
+        when(priceClient.getQuote("AAPL")).thenReturn(quote("AAPL", "192.45"));
         when(holdingRepository.findByPortfolioIdAndTicker(1L, "AAPL")).thenReturn(Optional.empty());
         when(holdingRepository.save(any(Holding.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -71,6 +77,8 @@ class PortfolioServiceTest {
         assertThat(result.getTicker()).isEqualTo("AAPL");
         assertThat(result.getQuantity()).isEqualByComparingTo("10");
         assertThat(result.getAvgPurchasePrice()).isEqualByComparingTo("192.45");
+        // Without a currency, valuation can never price the holding.
+        assertThat(result.getCurrency()).isEqualTo("USD");
 
         // The adapter looks the holding up by portfolio + ticker when saving a trade,
         // so the holding must be persisted first.
@@ -89,7 +97,7 @@ class PortfolioServiceTest {
     void buyOnAnExistingHoldingBlendsTheAveragePrice() {
         Holding existing = new Holding(5L, 1L, "AAPL", bd("10"), bd("100.00"));
         callerOwnsPortfolio();
-        when(priceClient.getPrice("AAPL")).thenReturn(bd("200.00"));
+        when(priceClient.getQuote("AAPL")).thenReturn(quote("AAPL", "200.00"));
         when(holdingRepository.findByPortfolioIdAndTicker(1L, "AAPL")).thenReturn(Optional.of(existing));
         when(holdingRepository.save(any(Holding.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -100,9 +108,68 @@ class PortfolioServiceTest {
     }
 
     @Test
+    void buyCanRecordAnEarlierPurchaseAtThePricePaid() {
+        Instant yesterday = Instant.now().minus(Duration.ofDays(1));
+        callerOwnsPortfolio();
+        when(priceClient.getQuote("AAPL")).thenReturn(quote("AAPL", "192.45"));
+        when(tradeRepository.findAllByPortfolioId(1L)).thenReturn(List.of());
+        when(holdingRepository.findByPortfolioIdAndTicker(1L, "AAPL")).thenReturn(Optional.empty());
+        when(holdingRepository.save(any(Holding.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Holding result = portfolioService.buy(1L, "user-1", "AAPL", bd("3"), bd("180.00"), yesterday);
+
+        // The price paid, not today's quote, sets the cost; the quote still supplies the currency.
+        assertThat(result.getAvgPurchasePrice()).isEqualByComparingTo("180.00");
+        assertThat(result.getCurrency()).isEqualTo("USD");
+        verify(tradeRepository).save(tradeCaptor.capture());
+        assertThat(tradeCaptor.getValue().getPrice()).isEqualByComparingTo("180.00");
+        assertThat(tradeCaptor.getValue().getExecutedAt()).isEqualTo(yesterday);
+    }
+
+    @Test
+    void anEarlierPurchaseNeedsBothPriceAndDate() {
+        assertThatThrownBy(() -> portfolioService.buy(1L, "user-1", "AAPL", bd("1"), bd("180.00"), null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> portfolioService.buy(1L, "user-1", "AAPL", bd("1"), null, Instant.now()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verifyNoInteractions(priceClient, holdingRepository, tradeRepository);
+    }
+
+    @Test
+    void aPurchaseDatedInTheFutureIsRejected() {
+        callerOwnsPortfolio();
+        Instant tomorrow = Instant.now().plus(Duration.ofDays(1));
+
+        assertThatThrownBy(() -> portfolioService.buy(1L, "user-1", "AAPL", bd("1"), bd("180.00"), tomorrow))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("future");
+
+        verifyNoInteractions(priceClient, holdingRepository, tradeRepository);
+    }
+
+    @Test
+    void aPurchaseDatedBeforeALaterSaleIsRejectedAndSavesNothing() {
+        Instant lastWeek = Instant.now().minus(Duration.ofDays(7));
+        Instant yesterday = Instant.now().minus(Duration.ofDays(1));
+        callerOwnsPortfolio();
+        when(priceClient.getQuote("AAPL")).thenReturn(quote("AAPL", "192.45"));
+        when(tradeRepository.findAllByPortfolioId(1L)).thenReturn(List.of(
+                new Trade(1L, 1L, "AAPL", TradeType.BUY, bd("5"), bd("150.00"), lastWeek.minus(Duration.ofDays(1))),
+                new Trade(2L, 1L, "AAPL", TradeType.SELL, bd("2"), bd("170.00"), yesterday)));
+
+        assertThatThrownBy(() -> portfolioService.buy(1L, "user-1", "AAPL", bd("1"), bd("160.00"), lastWeek))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("sold AAPL");
+
+        verifyNoInteractions(holdingRepository);
+        verify(tradeRepository, never()).save(any(Trade.class));
+    }
+
+    @Test
     void buyWithAnUnknownTickerSavesNothing() {
         callerOwnsPortfolio();
-        when(priceClient.getPrice("ZZZZ")).thenThrow(new InvalidSymbolException("ZZZZ"));
+        when(priceClient.getQuote("ZZZZ")).thenThrow(new InvalidSymbolException("ZZZZ"));
 
         assertThatThrownBy(() -> portfolioService.buy(1L, "user-1", "ZZZZ", BigDecimal.ONE))
                 .isInstanceOf(InvalidSymbolException.class);
