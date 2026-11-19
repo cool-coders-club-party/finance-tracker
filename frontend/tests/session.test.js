@@ -1,0 +1,106 @@
+import assert from 'node:assert/strict';
+import { test, beforeEach, afterEach } from 'node:test';
+import {
+  startSession, clearSession, getAccessToken, getUser, getRefreshToken, refreshSession, subscribe
+} from '../src/lib/session.js';
+
+// Node has no localStorage, so give the tests a tiny stand-in.
+const store = new Map();
+globalThis.localStorage = {
+  getItem: (key) => store.get(key) ?? null,
+  setItem: (key, value) => store.set(key, String(value)),
+  removeItem: (key) => store.delete(key),
+};
+
+const tokens = (n, expiresIn = 900) => ({
+  id: 'u1', email: 'a@b.com', accessToken: `access-${n}`, refreshToken: `refresh-${n}`,
+  tokenType: 'Bearer', expiresIn,
+});
+
+beforeEach(() => store.clear());
+afterEach(() => clearSession());
+
+test('startSession keeps the access token in memory and the refresh token in storage', () => {
+  startSession(tokens(1));
+  assert.equal(getAccessToken(), 'access-1');
+  assert.deepEqual(getUser(), { id: 'u1', email: 'a@b.com' });
+  assert.equal(getRefreshToken(), 'refresh-1');
+  assert.ok(![...store.values()].includes('access-1'), 'access token must not be in storage');
+});
+
+test('clearSession forgets everything', () => {
+  startSession(tokens(1));
+  clearSession();
+  assert.equal(getAccessToken(), null);
+  assert.equal(getUser(), null);
+  assert.equal(getRefreshToken(), null);
+});
+
+test('getAccessToken returns null once the token has expired', (t) => {
+  t.mock.timers.enable({ apis: ['Date'] });
+  startSession(tokens(1, 900));
+  t.mock.timers.tick(899_000);
+  assert.equal(getAccessToken(), 'access-1');
+  t.mock.timers.tick(1_000);
+  assert.equal(getAccessToken(), null);
+});
+
+test('refreshSession sends the stored token and replaces both tokens', async (t) => {
+  startSession(tokens(1));
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => Response.json(tokens(2)));
+  await refreshSession();
+  assert.equal(JSON.parse(fetchMock.mock.calls[0].arguments[1].body).refreshToken, 'refresh-1');
+  assert.equal(getAccessToken(), 'access-2');
+  assert.equal(getRefreshToken(), 'refresh-2');
+});
+
+test('simultaneous refreshes share one request', async (t) => {
+  startSession(tokens(1));
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => Response.json(tokens(2)));
+  await Promise.all([refreshSession(), refreshSession(), refreshSession()]);
+  assert.equal(fetchMock.mock.callCount(), 1);
+});
+
+test('a later refresh makes a new request once the first has finished', async (t) => {
+  startSession(tokens(1));
+  let n = 1;
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => Response.json(tokens(++n)));
+  await refreshSession();
+  await refreshSession();
+  assert.equal(fetchMock.mock.callCount(), 2);
+  assert.equal(JSON.parse(fetchMock.mock.calls[1].arguments[1].body).refreshToken, 'refresh-2');
+});
+
+test('a rejected refresh token (401) clears the session', async (t) => {
+  startSession(tokens(1));
+  t.mock.method(globalThis, 'fetch', async () =>
+    Response.json({ message: 'Invalid refresh token' }, { status: 401 }));
+  await assert.rejects(refreshSession(), (e) => e.status === 401);
+  assert.equal(getAccessToken(), null);
+  assert.equal(getRefreshToken(), null);
+});
+
+test('a network failure keeps the session so the user can retry', async (t) => {
+  startSession(tokens(1));
+  t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+  await assert.rejects(refreshSession(), (e) => e.status === 0);
+  assert.equal(getRefreshToken(), 'refresh-1');
+  assert.equal(getAccessToken(), 'access-1');
+});
+
+test('refreshing with no stored token fails without calling the server', async (t) => {
+  const fetchMock = t.mock.method(globalThis, 'fetch');
+  await assert.rejects(refreshSession(), (e) => e.status === 401);
+  assert.equal(fetchMock.mock.callCount(), 0);
+});
+
+test('listeners are told when the session starts and clears, until they unsubscribe', () => {
+  let calls = 0;
+  const unsubscribe = subscribe(() => { calls += 1; });
+  startSession(tokens(1));
+  clearSession();
+  assert.equal(calls, 2);
+  unsubscribe();
+  startSession(tokens(2));
+  assert.equal(calls, 2); // no longer listening
+});
