@@ -19,3 +19,19 @@ export function registrationErrorMessage(error) {
             return 'Registration failed. Please try again.';
   }
 }
+
+/**
+ * Turns a failed login request into a message for the user.
+ */
+export function loginErrorMessage(error) {
+  switch (error?.status) {
+    case 401:
+      return 'Email or password is incorrect.';
+    case 400:
+      return 'Check your email and password and try again.';
+    case 0:
+      return 'Cannot reach the server. Please try again.';
+    default:
+      return 'Sign-in failed. Please try again.';
+  }
+}

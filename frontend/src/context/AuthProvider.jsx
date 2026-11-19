@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { login } from '../api/auth.js';
 import { startSession, clearSession, getUser, subscribe } from '../lib/session.js';
-import { AuthContext } from './AuthContext.jsx';
+import { AuthContext } from './AuthContext.js';
 
 export function AuthProvider({ children }) {
   // React's own copy of the current user. Changing it re-renders the components that use it.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  validateEmail, validateNewPassword, validateConfirmation, validateRegistration,
+  validateEmail, validateNewPassword, validateConfirmation, validateRegistration, validateLogin
 } from '../src/lib/validation.js';
 
 test('email: blank and badly formed values are rejected', () => {
@@ -40,4 +40,14 @@ test('validateRegistration returns one message per bad field', () => {
   );
   const errors = validateRegistration({ email: 'nope', password: 'short', confirmation: 'other' });
   assert.deepEqual(Object.keys(errors).sort(), ['confirmation', 'email', 'password']);
+});
+
+test('login: only blank or badly formed values are rejected, not short passwords', () => {
+  assert.deepEqual(validateLogin({ email: 'a@b.com', password: 'abc' }), {});
+  assert.ok(validateLogin({ email: '', password: 'x' }).email);
+  assert.ok(validateLogin({ email: 'a@b.com', password: '' }).password);
+  assert.deepEqual(
+    Object.keys(validateLogin({ email: 'nope', password: '' })).sort(),
+    ['email', 'password'],
+  );
 });

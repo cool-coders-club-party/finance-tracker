@@ -40,3 +40,15 @@ export function validateRegistration({ email, password, confirmation }) {
   if (confirmationError) errors.confirmation = confirmationError;
   return errors;
 }
+
+/** 
+ * Rules for the login form. Only "not blank" for the password: the server
+ * decides whether it is correct.
+ */
+export function validateLogin({ email, password }) {
+  const errors = {};
+  const emailError = validateEmail(email);
+  if (emailError) errors.email = emailError;
+  if (password === '') errors.password = 'Password is required.';
+  return errors;
+}
