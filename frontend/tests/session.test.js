@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test, beforeEach, afterEach } from 'node:test';
 import {
-  startSession, clearSession, getAccessToken, getUser, getRefreshToken, refreshSession,
+  startSession, clearSession, getAccessToken, getUser, getRefreshToken, refreshSession, subscribe
 } from '../src/lib/session.js';
 
 // Node has no localStorage, so give the tests a tiny stand-in.
@@ -92,4 +92,15 @@ test('refreshing with no stored token fails without calling the server', async (
   const fetchMock = t.mock.method(globalThis, 'fetch');
   await assert.rejects(refreshSession(), (e) => e.status === 401);
   assert.equal(fetchMock.mock.callCount(), 0);
+});
+
+test('listeners are told when the session starts and clears, until they unsubscribe', () => {
+  let calls = 0;
+  const unsubscribe = subscribe(() => { calls += 1; });
+  startSession(tokens(1));
+  clearSession();
+  assert.equal(calls, 2);
+  unsubscribe();
+  startSession(tokens(2));
+  assert.equal(calls, 2); // no longer listening
 });

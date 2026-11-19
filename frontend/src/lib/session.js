@@ -9,6 +9,21 @@ let accessTokenExpiresAt = 0; // in milliseconds
 let user = null;
 let pendingRefresh = null;   // pending refresh request, if it exists
 
+const listeners = new Set(); // a Set holds each callback once
+
+/** 
+ * Call `listener` whenever the session starts, is replaced or is cleared.
+ * Returns a function that stops listening.
+ */
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function notify() {
+  listeners.forEach((listener) => listener());
+}
+
 /** Save the response from login or refresh. */
 export function startSession(tokenResponse) {
   accessToken = tokenResponse.accessToken;
@@ -16,6 +31,7 @@ export function startSession(tokenResponse) {
   accessTokenExpiresAt = Date.now() + tokenResponse.expiresIn * 1000;
   user = { id: tokenResponse.id, email: tokenResponse.email };
   localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refreshToken);
+  notify();
 }
 
 /** Forget everything (logout, or the refresh token was rejected). */
@@ -24,6 +40,7 @@ export function clearSession() {
   accessTokenExpiresAt = 0;
   user = null;
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  notify();
 }
 
 /** The access token, or null if we have none or it has expired. */
