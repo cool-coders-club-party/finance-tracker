@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { validateRegistration } from '../lib/validation.js';
+import { register } from '../api/auth.js';
+import { registrationErrorMessage } from '../lib/authMessages';
 
 /** One labelled input with an optional error message underneath. */
 function Field({ id, label, type, value, onChange, error, autoComplete }) {
