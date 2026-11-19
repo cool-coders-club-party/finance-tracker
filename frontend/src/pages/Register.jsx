@@ -5,27 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { register } from '../api/auth.js';
 import { registrationErrorMessage } from '../lib/authMessages.js';
 import { validateRegistration } from '../lib/validation.js';
-
-/** One labelled input with an optional error message underneath. */
-function Field({ id, label, type, value, onChange, error, autoComplete, disabled }) {
-  return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm">{label}</label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        disabled={disabled}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className="min-h-11 rounded-lg border border-input bg-background px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      />
-      {error && <p id={`${id}-error`} className="text-sm text-destructive">{error}</p>}
-    </div>
-  );
-}
+import { FormField } from '..components/FormField';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -66,12 +46,12 @@ export default function Register() {
         <CardContent>
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
             {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
-            <Field id="email" label="Email" type="email" autoComplete="email"
+            <FormField id="email" label="Email" type="email" autoComplete="email"
               value={email} onChange={setEmail} error={errors.email} disabled={pending} />
-            <Field id="password" label="Password (8 to 72 characters)" type="password"
+            <FormField id="password" label="Password (8 to 72 characters)" type="password"
               autoComplete="new-password" value={password} onChange={setPassword}
               error={errors.password} disabled={pending} />
-            <Field id="confirmation" label="Confirm password" type="password"
+            <FormField id="confirmation" label="Confirm password" type="password"
               autoComplete="new-password" value={confirmation} onChange={setConfirmation}
               error={errors.confirmation} disabled={pending} />
             <Button type="submit" className="min-h-11 w-full" disabled={pending}>
