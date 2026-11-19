@@ -6,19 +6,14 @@ import org.springframework.core.io.ClassPathResource;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TopStocksServiceTest {
-    private static final Instant EXPIRY = Instant.parse("2026-11-11T21:00:00Z");
     private static final String SNAPSHOT = """
             {
               "capturedOn": "2026-11-10",
-              "expiresAt": "2026-11-11T21:00:00Z",
               "sourceUrl": "https://example.com/stocks",
               "rows": [
                 {"ticker": "DDD", "company": "Company D", "marketCapUsd": 300},
@@ -32,8 +27,8 @@ class TopStocksServiceTest {
             """;
 
     @Test
-    void returnsFiveLargestCompaniesInDescendingOrderBeforeExpiry() {
-        var result = service(SNAPSHOT, EXPIRY.minusNanos(1)).getTopStocks().orElseThrow();
+    void returnsFiveLargestCompaniesInDescendingOrder() {
+        var result = service(SNAPSHOT).getTopStocks().orElseThrow();
 
         assertThat(result.rows())
                 .extracting(TopStocksService.RankingRow::ticker)
@@ -41,38 +36,38 @@ class TopStocksServiceTest {
     }
 
     @Test
-    void stopsServingSnapshotAtExpiry() {
-        assertThat(service(SNAPSHOT, EXPIRY).getTopStocks()).isEmpty();
+    void keepsHistoricalSnapshotAvailableAfterReload() {
+        String historicalSnapshot = SNAPSHOT.replace("2026-11-10", "2000-01-01");
+        var first = service(historicalSnapshot);
+        var result = first.getTopStocks().orElseThrow();
+
+        assertThat(result.capturedOn()).isEqualTo(LocalDate.of(2000, 1, 1));
+        assertThat(first.getTopStocks()).contains(result);
+        assertThat(service(historicalSnapshot).getTopStocks()).contains(result);
     }
 
     @Test
     void rejectsInvalidSnapshot() {
         String duplicateTicker = SNAPSHOT.replace("\"FFF\"", "\"AAA\"");
-        assertThat(service(duplicateTicker, EXPIRY.minusSeconds(1)).getTopStocks()).isEmpty();
+        assertThat(service(duplicateTicker).getTopStocks()).isEmpty();
     }
 
     @Test
-    void loadsBundledSnapshotOnItsCaptureDate() throws Exception {
+    void loadsBundledSnapshotWithoutExpiry() throws Exception {
         var resource = new ClassPathResource("top-stocks-snapshot.json");
         var mapper = JsonMapper.builder().build();
-        LocalDate capturedOn;
         try (var input = resource.getInputStream()) {
-            capturedOn = LocalDate.parse(mapper.readTree(input).path("capturedOn").asText());
+            assertThat(mapper.readTree(input).has("expiresAt")).isFalse();
         }
-        var service = new TopStocksService(
-                resource,
-                mapper,
-                Clock.fixed(capturedOn.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC)
-        );
+        var service = new TopStocksService(resource, mapper);
 
         assertThat(service.getTopStocks().orElseThrow().rows()).hasSize(5);
     }
 
-    private TopStocksService service(String json, Instant now) {
+    private TopStocksService service(String json) {
         return new TopStocksService(
                 new ByteArrayResource(json.getBytes(StandardCharsets.UTF_8)),
-                JsonMapper.builder().build(),
-                Clock.fixed(now, ZoneOffset.UTC)
+                JsonMapper.builder().build()
         );
     }
 }

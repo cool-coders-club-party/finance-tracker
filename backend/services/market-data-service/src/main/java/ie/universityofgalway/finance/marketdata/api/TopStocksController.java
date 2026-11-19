@@ -21,14 +21,14 @@ public class TopStocksController {
         var snapshot = topStocksService.getTopStocks();
         if (snapshot.isEmpty()) {
             var problem = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.SERVICE_UNAVAILABLE, "Fresh ranking unavailable"
+                    HttpStatus.SERVICE_UNAVAILABLE, "Ranking unavailable"
             );
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .cacheControl(CacheControl.noStore())
                     .body(problem);
         }
 
-        // A cached response could bypass the service's expiry check.
+        // Serve the deployed snapshot rather than a browser's previously cached version.
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(snapshot.get());
     }
 }

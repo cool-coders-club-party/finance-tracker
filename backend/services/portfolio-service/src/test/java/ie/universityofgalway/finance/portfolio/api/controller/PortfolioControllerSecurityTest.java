@@ -1,6 +1,7 @@
 package ie.universityofgalway.finance.portfolio.api.controller;
 
 import ie.universityofgalway.finance.portfolio.application.service.PortfolioService;
+import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
 import ie.universityofgalway.finance.portfolio.infrastructure.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,22 @@ class PortfolioControllerSecurityTest {
                         .content("{\"name\":\"Sneaky\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void createPortfolio_fromTheDeployedSite_isNotRejectedAsCors() throws Exception {
+        // Behind Caddy the browser's Origin (https://<site>) never matches the backend's own
+        // scheme and host, so a localhost-only CORS list turned every POST into a 403.
+        when(portfolioService.createPortfolio("alice-id", "Main"))
+                .thenReturn(new Portfolio(7L, "alice-id", "Main"));
+
+        mockMvc.perform(post("/api/portfolios")
+                        .header("Origin", "https://poca.example.com")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Main\"}")
+                        .with(jwt().jwt(j -> j.subject("alice-id"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(7));
     }
 
     @Test
