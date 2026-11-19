@@ -113,32 +113,20 @@ export default function Portfolio() {
 
   useEffect(() => {
     const controller = new AbortController();
-    let expiryTimer;
 
     async function loadTopStocks() {
       try {
         const snapshot = await getTopStocks(controller.signal);
         if (controller.signal.aborted) return;
 
-        const remainingMs = Date.parse(snapshot.expiresAt) - Date.now();
-        if (remainingMs <= 0) {
-          setTopStocks({ status: "unavailable" });
-          return;
-        }
-
         setTopStocks({ status: "ready", snapshot });
-        // Clear a stale ranking even if the user leaves the page open.
-        expiryTimer = setTimeout(() => setTopStocks({ status: "unavailable" }), remainingMs);
       } catch {
         if (!controller.signal.aborted) setTopStocks({ status: "unavailable" });
       }
     }
 
     loadTopStocks();
-    return () => {
-      controller.abort();
-      clearTimeout(expiryTimer);
-    };
+    return () => controller.abort();
   }, []);
 
   const snapshot = topStocks.snapshot;
@@ -149,10 +137,10 @@ export default function Portfolio() {
   })) ?? [];
 
   // The date marks when we captured the source, which can differ from the trading date.
-  let rankingFooter = "Fresh ranking unavailable";
+  let rankingFooter = "Ranking unavailable";
   if (topStocks.status === "loading") rankingFooter = "Loading ranking…";
   if (snapshot) {
-    rankingFooter = `Captured ${rankingCaptureDate.format(new Date(snapshot.capturedOn))}`;
+    rankingFooter = `Snapshot captured ${rankingCaptureDate.format(new Date(snapshot.capturedOn))}`;
   }
 
   // Keep the request status and its data together.
@@ -852,7 +840,7 @@ export default function Portfolio() {
           >
             <MarketRankingCard
               title="Top 5 stocks"
-              subtitle="By market capitalisation"
+              subtitle="US companies by market cap (USD)"
               rows={topStockRows}
               footer={rankingFooter}
               onSelect={handleRankingSelect}
