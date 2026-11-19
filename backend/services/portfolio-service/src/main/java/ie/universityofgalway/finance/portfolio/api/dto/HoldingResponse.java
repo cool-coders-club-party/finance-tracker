@@ -8,7 +8,8 @@ public record HoldingResponse(
         Long id,
         String ticker,
         BigDecimal quantity,
-        BigDecimal avgPurchasePrice
+        BigDecimal avgPurchasePrice,
+        String currency
 ) {
     // A static factory method to build this DTO from the entity keeps the
     // mapping logic in one place, rather than scattered across every controller
@@ -18,7 +19,8 @@ public record HoldingResponse(
                 holding.getId(),
                 holding.getTicker(),
                 holding.getQuantity(),
-                holding.getAvgPurchasePrice()
+                holding.getAvgPurchasePrice(),
+                holding.getCurrency()
         );
     }
 }

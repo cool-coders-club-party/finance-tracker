@@ -10,10 +10,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -23,21 +20,17 @@ public class TopStocksService {
     private static final Logger log = LoggerFactory.getLogger(TopStocksService.class);
     private static final int RANKING_SIZE = 5;
 
-    private final Clock clock;
     private final Optional<Snapshot> snapshot;
 
     public TopStocksService(
             @Value("classpath:top-stocks-snapshot.json") Resource resource,
-            JsonMapper mapper,
-            Clock clock
+            JsonMapper mapper
     ) {
-        this.clock = clock;
         this.snapshot = loadSnapshot(resource, mapper);
     }
 
     public Optional<Snapshot> getTopStocks() {
-        // Check on every request because the bundled snapshot can expire while the service runs.
-        return snapshot.filter(ranking -> clock.instant().isBefore(ranking.expiresAt()));
+        return snapshot;
     }
 
     private Optional<Snapshot> loadSnapshot(Resource resource, JsonMapper mapper) {
@@ -53,7 +46,7 @@ public class TopStocksService {
                     .sorted(Comparator.comparingLong(RankingRow::marketCapUsd).reversed())
                     .limit(RANKING_SIZE)
                     .toList();
-            return Optional.of(new Snapshot(data.capturedOn(), data.expiresAt(), data.sourceUrl(), rows));
+            return Optional.of(new Snapshot(data.capturedOn(), data.sourceUrl(), rows));
         } catch (IOException | JacksonException exception) {
             log.warn("Could not read top stocks snapshot", exception);
             return Optional.empty();
@@ -63,8 +56,6 @@ public class TopStocksService {
     private boolean isValid(Snapshot data) {
         return data != null
                 && data.capturedOn() != null
-                && data.expiresAt() != null
-                && data.expiresAt().isAfter(data.capturedOn().atStartOfDay(ZoneOffset.UTC).toInstant())
                 && data.sourceUrl() != null
                 && data.sourceUrl().startsWith("https://")
                 && data.rows() != null
@@ -78,7 +69,6 @@ public class TopStocksService {
 
     public record Snapshot(
             @JsonFormat(shape = JsonFormat.Shape.STRING) LocalDate capturedOn,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) Instant expiresAt,
             String sourceUrl,
             List<RankingRow> rows
     ) {}

@@ -206,7 +206,15 @@ When the frontend receives a stale quote, it displays the cached-price warning a
 The cache is held in memory and is cleared when the backend restarts. Restarting with a broken provider therefore demonstrates 503, rather than stale fallback.
 
 ## Top 5 Stocks & movers
-Top 5 Stocks shows the five largest US companies by market cap from a dated Stock Analysis snapshot. We update it manually, and the card hides the ranking when the snapshot expires. 
+Top 5 Stocks shows the five largest US companies by market cap from a dated [Stock Analysis snapshot](https://stockanalysis.com/list/largest-us-companies/). It stays available until manually replaced, with no automatic expiry or live provider requests. The card shows the capture date, not today's date or a live quote timestamp. Values are accurate to the source's displayed precision at capture and do not track subsequent market changes.
+
+To update Top 5 Stocks manually:
+
+1. Open the source above and verify the top five companies and their order.
+2. Edit `backend/services/market-data-service/src/main/resources/top-stocks-snapshot.json`: replace the five tickers, company names and `marketCapUsd` values, set `capturedOn` to the actual UTC capture date (`YYYY-MM-DD`), and retain the supporting `sourceUrl`. Convert trillions/billions to USD (for example, `5.12T` becomes `5120000000000`) without inventing additional precision. Do not add an expiry date.
+3. From `backend`, run `./mvnw -pl services/market-data-service -am -Dtest=TopStocksServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`. From `frontend`, run `node --test tests/topStocksApi.test.js`.
+4. Rebuild and redeploy the market-data service; it reads the file once at startup. Reload Portfolio and confirm the five rows, USD values, capture date and Stock Lookup selection. Deploy the frontend changes alongside the backend when first removing expiry support.
+
 Top 5 Movers uses Twelve Data quotes for eight tracked US stocks and shows the five biggest daily percentage moves, up or down. The server caches the movers ranking for 15 minutes to save API credits. Clicking a stock in either card opens it in Stock Lookup.
 
 

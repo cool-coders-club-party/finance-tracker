@@ -72,6 +72,9 @@ export function restoreSession() {
 }
 
 export async function authenticatedFetch(url, options = {}) {
+  if (state.status === 'loading') {
+    await restoreSession();
+  }
   const session = state.session;
   if (!session || session.expiresAt <= Date.now()) {
     logout('Please sign in to continue.');
