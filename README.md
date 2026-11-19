@@ -11,22 +11,39 @@ Finance Tracker is a collection of independently buildable Spring Boot services.
 | insights-service | 8085 | derived financial insights |
 | reporting-service | 8086 | report generation and exports |
 
-Each service has its own build file, Spring Boot entry point, configuration, and isolated local H2 database. Five services use Maven; Transactions uses Gradle. The root Maven POM aggregates only the Maven services.
+Each service has its own build file, Spring Boot entry point and configuration. Database requirements vary by service; Transactions uses PostgreSQL and Redis, while Market Data does not require a persistent database. Five services use Maven; Transactions uses Gradle. The root Maven POM aggregates only the Maven services.
 
 ## Getting started
 
-Use Java 21. From the repository root:
+Use Java 21. Build and test the Maven services from the repository root:
 
 ```bash
 cd backend
-./mvnw verify
-cd services/transactions-service
-./gradlew bootRun
+sh ./mvnw verify
 ```
 
-That starts Transactions on `http://localhost:8082`; health is at `http://localhost:8082/actuator/health`.
+Transactions is built separately with Gradle. Its local startup requires PostgreSQL,
+Redis and a `JWT_SECRET` shared with the Users service; follow the
+[Transactions setup instructions](docs/api/transactions.md#local-setup).
 
 Read the [microservices architecture note](docs/architecture-microservices.md), [Clean Architecture diagram](docs/clean-architecture.md), and [system architecture diagrams](docs/architecture-diagrams.md) before adding a feature. The original setup history remains in [the team brief](docs/team-brief-1-initializing-and-backend.md).
+
+## Transactions
+
+The Transactions service runs on port **8082** and manages each authenticated user's
+income and expenses. It supports creation and editing, filtered and paginated
+history, soft deletion, restoration and permanent deletion. Ownership comes from
+the user's JWT, and records are persisted in PostgreSQL using JPA and Liquibase.
+
+Transactions retain their original amount and currency (EUR, USD or GBP). The
+metadata endpoint supplies form options, while the summary endpoint converts
+income, expenses and category totals into the selected display currency using
+transaction-date exchange rates from Frankfurter, cached in Redis. These summaries
+power the dashboard cards and spending chart.
+
+See the [Transactions documentation](docs/api/transactions.md) for local setup,
+authentication, API examples, currency behaviour, implementation structure,
+database migrations and testing.
 
 ## Market Data
 
