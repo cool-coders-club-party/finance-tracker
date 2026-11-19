@@ -11,6 +11,7 @@ import PriceHistoryChart from "../components/PriceHistoryChart";
 import RecordPurchaseForm from "../components/RecordPurchaseForm";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
+import { Button } from "../components/ui/button";
 
 const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
   dateStyle: "medium",
@@ -358,13 +359,14 @@ export default function Portfolio() {
                     {portfolioData.error}
                   </p>
 
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setPortfolioReload((current) => current + 1)}
-                    className="rounded-lg border border-white/20 px-4 py-2 text-sm"
+                    variant="outline"
+                    className="h-10"
                   >
                     Retry
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -423,14 +425,15 @@ export default function Portfolio() {
               )}
             </div>
 
-            <button
+            <Button
               type="button"
               aria-expanded={purchaseOpen}
               aria-controls="purchase-panel"
               onClick={() => setPurchaseOpen((open) => !open)}
+              className="h-10"
             >
               {purchaseOpen ? "Close purchase form" : "Record purchase"}
-            </button>
+            </Button>
 
             <div id="purchase-panel" hidden={!purchaseOpen}>
               <RecordPurchaseForm
@@ -481,13 +484,13 @@ export default function Portfolio() {
                   />
                 </label>
 
-                <button
+                <Button
                   type="submit"
                   disabled={isLoading}
-                  className="h-10 w-full self-end rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50 sm:w-auto"
+                  className="h-10 w-full self-end sm:w-auto"
                 >
                   {isHistoryLoading ? "Loading history..." : isLoading ? "Looking up..." : "Find price"}
-                </button>
+                </Button>
               </form>
 
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -534,7 +537,7 @@ export default function Portfolio() {
                     </div>
 
                     {/* Prefill only the ticker; a live quote is not the user's purchase price. */}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => {
                         setPrefillError("");
@@ -563,10 +566,11 @@ export default function Portfolio() {
                         setPurchaseVersion((version) => version + 1);
                         setPurchaseOpen(true);
                       }}
-                      className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
+                      variant="outline"
+                      className="h-10"
                     >
                       Use this stock
-                    </button>
+                    </Button>
 
                     {prefillError && <p role="alert">{prefillError}</p>}
 

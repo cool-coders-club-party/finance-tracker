@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "./ui/button";
 
 // Shared styling keeps every field consistent and usable on small screens.
 const inputClass =
@@ -219,14 +220,14 @@ export default function RecordPurchaseForm({
               Saving unavailable
             </p>
           )}
-          <button
+          <Button
             type="submit"
             disabled={isSaving || typeof onSave !== "function"}
             aria-describedby={typeof onSave !== "function" ? "purchase-save-status" : undefined}
-            className="min-h-11 rounded-lg bg-[#b8dc89] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            className="h-11 px-4"
           >
             {isSaving ? "Saving…" : "Save purchase"}
-          </button>
+          </Button>
         </div>
       </div>
     </form>

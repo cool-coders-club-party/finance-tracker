@@ -10,17 +10,18 @@ import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
 import FinancialReportExport from '../components/FinancialReportExport';
 import StrokeText from '../components/StrokeText';
+import { Button } from '../components/ui/button';
 
 const formatMoney = (amount) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(amount);
 
-const portfolio = {
-    available: true,
-    investmentValue: 4820,
-    investmentValueChange: 5.7,
-    investmentValueCaption: "portfolio, 30 days",
-    investmentValuePositive: true,
-};
+// const portfolio = {
+//     available: true,
+//     investmentValue: 4820,
+//     investmentValueChange: 5.7,
+//     investmentValueCaption: "portfolio, 30 days",
+//     investmentValuePositive: true,
+// };
 
 function TransactionOverview({ userId }) {
   const metadata = useTransactionMetadata();
@@ -73,8 +74,8 @@ function TransactionOverview({ userId }) {
           <p className="text-sm text-muted-foreground">All-time totals use transaction-date exchange rates.</p>
           {error ? <div role="alert" className="space-y-2">
             <p>{error}</p>
-            <button type="button" className="rounded-lg border border-input px-4 py-2"
-              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</button>
+            <Button type="button" variant="outline" className="h-10"
+              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</Button>
           </div> : !summary && <p role="status">Loading transaction summary…</p>}
         </CardContent>
       </Card>
@@ -112,16 +113,16 @@ function Dashboard() {
         </div>
 
             <TransactionOverview key={session.user.id} userId={session.user.id} />
-        <StatCard
-          title="Investment Value (EUR)"
-          icon={TrendingUp}
-          available={portfolio.available}
-          value={portfolio.investmentValue}
-          formatter={formatMoney}
-          change={portfolio.investmentValueChange}
-          caption={portfolio.investmentValueCaption}
-          positiveIsGood={portfolio.investmentValuePositive}
-        />
+{/*         <StatCard */}
+{/*           title="Investment Value (EUR)" */}
+{/*           icon={TrendingUp} */}
+{/*           available={portfolio.available} */}
+{/*           value={portfolio.investmentValue} */}
+{/*           formatter={formatMoney} */}
+{/*           change={portfolio.investmentValueChange} */}
+{/*           caption={portfolio.investmentValueCaption} */}
+{/*           positiveIsGood={portfolio.investmentValuePositive} */}
+{/*         /> */}
         <FinancialReportExport />
       </DashboardShell>
     );

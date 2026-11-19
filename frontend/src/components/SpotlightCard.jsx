@@ -51,13 +51,15 @@ const SpotlightCard = ({
   children,
   className = '',
   style,
+  as: Component = 'div',
+  unstyled = false,
   spotlightColor,
   intensity = 0.15,
   spotlightSize = 240,
   softness = 0.7,
   shape = 'circle',
   borderGlow = 0.6,
-  proximity = 80,
+  proximity = 0,
   smoothing = 0.3,
   ambient = false,
   flare = true,
@@ -267,9 +269,9 @@ const SpotlightCard = ({
   }, []);
 
   return (
-    <div
+    <Component
       ref={rootRef}
-      className={`${CARD}${className ? ` ${className}` : ''}`}
+      className={`${unstyled ? 'relative isolate' : CARD}${className ? ` ${className}` : ''}`}
       style={{
         '--spotlight-card-surface': palette.surface,
         '--spotlight-card-border': palette.border,
@@ -299,7 +301,7 @@ const SpotlightCard = ({
         className="pointer-events-none absolute inset-0 z-[1] rounded-[inherit] p-px opacity-0 [-webkit-mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] [-webkit-mask-composite:xor] [mask:linear-gradient(#000_0_0)_content-box_exclude,linear-gradient(#000_0_0)]"
         aria-hidden="true"
       />
-    </div>
+    </Component>
   );
 };
 
