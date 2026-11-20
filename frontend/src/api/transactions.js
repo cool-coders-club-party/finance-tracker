@@ -14,6 +14,8 @@ export class TransactionApiError extends Error {
 async function request(path, options = {}, allowEmpty = false) {
   let response;
   try {
+    //centralizes transaction requests and sends them through the authenticated request helper.
+    //component do not need to repeatedly build headers, parse responses, or interpret backend errors.
     response = await authenticatedFetch(`${BASE_URL}${path}`, {
       ...options,
       headers: { Accept: 'application/json', ...options.headers },
@@ -23,6 +25,7 @@ async function request(path, options = {}, allowEmpty = false) {
     throw new TransactionApiError('Cannot reach Transactions. Check your connection and try again.');
   }
   const body = await response.json().catch(() => null);
+  //convertation of the unsuccessful HTTP responses into errors containing the backend message and field details
   if (!response.ok) {
     throw new TransactionApiError(
       body?.message || `Transactions request failed (${response.status}). Please try again.`,
@@ -52,9 +55,8 @@ export async function getTransactionSummary(currency, signal) {
   return summary;
 }
 
-// Defaults preserve existing expense-chart callers; history passes an explicit type.
 export function getTransactionHistory(
-  { page = 0, size = 100, type = 'EXPENSE', category, from, to, deleted = false, signal } = {},
+  { page = 0, size = 20, type = '', category, from, to, deleted = false, signal } = {},
 ) {
   const params = new URLSearchParams({
     page: String(page),
@@ -76,6 +78,7 @@ export function getTransaction(id, signal) {
 
 export function saveTransaction(payload, id, signal) {
   return request(id ? `/${encodeURIComponent(id)}` : '', {
+    //selects update or create based on whether an ID exists. It supports the shared form through one save function
     method: id ? 'PATCH' : 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.fromEntries(Object.entries(payload).filter(([key]) =>

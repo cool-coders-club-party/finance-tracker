@@ -18,6 +18,11 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Summarizes all matching active transactions, independently of history pagination.
+ * Original amounts remain unchanged; each is converted using its occurrence date.
+ * A required rate failure propagates rather than producing an incomplete summary.
+ */
 @Service
 @RequiredArgsConstructor
 public class TransactionSummaryService {
@@ -25,6 +30,20 @@ public class TransactionSummaryService {
     private final TransactionRepository transactionRepository;
     private final CurrencyConversionService currencyConversionService;
 
+    /**
+     * Calculates converted income, expenses and net income for one owner.
+     * Unrounded amounts accumulate per expense category. Categories and income are rounded
+     * to two decimals using HALF_EVEN; expenses sum the rounded categories so visible totals
+     * reconcile. Net income is rounded income minus those expenses, not an account balance.
+     *
+     * @param userId authenticated owner UUID
+     * @param targetCurrency currency of every returned monetary total
+     * @param from optional inclusive first day
+     * @param to optional inclusive last day
+     * @return totals and category spending; zero totals and no categories when nothing matches
+     * @throws InvalidTransactionHistoryQueryException if from follows to
+     * @throws ie.universityofgalway.finance.transactions.exception.ExchangeRateUnavailableException if a required rate is unavailable
+     */
     public TransactionSummaryResponseDto getTransactionSummary(
             UUID userId,
             TransactionCurrency targetCurrency,

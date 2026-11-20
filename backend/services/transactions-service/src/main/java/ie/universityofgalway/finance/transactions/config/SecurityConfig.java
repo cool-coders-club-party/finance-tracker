@@ -15,6 +15,11 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Configures stateless bearer-token authentication using the shared HMAC secret.
+ * Health checks are public; other requests require authentication. Record ownership
+ * is enforced separately by the controller/service/repository flow.
+ */
 @Configuration
 public class SecurityConfig {
 

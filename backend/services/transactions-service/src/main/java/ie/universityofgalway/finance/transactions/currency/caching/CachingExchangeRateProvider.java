@@ -17,6 +17,13 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Objects;
 
+/**
+ * Cache-aside decorator selected as the primary exchange-rate provider.
+ * Validates cached entries and delegates misses or unreadable entries to Frankfurter.
+ * Redis and JSON failures do not prevent using a valid provider response; provider
+ * failures still propagate. Entries expire after the configured TTL; no stale-rate
+ * fallback is provided. The qualifier selects the underlying provider explicitly.
+ */
 @Component
 @Primary
 @Slf4j

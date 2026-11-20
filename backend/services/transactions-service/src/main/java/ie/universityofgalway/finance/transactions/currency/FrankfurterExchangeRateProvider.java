@@ -17,6 +17,11 @@ import java.util.Objects;
 
 import static ie.universityofgalway.finance.transactions.util.validator.ExchangeRateFetchResponseValidator.validateExchangeRateResponse;
 
+/**
+ * Fetches ECB rates through Frankfurter with configured connection and read timeouts.
+ * Validates the returned pair, positive rate and effective date before exposing it.
+ * Same-currency requests return one locally; HTTP failures become rate-unavailable errors.
+ */
 @Component
 public class FrankfurterExchangeRateProvider implements ExchangeRateProvider {
 
