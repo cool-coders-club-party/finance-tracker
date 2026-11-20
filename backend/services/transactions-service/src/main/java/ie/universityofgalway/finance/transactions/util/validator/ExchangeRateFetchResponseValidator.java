@@ -6,6 +6,10 @@ import ie.universityofgalway.finance.transactions.exception.ExchangeRateUnavaila
 
 import java.time.LocalDate;
 
+/**
+ * Rejects incomplete, non-positive, wrong-pair or future-dated provider responses.
+ * Earlier effective dates are accepted; this validator does not calculate a banking calendar.
+ */
 public final class ExchangeRateFetchResponseValidator {
 
     private ExchangeRateFetchResponseValidator() {

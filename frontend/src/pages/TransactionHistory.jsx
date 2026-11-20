@@ -16,6 +16,8 @@ const emptyFilters = { from: '', to: '', type: '', category: '' };
 const dateFormatter = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function Filters({ filters, metadata, onApply }) {
+  //lets the user edit several filter inputs before applying them.
+  // Avoids requesting new history after every individual input change.
   const [draft, setDraft] = useState(filters);
   const [error, setError] = useState('');
   const categories = (metadata.data?.categories ?? []).filter((category) =>
@@ -67,14 +69,18 @@ function Filters({ filters, metadata, onApply }) {
 
 export default function TransactionHistory() {
   const metadata = useTransactionMetadata();
+  //reads active/deleted status
   const [params, setParams] = useSearchParams();
   const deleted = params.get('view') === 'deleted';
   const rawPage = Number(params.get('page') ?? 0);
   const page = Number.isSafeInteger(rawPage) && rawPage >= 0 && rawPage <= 2147483647 ? rawPage : 0;
   const size = [10, 20, 50].includes(Number(params.get('size'))) ? Number(params.get('size')) : 20;
+  //filters from URL parameters
   const filters = Object.fromEntries(Object.keys(emptyFilters).map((key) => [key, params.get(key) || '']));
   const { from, to, type, category } = filters;
   const [revision, setRevision] = useState(0);
+  //identifies which query produced a result and displays it only if it matches the current selection
+  //old results should not appear under new filter while another request is loading.
   const queryKey = JSON.stringify({ deleted, page, size, from, to, type, category, revision });
   const [result, setResult] = useState(null);
   const [selection, setSelection] = useState(null);
@@ -89,6 +95,8 @@ export default function TransactionHistory() {
 
   useEffect(() => {
     const controller = new AbortController();
+    //requests one page from either active or deleted transactions, depending on the current view.
+    //filtering and pagination happen in the backend rather than downloading every transaction.
     getTransactionHistory({ page, size, type, category, from, to, deleted, signal: controller.signal }).then(
       (response) => {
         if (controller.signal.aborted) return;
@@ -101,8 +109,6 @@ export default function TransactionHistory() {
             ...record,
             dateLabel: dateFormatter.format(new Date(record.occurredAt)),
             amountLabel: formatMoney(record.amount, record.currency),
-            typeLabel: formatEnumLabel(record.transactionType),
-            categoryLabel: formatEnumLabel(record.transactionCategory),
           }));
           setResult({ key: queryKey, data: { ...response, content } });
         } catch {
@@ -117,6 +123,8 @@ export default function TransactionHistory() {
   useEffect(() => () => mutation.current?.abort(), []);
 
   // A deletion or a change in another tab can remove the last page.
+  //moves to the last valid page if the currently selected page no longer exists.
+  //deleting the only record on the final page should not leave the user stranded on an invalid page
   useEffect(() => {
     if (data && page > 0 && page >= data.totalPages) {
       setParams((previous) => {
@@ -143,6 +151,8 @@ export default function TransactionHistory() {
     setPending(true);
     setActionError('');
     try {
+      //performs and action, closes the dialog, and triggers a fresh history request.
+      //The displayed list should reflect the backend's resulting state.
       await (selection.deleted ? restoreTransaction : deleteTransaction)(selection.record.id, controller.signal);
       if (controller.signal.aborted) return;
       setNotice(selection.deleted ? 'Transaction restored. It is available in Active transactions.' : 'Transaction deleted. You can restore it from Deleted transactions.');

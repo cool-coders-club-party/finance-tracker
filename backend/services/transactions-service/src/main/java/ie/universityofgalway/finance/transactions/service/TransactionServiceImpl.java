@@ -22,6 +22,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+/**
+ * Implements owner-scoped lifecycle operations with transactional persistence.
+ * Updates modify managed entities; JPA dirty checking persists their changes on commit.
+ * Public operation contracts are defined by {@link TransactionService}.
+ */
 @Service
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
@@ -127,6 +132,10 @@ public class TransactionServiceImpl implements TransactionService {
                         query.userId(), query.type(), query.category(), query.from(), query.to()), pageable));
     }
 
+    /**
+     * Validates date order and supported sort options, then adds descending ID as a
+     * stable tie-breaker for records with equal dates or amounts.
+     */
     private PageRequest createPageRequest(TransactionHistoryQuery query) {
         if (query.from() != null && query.to() != null && query.from().isAfter(query.to())) {
             throw new InvalidTransactionHistoryQueryException("from must be on or before to");

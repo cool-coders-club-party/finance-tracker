@@ -72,6 +72,7 @@ export function restoreSession() {
 }
 
 export async function authenticatedFetch(url, options = {}) {
+  //waits for session restoration before checking whether the user is signed in.
   if (state.status === 'loading') {
     await restoreSession();
   }
@@ -81,8 +82,11 @@ export async function authenticatedFetch(url, options = {}) {
     throw new Error('Please sign in to continue.');
   }
   const response = await fetch(url, { ...options,
+    //adds the access token to private requests. The backend uses it to authenticate the user and determine ownership
     headers: { ...options.headers, Authorization: `Bearer ${session.token}` },
   });
+  //logs out only if the rejected token still belogns to the current session
+  //a delayed failure from an old session must not log out a newly signed-in user.
   if (response.status === 401 && state.session?.token === session.token) {
     logout('Your session expired. Please sign in again.');
   }

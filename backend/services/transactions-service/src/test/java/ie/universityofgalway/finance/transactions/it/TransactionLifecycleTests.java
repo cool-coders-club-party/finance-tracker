@@ -20,18 +20,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class TransactionLifecycleTests {
     private static final String API = "/api/v1/transactions";
-    @Autowired MockMvc mvc;
+    @Autowired MockMvc mvc; //sends requests and inspects responses
     @Autowired ObjectMapper json;
 
     @Test
     @DisplayName("A saved expense contributes to the user's summary until it is soft-deleted")
     void givenRecordedExpense_whenSoftDeleted_thenSummaryAndHistoryExcludeIt() throws Exception {
         //given
+        //create a GBP 42.50 expense
         String created = mvc.perform(post(API).with(jwt().jwt(token -> token.subject(USER_ID.toString()))).contentType(APPLICATION_JSON).content("""
                 {"transactionType":"EXPENSE","transactionCategory":"GROCERIES",
                  "currency":"GBP","amount":"42.50","occurredAt":"2025-03-10T12:00:00"}
                 """)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long id = json.readTree(created).get("id").asLong();
+        //after the expense is created check that the summary includes GBP 42.50
         mvc.perform(get(API + "/summary").with(jwt().jwt(token -> token.subject(USER_ID.toString()))).param("currency", "GBP"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.expenses").value(42.5))
                 .andExpect(jsonPath("$.spendingByCategory[0].category").value("GROCERIES"));

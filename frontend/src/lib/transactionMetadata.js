@@ -1,3 +1,4 @@
+//turns INVESTMENT_RETURN into Investment return
 export function formatEnumLabel(value) {
   return value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
 }
@@ -18,10 +19,12 @@ export function validateMetadata(data) {
   return data;
 }
 
+//returns only ategories compatible with the selected type
 export function categoriesForType(metadata, type) {
   return metadata.categories.filter((category) => category.allowedTypes.includes(type));
 }
 
+//preserves the category after a type change if it remains valid; otherwise clears it
 export function categoryAfterTypeChange(metadata, categoryName, nextType) {
   return categoriesForType(metadata, nextType).some(({ name }) => name === categoryName)
     ? categoryName : '';

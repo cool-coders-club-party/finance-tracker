@@ -14,6 +14,8 @@ import { Button } from '../components/ui/button';
 
 function TransactionOverview({ userId }) {
   const metadata = useTransactionMetadata();
+  //gives each user a separate browser-stored display-currency preference
+  //one account's selection should not automatically become another account's preference.
   const preferenceKey = `finance-tracker:transaction-currency:${userId}`;
   const [preferred, setPreferred] = useState(() => {
     try { return localStorage.getItem(preferenceKey); } catch { return null; }
@@ -26,6 +28,7 @@ function TransactionOverview({ userId }) {
   useEffect(() => {
     if (!currency) return;
     const controller = new AbortController();
+    //fetches a new summary when the user,currency, or retry counter changes.
     getTransactionSummary(currency, controller.signal).then(
       (summary) => {
         if (!controller.signal.aborted) setResult({ currency, attempt, summary });
