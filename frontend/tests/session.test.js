@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test, beforeEach, afterEach } from 'node:test';
 import {
-  startSession, clearSession, getAccessToken, getUser, getRefreshToken, refreshSession, restoreSession, subscribe
+  startSession, clearSession, endSession, getAccessToken, getUser, getRefreshToken, refreshSession, restoreSession, subscribe
 } from '../src/lib/session.js';
 
 // Node has no localStorage, so give the tests a tiny stand-in.
@@ -145,4 +145,56 @@ test('two restoreSession calls at once send a single request', async (t) => {
   const fetchMock = t.mock.method(globalThis, 'fetch', async () => Response.json(tokens(2)));
   await Promise.all([restoreSession(), restoreSession()]);
   assert.equal(fetchMock.mock.callCount(), 1);
+});
+
+test('a refresh that finishes after sign-out does not sign the user back in', async (t) => {
+  startSession(tokens(1));
+  let finish;
+  t.mock.method(globalThis, 'fetch', () => new Promise((resolve) => { finish = resolve; }));
+  const pending = refreshSession();
+  clearSession();
+  finish(Response.json(tokens(2)));
+  await assert.rejects(pending);
+  assert.equal(getUser(), null);
+  assert.equal(getRefreshToken(), null);
+  assert.equal(getAccessToken(), null);
+});
+
+test('a stale rejected refresh does not wipe a newer sign-in', async (t) => {
+  startSession(tokens(1));
+  let finish;
+  t.mock.method(globalThis, 'fetch', () => new Promise((resolve) => { finish = resolve; }));
+  const pending = refreshSession();
+  clearSession();
+  startSession(tokens(9)); // someone signs in again before the old request answers
+  finish(Response.json({ message: 'Invalid refresh token' }, { status: 401 }));
+  await assert.rejects(pending);
+  assert.equal(getAccessToken(), 'access-9');
+  assert.equal(getRefreshToken(), 'refresh-9');
+});
+
+test('endSession clears the session and revokes the stored refresh token', async (t) => {
+  startSession(tokens(1));
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 204 }));
+  await endSession();
+  const [url, options] = fetchMock.mock.calls[0].arguments;
+  assert.equal(url, '/api/auth/logout');
+  assert.equal(JSON.parse(options.body).refreshToken, 'refresh-1');
+  assert.equal(getUser(), null);
+  assert.equal(getRefreshToken(), null);
+});
+
+test('endSession signs out locally even if the server cannot be reached', async (t) => {
+  startSession(tokens(1));
+  t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+  await endSession(); // must not throw
+  assert.equal(getUser(), null);
+  assert.equal(getAccessToken(), null);
+  assert.equal(getRefreshToken(), null);
+});
+
+test('endSession with no stored token sends nothing', async (t) => {
+  const fetchMock = t.mock.method(globalThis, 'fetch');
+  await endSession();
+  assert.equal(fetchMock.mock.callCount(), 0);
 });
