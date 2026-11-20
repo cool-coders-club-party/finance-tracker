@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -36,9 +37,13 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateTransactionRequest request
     ) {
-        UUID userId = UUID.fromString(jwt.getSubject());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(transactionService.createTransaction(request, userId));
+                .body(
+                        transactionService.createTransaction(
+                                request,
+                                getUserId(jwt)
+                        )
+                );
     }
 
     @GetMapping
@@ -53,9 +58,17 @@ public class TransactionController {
             @RequestParam(defaultValue = "date") String sortBy,
             @RequestParam(defaultValue = "desc") String direction
     ) {
-        UUID userId = UUID.fromString(jwt.getSubject());
         TransactionHistoryQuery query = new TransactionHistoryQuery(
-                userId, type, category, from, to, page, size, sortBy, direction);
+                getUserId(jwt),
+                type,
+                category,
+                from,
+                to,
+                page,
+                size,
+                sortBy,
+                direction
+        );
         return ResponseEntity.ok(transactionService.findHistory(query));
     }
 
@@ -64,8 +77,12 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable @NotNull @Positive Long transactionId
     ) {
-        UUID userId = UUID.fromString(jwt.getSubject());
-        return ResponseEntity.ok(transactionService.findTransactionById(transactionId, userId));
+        return ResponseEntity.ok(
+                transactionService.findTransactionById(
+                        transactionId,
+                        getUserId(jwt)
+                )
+        );
     }
 
     @PatchMapping("/{transactionId}")
@@ -74,8 +91,13 @@ public class TransactionController {
             @PathVariable @NotNull @Positive Long transactionId,
             @Valid @RequestBody UpdateTransactionRequest request
     ) {
-        UUID userId = UUID.fromString(jwt.getSubject());
-        return ResponseEntity.ok(transactionService.updateTransaction(transactionId, request, userId));
+        return ResponseEntity.ok(
+                transactionService.updateTransaction(
+                        transactionId,
+                        request,
+                        getUserId(jwt)
+                )
+        );
     }
 
     @DeleteMapping("/{transactionId}")
@@ -84,9 +106,8 @@ public class TransactionController {
             @PathVariable @NotNull @Positive Long transactionId,
             @RequestParam(defaultValue = "false") boolean permanent
     ) {
-        UUID userId = UUID.fromString(jwt.getSubject());
-        if (permanent) transactionService.hardDelete(transactionId, userId);
-        else transactionService.softDelete(transactionId, userId);
+        if (permanent) transactionService.hardDelete(transactionId, getUserId(jwt));
+        else transactionService.softDelete(transactionId, getUserId(jwt));
 
         return ResponseEntity.ok().build();
     }
@@ -95,12 +116,11 @@ public class TransactionController {
     public ResponseEntity<TransactionResponseDto> restoreSoftDeletedTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable @NotNull @Positive Long transactionId
-    ){
-        UUID userId = UUID.fromString(jwt.getSubject());
+    ) {
         TransactionResponseDto transactionResponseDto =
                 transactionService.restoreAndGetSoftDeletedTransaction(
                         transactionId,
-                        userId
+                        getUserId(jwt)
                 );
         return ResponseEntity.ok(transactionResponseDto);
     }
@@ -116,10 +136,9 @@ public class TransactionController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "date") String sortBy,
             @RequestParam(defaultValue = "desc") String direction
-    ){
-        UUID userId = UUID.fromString(jwt.getSubject());
+    ) {
         TransactionHistoryQuery query = new TransactionHistoryQuery(
-                userId, type, category, from, to, page, size, sortBy, direction);
+                getUserId(jwt), type, category, from, to, page, size, sortBy, direction);
         return ResponseEntity.ok(transactionService.findSoftDeletedTransactions(query));
     }
 
@@ -136,15 +155,22 @@ public class TransactionController {
             @RequestParam(value = "from", required = false) LocalDate from,
             @RequestParam(value = "to", required = false) LocalDate to
     ) {
-        UUID userId = UUID.fromString(jwt.getSubject());
         TransactionSummaryResponseDto transactionSummary = transactionSummaryService.getTransactionSummary(
-                userId,
+                getUserId(jwt),
                 transactionCurrency,
                 from,
                 to
         );
         return ResponseEntity.ok(transactionSummary);
 
+    }
+
+    private static UUID getUserId(Jwt jwt) {
+        return UUID.fromString(
+                Objects.requireNonNull(
+                        jwt.getSubject()
+                )
+        );
     }
 
 
