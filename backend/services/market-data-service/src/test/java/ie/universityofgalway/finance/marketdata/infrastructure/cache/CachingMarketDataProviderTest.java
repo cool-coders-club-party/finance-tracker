@@ -25,6 +25,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Verifies cache reuse, refresh at expiry, stale fallback and failure without a cached quote.
+ */
 class CachingMarketDataProviderTest {
 
     @Test

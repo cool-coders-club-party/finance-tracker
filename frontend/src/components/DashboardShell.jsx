@@ -7,12 +7,19 @@ import Grainient from "./Grainient";
 
 const NAV_ITEMS = [
   { label: "Dashboard", link: "/" },
+  // Portfolio combines holdings with the former standalone market-data lookup.
   { label: "Portfolio", link: "/portfolio"},
   { label: "Transactions", link: "/transactions" },
   { label: "Add Transaction", link: "/transactions/new" },
 ];
 
-// Shared background, theme, spacing, and navigation for dashboard pages.
+/**
+ * Provides shared dashboard navigation, background and signed-in session controls.
+ *
+ * @param {object} props layout inputs.
+ * @param {import("react").ReactNode} props.children page content rendered inside the shared shell.
+ * @return {import("react").ReactElement} The dashboard layout.
+ */
 export default function DashboardShell({ children }) {
   const location = useLocation();
   const { session } = useAuth();

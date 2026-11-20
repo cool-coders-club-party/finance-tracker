@@ -24,6 +24,10 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
+/**
+ * Verifies quote mapping, optional statistics, missing symbols and rate-limit failures against a mock HTTP
+ * server.
+ */
 class TwelveDataMarketDataProviderTest {
 
     private MockRestServiceServer server;

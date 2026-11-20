@@ -15,6 +15,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+/**
+ * Verifies ticker normalisation and empty results for null, blank and unknown symbols.
+ */
 public class QuoteServiceTest {
 
     private MarketDataProvider marketDataProvider;

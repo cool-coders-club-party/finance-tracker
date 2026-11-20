@@ -4,12 +4,24 @@ import { useState } from "react";
 const inputClass =
   "mt-1.5 h-11 w-full min-w-0 rounded-lg border border-white/15 bg-black/20 px-3 text-base text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8dc89]/70 sm:text-sm";
 
-// datetime-local works in the browser's local time, without a timezone suffix.
+/**
+ * Converts a date into the browser-local value expected by a datetime-local input.
+ *
+ * @param {Date} date valid instant to display in the user's timezone.
+ * @return {string} Local date and time to minute precision, without a timezone suffix.
+ */
 function toLocalDateTime(date) {
   const localTime = date.getTime() - date.getTimezoneOffset() * 60_000;
   return new Date(localTime).toISOString().slice(0, 16);
 }
 
+/**
+ * Formats a purchase preview using the supplied currency, defaulting to USD.
+ *
+ * @param {number} value preview amount.
+ * @param {string} [currency] quote currency when available.
+ * @return {string} The formatted preview amount.
+ */
 function formatAmount(value, currency) {
   return new Intl.NumberFormat("en-IE", {
     style: "currency",
@@ -17,9 +29,19 @@ function formatAmount(value, currency) {
   }).format(value);
 }
 
-// Two ways to add shares:
-// - "now": buy at the live market price (the backend fetches it).
-// - "earlier": record a purchase already made elsewhere, at the price and time it happened.
+/**
+ * Collects a market-price purchase or an earlier purchase with its actual price and local date/time.
+ * Quote estimates are display-only; the backend obtains the execution price for a current purchase.
+ * The parent owns the ticker, while this form preserves other inputs across ticker changes.
+ *
+ * @param {object} props form values and callbacks.
+ * @param {string} props.ticker parent-controlled ticker text.
+ * @param {function(string): void} props.onTickerChange updates ticker text in the parent.
+ * @param {import("react").RefObject<HTMLInputElement>} [props.quantityInputRef] allows the parent to focus the shares input.
+ * @param {object|null} [props.quoteEstimate] quote with symbol, price and optional currency/asOf/stale metadata.
+ * @param {function(object): Promise<*>} props.onSave saves ticker/quantity and, for earlier purchases, price/executedAt; rejects on failure.
+ * @return {import("react").ReactElement} The purchase form and its validation/save feedback.
+ */
 export default function RecordPurchaseForm({
   ticker,
   onTickerChange,
@@ -49,6 +71,13 @@ export default function RecordPurchaseForm({
 
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  /**
+   * Validates the inputs, converts earlier purchase times to UTC and awaits the parent save callback.
+   * Successful saves clear quantity and price; failures retain inputs and display an error.
+   *
+   * @param {import("react").FormEvent<HTMLFormElement>} event form submission event.
+   * @return {Promise<void>} Resolves after validation or after save feedback has been applied.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");

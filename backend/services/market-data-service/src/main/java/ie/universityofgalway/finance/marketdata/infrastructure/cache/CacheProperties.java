@@ -4,7 +4,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 
-//Reads the cache freshness period from application.yml.
+/**
+ * Binds the {@code market-data.cache} configuration namespace.
+ *
+ * @param freshness duration for which a quote is fresh after entering the cache
+ */
 @ConfigurationProperties(prefix = "market-data.cache")
 public record CacheProperties(Duration freshness) {
 }

@@ -15,12 +15,23 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 
+/**
+ * Retrieves live quotes from Twelve Data when the local profile is active.
+ *
+ * <p>HTTP failures other than 404 propagate to the quote-cache decorator.</p>
+ */
 @Component("liveMarketDataProvider")
 @Profile("local")
 public class TwelveDataMarketDataProvider implements MarketDataProvider {
 
     private final RestClient restClient;
 
+    /**
+     * Builds an HTTP client using the configured base URL and API-key header.
+     *
+     * @param restClientBuilder builder for the provider HTTP client
+     * @param properties Twelve Data endpoint and API key
+     */
     public TwelveDataMarketDataProvider(
             RestClient.Builder restClientBuilder,
             TwelveDataProperties properties
@@ -35,6 +46,18 @@ public class TwelveDataMarketDataProvider implements MarketDataProvider {
                 .build();
     }
 
+    /**
+     * Maps a Twelve Data quote into the domain model.
+     *
+     * <p>Missing required fields or HTTP 404 yield no quote. Missing or malformed optional
+     * statistics become null without hiding a usable price.</p>
+     *
+     * @param symbol normalised ticker sent to the quote endpoint
+     * @return the mapped quote, or an empty optional when required quote data is absent
+     * @throws org.springframework.web.client.RestClientException if the HTTP request fails other than with
+     *     404
+     * @throws NumberFormatException if the required closing price is not a decimal number
+     */
     @Override
     public Optional<Quote> findQuote(String symbol) {
         TwelveDataQuoteResponse response;
@@ -99,6 +122,12 @@ public class TwelveDataMarketDataProvider implements MarketDataProvider {
     }
 
     // A missing or malformed optional value should not hide the price.
+    /**
+     * Parses an optional decimal without rejecting the rest of the quote.
+     *
+     * @param value provider text; may be null, blank or malformed
+     * @return the decimal value, or null if it cannot be parsed
+     */
     private BigDecimal parseOptionalDecimal(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -110,6 +139,12 @@ public class TwelveDataMarketDataProvider implements MarketDataProvider {
         }
     }
 
+    /**
+     * Parses optional volume without rejecting the rest of the quote.
+     *
+     * @param value provider text; may be null, blank or malformed
+     * @return the integer value, or null if it cannot be parsed
+     */
     private Long parseOptionalLong(String value) {
         if (value == null || value.isBlank()) {
             return null;

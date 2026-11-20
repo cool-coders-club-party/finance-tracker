@@ -15,6 +15,7 @@ const router = createBrowserRouter([
         { path: '/transactions/new', element: <Transactions /> },
         { path: '/transactions/:transactionId/edit', element: <Transactions /> },
         { path: '/portfolio', element: <Portfolio /> },
+        // Keep existing market-data links working after lookup moved into Portfolio.
         { path: '/market-data', element: <Navigate to="/portfolio" replace /> },
     ] },
 ]);

@@ -14,6 +14,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Verifies exact valuation arithmetic, stale metadata, currency restrictions, incomplete totals and
+ * authorisation before pricing.
+ */
 class ValuationServiceTest {
     private final PortfolioService portfolios = mock(PortfolioService.class);
     private final PriceClient prices = mock(PriceClient.class);

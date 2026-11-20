@@ -7,19 +7,31 @@ import org.springframework.stereotype.Service;
 import java.util.Locale;
 import java.util.Optional;
 
-//Tells Spring to create one QuoteService when the app starts
+/**
+ * Normalises caller-supplied tickers before requesting quotes from a provider.
+ */
 @Service
 public class QuoteService {
 
-    //where prices come from (the stub, for now)
     private final MarketDataProvider marketDataProvider;
 
-    //Spring passes in the provider automatically
+    /**
+     * Creates the application service.
+     *
+     * @param marketDataProvider provider selected by the active Spring configuration
+     */
     public QuoteService(MarketDataProvider marketDataProvider){
         this.marketDataProvider = marketDataProvider;
     }
 
-    //Looks up a quote, Returns empty if the symbol is blank or unknown
+    /**
+     * Trims the ticker and uppercases it using {@link Locale#ROOT} before lookup.
+     *
+     * @param rawSymbol caller-supplied ticker; may be null or blank
+     * @return the quote, or an empty optional for null, blank or symbols with no quote data
+     * @throws ie.universityofgalway.finance.marketdata.domain.MarketDataUnavailableException if the
+     *     configured provider fails without a usable fallback
+     */
     public Optional<Quote> getQuote(String rawSymbol) {
 
         if (rawSymbol == null){

@@ -14,20 +14,32 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.Optional;
 
-//Handles web requests and returns JSON
+/**
+ * Exposes stock quotes through the /api/quotes endpoints.
+ *
+ * <p>Missing data produces HTTP 404; provider unavailability produces HTTP 503.</p>
+ */
 @RestController
-//All URLs in this class start with /api/quotes
 @RequestMapping("/api/quotes")
 public class QuoteController {
 
     private final QuoteService quoteService;
 
+    /**
+     * Creates the controller with its application service.
+     *
+     * @param quoteService service used to retrieve stock quotes
+     */
     public QuoteController(QuoteService quoteService) {
         this.quoteService = quoteService;
     }
 
-    //Runs for GET /api/quotes/{symbol}, e.g /api/quotes/AAPL
-    //@PathVariable copies the {symbol} part of the URL into the parameter
+    /**
+     * Returns a quote, including its provider timestamp, optional statistics and stale-data flag.
+     *
+     * @param symbol ticker from the URL; normalised by the application service
+     * @return HTTP 200 with the quote, or HTTP 404 with a problem detail if no quote is available
+     */
     @GetMapping("/{symbol}")
     public ResponseEntity<Object> getQuote(@PathVariable String symbol) {
         Optional<Quote> result = quoteService.getQuote(symbol);
@@ -54,7 +66,12 @@ public class QuoteController {
         return ResponseEntity.ok(response);
     }
 
-    //converts a temporary market-data failure into a clear HTTP 503 response
+    /**
+     * Converts a provider failure without a usable fallback into a service-unavailable response.
+     *
+     * @param exception domain failure carrying a client-safe message
+     * @return HTTP 503 with a problem detail
+     */
     @ExceptionHandler(MarketDataUnavailableException.class)
     public ResponseEntity<ProblemDetail> handleMarketDataUnavailable(
             MarketDataUnavailableException exception

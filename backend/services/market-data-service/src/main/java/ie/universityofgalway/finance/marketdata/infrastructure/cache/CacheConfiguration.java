@@ -8,16 +8,30 @@ import org.springframework.context.annotation.Primary;
 
 import java.time.Clock;
 
+/**
+ * Wires the live or stub provider behind the primary in-memory quote cache.
+ */
 @Configuration
 public class CacheConfiguration {
 
-    //Provides a clock that can also be replaced in integration tests.
+    /**
+     * Provides the UTC clock shared by quote caching and market-data services.
+     *
+     * @return the system UTC clock
+     */
     @Bean
     Clock marketDataClock() {
         return Clock.systemUTC();
     }
 
-    //Makes the cache the provider used by QuoteService.
+    /**
+     * Makes the caching decorator the default provider injected into quote lookup.
+     *
+     * @param liveProvider underlying provider selected by the active profile
+     * @param properties configured cache freshness duration
+     * @param marketDataClock clock used to measure time since a quote was cached
+     * @return the primary caching market-data provider
+     */
     @Bean
     @Primary
     MarketDataProvider cachingMarketDataProvider(

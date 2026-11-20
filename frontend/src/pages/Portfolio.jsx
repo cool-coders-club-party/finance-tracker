@@ -1,4 +1,3 @@
-// useEffect loads Portfolio data when the page opens.
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { buy, createPortfolio, getPortfolios, getTrades, getValuation, sell } from "../api/portfolio";
@@ -42,6 +41,12 @@ const moverQuoteTime = new Intl.DateTimeFormat("en-IE", {
   timeZone: "UTC",
 });
 
+/**
+ * Formats a quote statistic to two decimal places without adding a currency label.
+ *
+ * @param {number|string|null|undefined} value numeric quote statistic, or an absent value.
+ * @return {string} The formatted statistic, or an em dash for null/undefined.
+ */
 function formatPrice(value) {
   if (value == null) return "—";
 
@@ -51,7 +56,13 @@ function formatPrice(value) {
   });
 }
 
-//This page will hold both stock lookup and the user's holdings
+/**
+ * Combines authenticated portfolio holdings and trading with market lookup and rankings.
+ * Ranking failures remain independent of stock lookup; history failures keep a successful quote visible.
+ * Holdings are requested after authentication and displayed only for the matching user session.
+ *
+ * @return {import("react").ReactElement} The portfolio and market exploration page.
+ */
 export default function Portfolio() {
   const { status: authStatus, session } = useAuth();
   const userId = authStatus === "ready" ? session?.user.id : undefined;
@@ -114,6 +125,11 @@ export default function Portfolio() {
   useEffect(() => {
     const controller = new AbortController();
 
+    /**
+     * Loads the deployed top-five snapshot and ignores results after effect cancellation.
+     *
+     * @return {Promise<void>} Resolves after updating the snapshot or its unavailable state.
+     */
     async function loadTopStocks() {
       try {
         const snapshot = await getTopStocks(controller.signal);
@@ -196,6 +212,13 @@ export default function Portfolio() {
 
     const controller = new AbortController();
 
+    /**
+     * Selects the user's first portfolio, then loads valuation and trade history concurrently.
+     * A trade-history failure preserves valuation; fully sold holdings are hidden.
+     * Cancellation prevents obsolete requests from updating state.
+     *
+     * @return {Promise<void>} Resolves after updating the holdings, empty state or error state.
+     */
     async function loadPortfolio() {
       // After a trade, keep showing the current table while it refreshes
       // instead of flashing back to "Loading your holdings…".
@@ -271,6 +294,18 @@ export default function Portfolio() {
 
   const portfolioId = portfolioData.portfolio?.id;
 
+  /**
+   * Saves a purchase, announces success and triggers a portfolio refresh.
+   * Errors propagate to the purchase form so it can preserve inputs and display feedback.
+   *
+   * @param {object} purchase validated purchase details.
+   * @param {string} purchase.ticker stock symbol.
+   * @param {number} purchase.quantity share quantity.
+   * @param {number} [purchase.price] actual price for an earlier purchase.
+   * @param {string} [purchase.executedAt] ISO execution timestamp for an earlier purchase.
+   * @return {Promise<void>} Resolves after the purchase succeeds.
+   * @throws {Error} if the purchase request fails.
+   */
   async function handleBuy({ ticker, quantity, price, executedAt }) {
     setTradeNotice("");
     await buy(portfolioId, ticker, quantity, { price, executedAt });
@@ -282,6 +317,15 @@ export default function Portfolio() {
     setPortfolioReload((current) => current + 1);
   }
 
+  /**
+   * Saves a sale, closes its form and refreshes holdings after success.
+   *
+   * @param {object} sale validated sale details.
+   * @param {string} sale.ticker stock symbol.
+   * @param {number} sale.quantity share quantity to sell.
+   * @return {Promise<void>} Resolves after the sale succeeds.
+   * @throws {Error} if the sale request fails; the sell form displays the error.
+   */
   async function handleSell({ ticker, quantity }) {
     setTradeNotice("");
     await sell(portfolioId, ticker, quantity);
@@ -290,6 +334,12 @@ export default function Portfolio() {
     setPortfolioReload((current) => current + 1);
   }
 
+  /**
+   * Creates a named portfolio and reloads holdings, or displays validation/request feedback.
+   *
+   * @param {import("react").FormEvent<HTMLFormElement>} event portfolio creation event.
+   * @return {Promise<void>} Resolves after applying success or error feedback.
+   */
   async function handleCreatePortfolio(event) {
     event.preventDefault();
     const name = newPortfolioName.trim();
@@ -309,18 +359,35 @@ export default function Portfolio() {
   }
 
 
+  /**
+   * Starts a stock lookup from the ticker form without browser navigation.
+   *
+   * @param {import("react").FormEvent<HTMLFormElement>} event stock search submission event.
+   */
   function handleSubmit(event) {
     event.preventDefault();
     lookupStock(tickerInput);
   }
 
+  /**
+   * Prefills stock lookup, moves focus to its heading and requests the selected ticker.
+   *
+   * @param {string} ticker symbol selected from either ranking card.
+   */
   function handleRankingSelect(ticker) {
     setTickerInput(ticker);
     document.getElementById("lookup-heading")?.focus();
     lookupStock(ticker);
   }
 
-  // Both entry points use the same quote and history request.
+  /**
+   * Normalises a ticker and requests its quote followed by optional daily history.
+   * Ignores a new lookup while one is already loading. Keeps the desktop grid height
+   * stable during replacement and reports quote/history failures separately.
+   *
+   * @param {string} rawTicker ticker entered by the user or selected from a ranking.
+   * @return {Promise<void>} Resolves once lookup feedback and loading state are updated.
+   */
   async function lookupStock(rawTicker) {
     if (isLoading) return;
 

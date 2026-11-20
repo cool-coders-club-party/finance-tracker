@@ -1,5 +1,18 @@
 import SpotlightCard from "./SpotlightCard";
 
+/**
+ * Displays a market ranking using caller-formatted rows and accessible ticker-selection buttons.
+ * Optional row timestamps and stale flags identify cached mover quotes.
+ *
+ * @param {object} props card content and interaction.
+ * @param {string} props.title visible and accessible card title.
+ * @param {string} props.subtitle explanation of the ranking.
+ * @param {Array<{ticker: string, company: string, metric: string, metricClassName?: string, asOf?: string, asOfLabel?: string, stale?: boolean}>} props.rows already ordered and formatted ranking rows.
+ * @param {string} props.footer loading, source or availability message.
+ * @param {function(string): void} props.onSelect receives the selected ticker.
+ * @param {boolean} [props.disabled] disables selection while lookup is busy.
+ * @return {import("react").ReactElement} The ranking card.
+ */
 export default function MarketRankingCard({
   title,
   subtitle,

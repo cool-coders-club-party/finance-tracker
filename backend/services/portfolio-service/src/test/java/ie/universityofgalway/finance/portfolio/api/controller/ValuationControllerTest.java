@@ -21,6 +21,10 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Verifies authenticated valuation responses, ownership checks and incomplete totals using mocked portfolio
+ * and price ports.
+ */
 @WebMvcTest(ValuationController.class)
 @Import({SecurityConfig.class, ValuationService.class})
 @TestPropertySource(properties = "jwt.secret=test-only-secret-that-is-at-least-32-bytes-long")

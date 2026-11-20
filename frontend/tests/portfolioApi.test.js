@@ -1,3 +1,6 @@
+/**
+ * Exercises authenticated Portfolio API requests, valuation metadata and trade payloads using mocked fetch responses.
+ */
 import assert from "node:assert/strict";
 import { test, afterEach } from "node:test";
 import { acceptLogin, logout } from "../src/lib/authSession.js";

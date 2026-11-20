@@ -14,6 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Supplies fixed USD prices for AAPL, MSFT and TSLA when the stub profile is active.
+ */
 @Component("liveMarketDataProvider")
 @Profile("stub")
 public class StubMarketDataProvider implements MarketDataProvider {
@@ -27,6 +30,12 @@ public class StubMarketDataProvider implements MarketDataProvider {
         PRICES.put("TSLA", new BigDecimal("248.90"));
     }
 
+    /**
+     * Returns a fixed development price with the current timestamp and USD metadata.
+     *
+     * @param symbol ticker; null and unknown values produce no result
+     * @return a fresh stub quote, or an empty optional for an unsupported symbol
+     */
     @Override
     public Optional<Quote> findQuote(String symbol) {
 
