@@ -1,4 +1,4 @@
-import { authenticatedFetch } from "../lib/authSession.js";
+import { authenticatedFetch } from '../lib/authenticatedFetch.js';
 
 const BASE = "/portfolio-api/api/portfolios";
 

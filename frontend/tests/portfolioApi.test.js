@@ -3,12 +3,13 @@
  */
 import assert from "node:assert/strict";
 import { test, afterEach } from "node:test";
-import { acceptLogin, logout } from "../src/lib/authSession.js";
+import { startSession, clearSession } from "../src/lib/session.js";
+import "./helpers/localStorage.js";
 import { buy, createPortfolio, getHoldings, getPortfolios, getTrades, getValuation, sell } from "../src/api/portfolio.js";
 
-afterEach(() => logout());
+afterEach(() => clearSession());
 function login() {
-  acceptLogin({ accessToken: "owner-token", tokenType: "Bearer", expiresIn: 900, id: "owner", email: "owner@example.com" });
+  startSession({ accessToken: "owner-token", refreshToken: "owner-refresh", tokenType: "Bearer", expiresIn: 900, id: "owner", email: "owner@example.com" });
 }
 
 test("valuation sends bearer authentication and preserves null totals and stale metadata", async (t) => {
