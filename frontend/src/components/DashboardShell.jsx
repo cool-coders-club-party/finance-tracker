@@ -22,7 +22,7 @@ const NAV_ITEMS = [
  */
 export default function DashboardShell({ children }) {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     if (location.pathname !== "/" || location.hash !== "#portfolio") return undefined;
@@ -91,7 +91,7 @@ export default function DashboardShell({ children }) {
           <div className="space-y-6 p-2 sm:p-6">
             {user && <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
               <span>{user.email}</span>
-              <Button type="button" variant="outline" className="h-10" onClick={() => signOut()}>Sign out</Button>
+              <Button type="button" variant="outline" className="h-10" onClick={() => logout()}>Sign out</Button>
             </div>}
             {children}
           </div>

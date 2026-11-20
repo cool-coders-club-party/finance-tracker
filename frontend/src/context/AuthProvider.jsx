@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     startSession(tokens);                         // notifies, so `user` updates
   }
 
-  function signOut() {
+  function logout() {
     endSession();
   }
 
@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
     user,
     status: restoring ? 'loading' : user ? 'authenticated' : 'anonymous',
     signIn,
-    signOut,
+    logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

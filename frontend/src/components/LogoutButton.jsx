@@ -3,11 +3,11 @@ import { useAuth } from '../context/useAuth.js';
 import { Button } from './ui/button';
 
 export default function LogoutButton() {
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   function handleClick() {
-    signOut(); // clears the session at once; the server request finishes in the background
+    logout(); // clears the session at once; the server request finishes in the background
     navigate('/login', { replace: true });
   }
 
