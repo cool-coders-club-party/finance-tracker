@@ -7,6 +7,16 @@ import {
   YAxis,
 } from "recharts";
 
+/**
+ * Renders daily closing prices as a responsive area chart.
+ * The caller supplies usable points in chronological order and handles empty/error states.
+ * Prices are converted to JavaScript numbers for visualisation, not financial calculations.
+ *
+ * @param {object} props chart inputs.
+ * @param {Array<{date: string, close: number|string}>} props.points daily points, oldest first; normally at least two.
+ * @param {string} [props.currency] currency label appended to tooltip amounts.
+ * @return {import("react").ReactElement} The price-history chart.
+ */
 export default function PriceHistoryChart({ points, currency }) {
   // Recharts needs numbers; the API supplies dates and precise prices.
   const data = points.map((point) => ({

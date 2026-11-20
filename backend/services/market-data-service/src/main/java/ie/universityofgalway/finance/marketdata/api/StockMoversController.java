@@ -8,14 +8,28 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Exposes daily movers from the tracked watchlist at /api/rankings/movers.
+ */
 @RestController
 public class StockMoversController {
     private final StockMoversService stockMoversService;
 
+    /**
+     * Creates the ranking controller.
+     *
+     * @param stockMoversService service supplying the ranking
+     */
     public StockMoversController(StockMoversService stockMoversService) {
         this.stockMoversService = stockMoversService;
     }
 
+    /**
+     * Returns up to five tracked movers without browser caching.
+     *
+     * @return HTTP 200 with the ranking, possibly empty, or HTTP 503 when provider failures leave no usable
+     *     quotes
+     */
     @GetMapping("/api/rankings/movers")
     public ResponseEntity<?> getMovers() {
         var ranking = stockMoversService.getMovers();

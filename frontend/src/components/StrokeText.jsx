@@ -11,6 +11,9 @@ if (typeof window !== 'undefined') {
 const DEFAULT_TEXT = 'Draw Attention';
 const SHADOW_OPACITY = 0.5;
 
+/**
+ * Builds the start and end clipping rectangles for a directional fill wipe.
+ */
 const getWipeFrames = (box, wipeFrom) => {
   const end = { x: box.x, y: box.y, width: box.width, height: box.height };
   if (wipeFrom === 'right') return { start: { ...end, x: box.x + box.width, width: 0 }, end };
@@ -19,6 +22,9 @@ const getWipeFrames = (box, wipeFrom) => {
   return { start: { ...end, width: 0 }, end };
 };
 
+/**
+ * Builds dash-array and period values for dashed/dotted outlines, or null for a solid outline.
+ */
 const getDashPattern = (strokeStyle, dashLength, strokeWidth) => {
   const width = Math.max(Number(strokeWidth) || 0, 0.1);
   const length = Math.max(Number(dashLength) || 0, 1);
@@ -34,6 +40,39 @@ const getDashPattern = (strokeStyle, dashLength, strokeWidth) => {
   return null;
 };
 
+/**
+ * Draws an accessible SVG text outline with optional fill reveal and shadow.
+ * Measures after font loading and resize, honours reduced motion, and removes GSAP
+ * timelines, scroll triggers, observers and pointer listeners on cleanup.
+ *
+ * @param {object} props text appearance and animation options.
+ * @param {string} [props.text="Draw Attention"] displayed text and accessible image label.
+ * @param {"left"|"center"} [props.align="center"] SVG alignment within the wrapper.
+ * @param {string} [props.strokeColor="#f1cbfc"] outline colour.
+ * @param {string} [props.fillColor="currentColor"] revealed text colour.
+ * @param {number} [props.strokeWidth=1.4] SVG outline width.
+ * @param {number} [props.drawDuration=1.6] outline draw duration in seconds.
+ * @param {number} [props.fillDelay=0.2] seconds added to drawDuration before the fill starts revealing.
+ * @param {number} [props.stagger=0.05] per-character delay in seconds.
+ * @param {string} [props.ease="power2.out"] GSAP easing name.
+ * @param {"mount"|"hover"|"scroll"|"loop"} [props.trigger="mount"] playback trigger.
+ * @param {"wipe"|"fade"|"none"} [props.fillMode="wipe"] fill reveal style; non-wipe enabled values fade.
+ * @param {"left"|"right"|"top"|"bottom"} [props.wipeFrom="left"] fill wipe direction.
+ * @param {number} [props.fontSize=128] font size in pixels.
+ * @param {number|string} [props.fontWeight=800] font weight.
+ * @param {string} [props.fontFamily="inherit"] font family.
+ * @param {number} [props.letterSpacing=-4] letter spacing in pixels.
+ * @param {boolean} [props.reverse=false] reverses character staggering.
+ * @param {"solid"|"dashed"|"dotted"} [props.strokeStyle="solid"] outline pattern.
+ * @param {number} [props.dashLength=10] dash or dot spacing parameter.
+ * @param {boolean} [props.marching=false] animates a patterned outline continuously.
+ * @param {boolean} [props.hoverRedraw=false] redraws a completed non-looping outline on hover.
+ * @param {boolean} [props.shadow=false] enables the lifted fill shadow.
+ * @param {string} [props.shadowColor] shadow colour; defaults to strokeColor.
+ * @param {string} [props.className] wrapper classes.
+ * @param {object} [props.style] wrapper inline styles.
+ * @return {import("react").ReactElement} The animated SVG text.
+ */
 const StrokeText = ({
   text = DEFAULT_TEXT,
   align = 'center',
@@ -94,6 +133,7 @@ const StrokeText = ({
     [fontFamily, fontSize, fontWeight, letterSpacing]
   );
 
+  // Re-measure after fonts load and when the container resizes so clipping follows the text.
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root || !strokeTextRef.current) return undefined;

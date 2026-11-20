@@ -13,26 +13,69 @@ import org.springframework.web.client.RestClientException;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/**
+ * Obtains Portfolio prices from the Market Data service when {@code price-client.type=market-data}.
+ *
+ * <p>Transport errors and unusable quote metadata are translated into domain failures.</p>
+ */
 @Component
 @ConditionalOnProperty(name = "price-client.type", havingValue = "market-data")
 public class MarketDataPriceClient implements PriceClient {
 
+    /**
+     * Currency metadata read from a Market Data quote.
+     *
+     * @param currency provider currency code; may be null
+     */
     private record DetailsDto(String currency) {}
 
+    /**
+     * Internal JSON shape for a Market Data quote.
+     *
+     * @param symbol returned stock symbol
+     * @param price unit price
+     * @param asOf provider price timestamp
+     * @param stale boxed stale flag so a missing field can be rejected
+     * @param details optional currency metadata
+     */
     private record QuoteDto(String symbol, BigDecimal price, Instant asOf, Boolean stale, DetailsDto details) {
     }
 
     private final RestClient restClient;
 
+    /**
+     * Creates the adapter with a preconfigured Market Data HTTP client.
+     *
+     * @param marketDataRestClient client containing the Market Data base URL and request settings
+     */
     public MarketDataPriceClient(RestClient marketDataRestClient) {
         this.restClient = marketDataRestClient;
     }
 
+    /**
+     * Retrieves a validated quote and returns its unit price.
+     *
+     * @param ticker stock symbol to request
+     * @return the quoted unit price
+     * @throws ie.universityofgalway.finance.portfolio.domain.exception.InvalidSymbolException if the provider
+     *     does not recognise the ticker
+     * @throws PriceUnavailableException if the provider cannot supply a usable price
+     */
     @Override
     public BigDecimal getPrice(String ticker) {
         return getQuote(ticker).price();
     }
 
+    /**
+     * Requests an encoded ticker path and validates quote identity, price, timestamp and stale flag.
+     *
+     * <p>Missing currency is preserved as null so the valuation service can report it explicitly.</p>
+     *
+     * @param ticker non-null stock symbol to request
+     * @return the validated quote with optional currency metadata
+     * @throws InvalidSymbolException if Market Data returns HTTP 404
+     * @throws PriceUnavailableException if the service fails or required quote metadata is unusable
+     */
     @Override
     public MarketQuote getQuote(String ticker) {
         try {

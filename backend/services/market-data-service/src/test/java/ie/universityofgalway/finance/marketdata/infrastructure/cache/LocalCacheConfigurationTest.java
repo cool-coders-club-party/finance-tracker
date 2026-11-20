@@ -8,6 +8,9 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
+/**
+ * Verifies that the local Spring profile wraps the Twelve Data provider with the quote cache.
+ */
 @SpringBootTest(properties = {
         "market-data.twelve-data.base-url=https://example.test",
         "market-data.twelve-data.api-key=test-key"

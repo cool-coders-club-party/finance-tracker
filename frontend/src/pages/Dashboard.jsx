@@ -80,6 +80,11 @@ function TransactionOverview({ userId }) {
   );
 }
 
+/**
+ * Renders the authenticated dashboard inside the shared shell, including its animated heading.
+ *
+ * @return {import("react").ReactElement} The dashboard page.
+ */
 function Dashboard() {
   const { session } = useAuth();
   return (

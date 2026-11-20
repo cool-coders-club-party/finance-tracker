@@ -9,6 +9,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Verifies fixed development prices, input normalisation and missing results for unsupported symbols.
+ */
 class StubMarketDataProviderTest {
 
     @Test

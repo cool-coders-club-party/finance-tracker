@@ -4,6 +4,15 @@ import ie.universityofgalway.finance.portfolio.domain.model.Holding;
 
 import java.math.BigDecimal;
 
+/**
+ * Saved holding data, separate from any live market valuation.
+ *
+ * @param id holding identifier
+ * @param ticker stock symbol
+ * @param quantity shares currently held
+ * @param avgPurchasePrice weighted average purchase price per share in the saved currency
+ * @param currency saved purchase currency; null for legacy holdings with unknown currency
+ */
 public record HoldingResponse(
         Long id,
         String ticker,
@@ -11,9 +20,12 @@ public record HoldingResponse(
         BigDecimal avgPurchasePrice,
         String currency
 ) {
-    // A static factory method to build this DTO from the entity keeps the
-    // mapping logic in one place, rather than scattered across every controller
-    // method that needs to return a Holding.
+    /**
+     * Maps a domain holding without substituting a current market price for its purchase cost.
+     *
+     * @param holding saved domain holding
+     * @return the public holding representation
+     */
     public static HoldingResponse from(Holding holding) {
         return new HoldingResponse(
                 holding.getId(),

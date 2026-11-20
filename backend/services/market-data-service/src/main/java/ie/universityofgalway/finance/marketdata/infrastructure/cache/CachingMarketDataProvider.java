@@ -13,6 +13,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Caches quotes by ticker and retains expired entries as fallbacks for HTTP provider failures.
+ *
+ * <p>Freshness is measured from cache insertion, not from the provider timestamp.
+ * A missing live quote is returned as absence rather than replaced by an old quote.</p>
+ */
 public class CachingMarketDataProvider implements MarketDataProvider {
 
     //Provides fresh quotes when the cache cannot be used.
@@ -29,6 +35,13 @@ public class CachingMarketDataProvider implements MarketDataProvider {
     private final Map<String, CacheEntry> cache =
             new ConcurrentHashMap<>();
 
+    /**
+     * Creates a cache around the supplied provider.
+     *
+     * @param liveProvider provider called when no fresh entry exists
+     * @param freshnessPeriod freshness duration measured from insertion
+     * @param clock clock used for insertion times and expiry checks
+     */
     public CachingMarketDataProvider(
             MarketDataProvider liveProvider,
             Duration freshnessPeriod,
@@ -39,6 +52,17 @@ public class CachingMarketDataProvider implements MarketDataProvider {
         this.clock = clock;
     }
 
+    /**
+     * Returns a fresh cached quote or requests a replacement.
+     *
+     * <p>If the provider throws {@link RestClientException}, an existing entry is returned
+     * as stale regardless of age. With no cached entry, the failure becomes a domain exception.
+     * Concurrent requests may independently refresh the same expired symbol.</p>
+     *
+     * @param symbol non-null normalised ticker used as the cache key
+     * @return a live or cached quote, or an empty optional when the live provider has no quote
+     * @throws MarketDataUnavailableException if the HTTP provider fails and no cached quote exists
+     */
     @Override
     public Optional<Quote> findQuote(String symbol) {
         //Looks for an existing cached quote.
@@ -78,6 +102,12 @@ public class CachingMarketDataProvider implements MarketDataProvider {
         }
     }
 
+    /**
+     * Checks expiry against the injected clock; an entry is expired at the exact expiry instant.
+     *
+     * @param entry cached quote and its insertion time
+     * @return true while the insertion time plus freshness duration is strictly in the future
+     */
     private boolean isFresh(CacheEntry entry) {
         //Calculates the exact time when this cache entry expires.
         Instant expiresAt =
@@ -86,7 +116,12 @@ public class CachingMarketDataProvider implements MarketDataProvider {
         return expiresAt.isAfter(clock.instant());
     }
 
-    //Keeps the quote together with the time it entered the cache.
+    /**
+     * A quote and the time it entered this cache.
+     *
+     * @param quote original provider quote
+     * @param cachedAt insertion time used for cache expiry
+     */
     private record CacheEntry(
             Quote quote,
             Instant cachedAt

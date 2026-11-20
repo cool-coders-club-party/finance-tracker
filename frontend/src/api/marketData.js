@@ -1,7 +1,20 @@
+/**
+ * Market Data requests use the configured deployment URL or the development proxy.
+ * Only ranking requests currently accept an AbortSignal; quote and history requests
+ * run to completion once started.
+ */
 const BASE_URL = (
   import.meta.env?.VITE_MARKET_DATA_API_BASE_URL || "/market-data"
 ).replace(/\/$/, "");
 
+/**
+ * Fetches the manually maintained top-five snapshot and checks its row count and capture date.
+ * The capture date is descriptive: an old snapshot does not expire automatically.
+ *
+ * @param {AbortSignal} [signal] cancels the request when the caller leaves the page.
+ * @return {Promise<object>} The snapshot with capturedOn, sourceUrl and exactly five rows.
+ * @throws {Error} if the request fails or the snapshot structure is invalid; cancellation rejects with AbortError.
+ */
 export async function getTopStocks(signal) {
   const response = await fetch(`${BASE_URL}/api/rankings/top-stocks`, { signal });
   if (!response.ok) {
@@ -17,6 +30,13 @@ export async function getTopStocks(signal) {
   return snapshot;
 }
 
+/**
+ * Fetches the watchlist movement ranking and validates coverage counts, changes and timestamps.
+ *
+ * @param {AbortSignal} [signal] cancels the request when the caller leaves the page.
+ * @return {Promise<object>} Coverage counts and up to five rows; changes are percentage points (8 means 8%).
+ * @throws {Error} if the request fails or the response is invalid; cancellation rejects with AbortError.
+ */
 export async function getStockMovers(signal) {
   const response = await fetch(`${BASE_URL}/api/rankings/movers`, { signal });
   if (!response.ok) {
@@ -38,6 +58,14 @@ export async function getStockMovers(signal) {
   return ranking;
 }
 
+/**
+ * Fetches a quote, retaining the provider timestamp, stale flag and optional details.
+ * HTTP 404, service failures and transport failures become readable error messages.
+ *
+ * @param {string} symbol ticker encoded as one URL path segment.
+ * @return {Promise<object>} The quote JSON, or an empty object if the success body is not valid JSON.
+ * @throws {Error} if the lookup fails.
+ */
 export async function getQuote(symbol) {
   let response;
 
@@ -71,6 +99,13 @@ export async function getQuote(symbol) {
   return body;
 }
 
+/**
+ * Fetches the daily closing-price series used by the stock chart.
+ *
+ * @param {string} symbol ticker encoded as one URL path segment.
+ * @return {Promise<Array<{date: string, close: number|string}>>} Daily points in service order, oldest first.
+ * @throws {Error} if the lookup fails or the response does not contain a points array.
+ */
 export async function getPriceHistory(symbol) {
   let response;
 

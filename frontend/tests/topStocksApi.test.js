@@ -1,3 +1,6 @@
+/**
+ * Exercises top-five snapshot validation and continued availability of historical capture dates.
+ */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

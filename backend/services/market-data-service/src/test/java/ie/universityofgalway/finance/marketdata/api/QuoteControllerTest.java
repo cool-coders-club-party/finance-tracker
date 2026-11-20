@@ -23,6 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import static org.mockito.Mockito.mock;
 
+/**
+ * Verifies quote responses, stale fallback metadata and HTTP error mapping with a mocked application service.
+ */
 public class QuoteControllerTest {
 
     private QuoteService quoteService;

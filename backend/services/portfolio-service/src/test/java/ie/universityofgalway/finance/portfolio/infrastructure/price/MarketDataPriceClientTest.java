@@ -15,6 +15,9 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
+/**
+ * Verifies quote metadata mapping and rejection of malformed responses, HTTP failures and transport failures.
+ */
 class MarketDataPriceClientTest {
     private MockRestServiceServer server;
     private MarketDataPriceClient client;

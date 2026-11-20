@@ -1,10 +1,16 @@
 package ie.universityofgalway.finance.marketdata.domain;
 
-//signals that neither a live quote nor a cached fallback is available
+/**
+ * Signals a temporary market-data failure, including quote or history provider failures.
+ */
 public class MarketDataUnavailableException extends RuntimeException {
 
+    /**
+     * Preserves the underlying failure while exposing a stable client-safe message.
+     *
+     * @param cause provider, transport or response-parsing failure
+     */
     public MarketDataUnavailableException(Throwable cause) {
-        //super() calls a constructor in the superclass RuntimeException
         super("Market data is temporarily unavailable", cause);
     }
 
