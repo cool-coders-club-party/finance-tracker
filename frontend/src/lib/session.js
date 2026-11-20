@@ -79,3 +79,17 @@ export function refreshSession() {
 
   return pendingRefresh;
 }
+
+/**
+ * Called once when the app starts. If a refresh token is stored, trade it for a
+ * new session.
+ */
+export async function restoreSession() {
+  if (!getRefreshToken()) return; // nothing to restore
+  try {
+    await refreshSession();
+  } catch {
+    // A rejected token has already cleared the session (see refreshSession).
+    // A network failure leaves the token stored, so the next page load tries again.
+  }
+}
