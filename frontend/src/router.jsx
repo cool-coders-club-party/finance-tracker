@@ -5,14 +5,16 @@ import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import TransactionHistory from "./pages/TransactionHistory";
 import Portfolio from "./pages/Portfolio";
-// import SignIn from "./pages/SignIn";
-// import Register from "./pages/Register";
+import SignIn from "./pages/SignIn";
+import Register from "./pages/Register";
+import LogoutButton from "./components/LogoutButton";
 
 const router = createBrowserRouter([
     { path: '/login', element: <Login key="login" /> },
     { path: '/register', element: <Login key="register" registration /> },
     // { path: '/new-login', element: <SignIn /> },
     // { path: '/new-register', element: <Register /> },
+    // { path: '/new-logout', element: <LogoutButton /> },
     { element: <RequireAuth />, children: [
         { path: '/', element: <Dashboard /> },
         { path: '/transactions', element: <TransactionHistory /> },
