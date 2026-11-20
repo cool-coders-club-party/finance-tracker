@@ -1,4 +1,4 @@
-import { refresh as requestRefresh, AuthApiError } from '../api/auth.js';
+import { refresh as requestRefresh, logout as requestLogout, AuthApiError } from '../api/auth.js';
 
 // Where the refresh token lives between page loads
 const REFRESH_TOKEN_KEY = 'finance-tracker:refresh-token';
@@ -8,6 +8,7 @@ let accessToken = null;
 let accessTokenExpiresAt = 0; // in milliseconds
 let user = null;
 let pendingRefresh = null;   // pending refresh request, if it exists
+let sessionVersion = 0; // goes up every time the session starts or is cleared
 
 const listeners = new Set(); // a Set holds each callback once
 
@@ -31,6 +32,8 @@ export function startSession(tokenResponse) {
   accessTokenExpiresAt = Date.now() + tokenResponse.expiresIn * 1000;
   user = { id: tokenResponse.id, email: tokenResponse.email };
   localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refreshToken);
+  sessionVersion += 1;
+  pendingRefresh = null;
   notify();
 }
 
@@ -40,6 +43,8 @@ export function clearSession() {
   accessTokenExpiresAt = 0;
   user = null;
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionVersion += 1;
+  pendingRefresh = null;
   notify();
 }
 
@@ -62,22 +67,28 @@ export function refreshSession() {
   const token = getRefreshToken();
   if (!token) return Promise.reject(new AuthApiError('No refresh token', 401));
 
-  pendingRefresh = requestRefresh(token)
+  const versionAtStart = sessionVersion;
+  const promise = requestRefresh(token)
     .then((tokenResponse) => {
+      if (versionAtStart !== sessionVersion) {
+        // The user signed out (or signed in again) while this request was in flight.
+        // Applying the result would undo that, so throw it away.
+        throw new AuthApiError('The session changed during the refresh', 401);
+      }
       startSession(tokenResponse); // replaces BOTH tokens (rotation)
       return tokenResponse;
     })
     .catch((error) => {
-      // Only a 401 means the token is invalid. A network failure (status 0)
-      // says nothing about the token, so the user stays signed in and can retry.
-      if (error.status === 401) clearSession();
+      // Only a 401 means this token is invalid, and only if the session is still the
+      // one this request started with. A network failure (status 0) keeps the session.
+      if (error.status === 401 && versionAtStart === sessionVersion) clearSession();
       throw error;
     })
     .finally(() => {
-      pendingRefresh = null; // allow a fresh refresh next time
+      if (pendingRefresh === promise) pendingRefresh = null;
     });
-
-  return pendingRefresh;
+  pendingRefresh = promise;
+  return promise;
 }
 
 /**
@@ -91,5 +102,20 @@ export async function restoreSession() {
   } catch {
     // A rejected token has already cleared the session (see refreshSession).
     // A network failure leaves the token stored, so the next page load tries again.
+  }
+}
+
+/**
+ * Sign out: forget the session here at once, then ask the server to revoke the refresh token.
+ */
+export async function endSession() {
+  const refreshToken = getRefreshToken();
+  clearSession(); // the user is signed out on this device immediately
+  if (!refreshToken) return;
+  try {
+    await requestLogout(refreshToken);
+  } catch {
+    // The user is signed out on this device either way. If the server could not be
+    // reached, the token simply expires on its own.
   }
 }

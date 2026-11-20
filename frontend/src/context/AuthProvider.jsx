@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { login } from '../api/auth.js';
-import {startSession, clearSession, getUser, getRefreshToken, restoreSession, subscribe } from '../lib/session.js';
+import { startSession, endSession, getUser, getRefreshToken, restoreSession, subscribe } from '../lib/session.js';
 import { AuthContext } from './AuthContext.js';
 
 export function AuthProvider({ children }) {
@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
   }
 
   function signOut() {
-    clearSession();
+    endSession();
   }
 
   const value = {
