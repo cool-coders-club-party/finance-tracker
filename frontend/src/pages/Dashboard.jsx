@@ -1,4 +1,4 @@
-import useAuth from '../hooks/useAuth';
+import { useAuth } from '../context/useAuth.js';
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
@@ -86,7 +86,7 @@ function TransactionOverview({ userId }) {
  * @return {import("react").ReactElement} The dashboard page.
  */
 function Dashboard() {
-  const { session } = useAuth();
+  const { user } = useAuth();
   return (
       <DashboardShell>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -106,7 +106,7 @@ function Dashboard() {
           </h1>
         </div>
 
-        <TransactionOverview key={session.user.id} userId={session.user.id} />
+        <TransactionOverview key={user.id} userId={user.id} />
         <FinancialReportExport />
       </DashboardShell>
     );

@@ -1,5 +1,4 @@
-import useAuth from '../hooks/useAuth';
-import { logout } from '../lib/authSession';
+import { useAuth } from '../context/useAuth.js';
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { StaggeredMenu } from "./StaggeredMenu";
@@ -23,7 +22,7 @@ const NAV_ITEMS = [
  */
 export default function DashboardShell({ children }) {
   const location = useLocation();
-  const { session } = useAuth();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     if (location.pathname !== "/" || location.hash !== "#portfolio") return undefined;
@@ -90,9 +89,9 @@ export default function DashboardShell({ children }) {
         </div>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-8 pt-24 md:px-8 md:pb-12 md:pt-28">
           <div className="space-y-6 p-2 sm:p-6">
-            {session && <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
-              <span>{session.user.email}</span>
-              <Button type="button" variant="outline" className="h-10" onClick={() => logout()}>Sign out</Button>
+            {user && <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
+              <span>{user.email}</span>
+              <Button type="button" variant="outline" className="h-10" onClick={() => signOut()}>Sign out</Button>
             </div>}
             {children}
           </div>

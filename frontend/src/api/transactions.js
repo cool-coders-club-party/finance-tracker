@@ -1,4 +1,4 @@
-import { authenticatedFetch } from '../lib/authSession.js';
+import { authenticatedFetch } from '../lib/authenticatedFetch.js';
 import { validateMetadata } from '../lib/transactionMetadata.js';
 
 const BASE_URL = '/api/v1/transactions';

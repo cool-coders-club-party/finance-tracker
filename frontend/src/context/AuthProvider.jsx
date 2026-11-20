@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    status: user ? 'authenticated' : 'anonymous',
+    status: restoring ? 'loading' : user ? 'authenticated' : 'anonymous',
     signIn,
     signOut,
   };
