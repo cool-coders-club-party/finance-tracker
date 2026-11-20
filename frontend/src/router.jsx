@@ -8,6 +8,7 @@ import Portfolio from "./pages/Portfolio";
 import SignIn from "./pages/SignIn";
 import Register from "./pages/Register";
 import LogoutButton from "./components/LogoutButton";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const router = createBrowserRouter([
     { path: '/login', element: <Login key="login" /> },
@@ -15,6 +16,9 @@ const router = createBrowserRouter([
     // { path: '/new-login', element: <SignIn /> },
     // { path: '/new-register', element: <Register /> },
     // { path: '/new-logout', element: <LogoutButton /> },
+    // { element: <ProtectedRoute />, children: [
+    // { path: '/new-secret', element: <p className="p-8">Secret page. You are signed in.</p> },
+    // ] },
     { element: <RequireAuth />, children: [
         { path: '/', element: <Dashboard /> },
         { path: '/transactions', element: <TransactionHistory /> },
