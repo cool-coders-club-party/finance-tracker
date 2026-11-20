@@ -10,6 +10,7 @@ import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
 import FinancialReportExport from '../components/FinancialReportExport';
 import StrokeText from '../components/StrokeText';
+import { Button } from '../components/ui/button';
 
 function TransactionOverview({ userId }) {
   const metadata = useTransactionMetadata();
@@ -62,8 +63,8 @@ function TransactionOverview({ userId }) {
           <p className="text-sm text-muted-foreground">All-time totals use transaction-date exchange rates.</p>
           {error ? <div role="alert" className="space-y-2">
             <p>{error}</p>
-            <button type="button" className="rounded-lg border border-input px-4 py-2"
-              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</button>
+            <Button type="button" variant="outline" className="h-10"
+              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</Button>
           </div> : !summary && <p role="status">Loading transaction summary…</p>}
         </CardContent>
       </Card>

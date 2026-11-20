@@ -13,7 +13,7 @@ export const StaggeredMenu = ({
   displaySocials = true,
   displayItemNumbering = true,
   className,
-  logoUrl = '/src/assets/logos/reactbits-gh-white.svg',
+  logoVideoUrl = '',
   menuButtonColor = '#fff',
   openMenuButtonColor = '#fff',
   accentColor = '#5227FF',
@@ -372,15 +372,18 @@ export const StaggeredMenu = ({
         })()}
       </div>
       <header className="staggered-menu-header" aria-label="Main navigation header">
-        <div className="sm-logo" aria-label="Logo">
-          <img
-            src={logoUrl || '/src/assets/logos/reactbits-gh-white.svg'}
-            alt="Logo"
+        <div className="sm-logo" role="img" aria-label="Póca logo">
+          <video
             className="sm-logo-img"
-            draggable={false}
-            width={110}
-            height={24}
-          />
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+          >
+            <source src={logoVideoUrl} type="video/webm" />
+          </video>
         </div>
         <button
           ref={toggleBtnRef}

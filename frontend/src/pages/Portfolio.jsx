@@ -14,6 +14,7 @@ import SellSharesForm from "../components/SellSharesForm";
 import TradeHistory from "../components/TradeHistory";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
+import { Button } from "../components/ui/button";
 import useAuth from "../hooks/useAuth";
 import { formatMoney, valuationReason } from "../lib/valuation.js";
 
@@ -465,13 +466,14 @@ export default function Portfolio() {
                     {portfolioData.error}
                   </p>
 
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setPortfolioReload((current) => current + 1)}
-                    className="rounded-lg border border-white/20 px-4 py-2 text-sm"
+                    variant="outline"
+                    className="h-10"
                   >
                     Retry
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -601,31 +603,34 @@ export default function Portfolio() {
               )}
             </div>
 
-            {/* Buying needs a portfolio to put the shares in. */}
-            {userId && portfolioId != null && (
-              <>
-                <button
-                  type="button"
-                  aria-expanded={purchaseOpen}
-                  aria-controls="purchase-panel"
-                  onClick={() => setPurchaseOpen((open) => !open)}
-                  className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
-                >
-                  {purchaseOpen ? "Close form" : "Add shares"}
-                </button>
+{/* Buying needs a portfolio to put the shares in. */}
+{userId && portfolioId != null && (
+  <>
+    <Button
+      type="button"
+      aria-expanded={purchaseOpen}
+      aria-controls="purchase-panel"
+      onClick={() => setPurchaseOpen((open) => !open)}
+      className="h-10"
+    >
+      {purchaseOpen ? "Close form" : "Add shares"}
+    </Button>
 
-                <div id="purchase-panel" hidden={!purchaseOpen}>
-                  <RecordPurchaseForm
-                    key={userId}
-                    ticker={purchaseTicker}
-                    onTickerChange={setPurchaseTicker}
-                    quantityInputRef={purchaseQuantityRef}
-                    quoteEstimate={quoteEstimate}
-                    onSave={handleBuy}
-                  />
-                </div>
-              </>
-            )}
+    <div id="purchase-panel" hidden={!purchaseOpen}>
+      <RecordPurchaseForm
+        key={`${userId}-${purchaseVersion}`}
+        ticker={purchaseTicker}
+        onTickerChange={(ticker) => {
+          setPurchaseTicker(ticker);
+          if (quoteEstimate) setQuoteEstimate(null);
+        }}
+        quantityInputRef={purchaseQuantityRef}
+        quoteEstimate={quoteEstimate}
+        onSave={handleBuy}
+      />
+    </div>
+  </>
+)}
 
           </section>
         </SpotlightCard>
@@ -672,13 +677,13 @@ export default function Portfolio() {
                   />
                 </label>
 
-                <button
+                <Button
                   type="submit"
                   disabled={isLoading}
-                  className="h-10 w-full self-end rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50 sm:w-auto"
+                  className="h-10 w-full self-end sm:w-auto"
                 >
                   {isHistoryLoading ? "Loading history..." : isLoading ? "Looking up..." : "Find price"}
-                </button>
+                </Button>
               </form>
 
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -724,29 +729,48 @@ export default function Portfolio() {
                       )}
                     </div>
 
-                    {/* Open the buy form for this stock, using the quote as an estimate. */}
                     {userId && portfolioId != null && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPurchaseTicker(quote.symbol);
-                          setQuoteEstimate({
-                            symbol: quote.symbol,
-                            price: quote.price,
-                            currency: details?.currency,
-                            asOf: quote.asOf,
-                            stale: quote.stale,
-                          });
-                          setPurchaseOpen(true);
-                          // The form may already be open; focus the shares field either way.
-                          purchaseQuantityRef.current?.focus();
-                          document.getElementById("portfolio-heading")?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                        className="rounded-lg border border-[#b8dc89]/40 px-4 py-2 text-sm text-[#b8dc89]"
-                      >
-                        Buy this stock
-                      </button>
-                    )}
+  <Button
+    type="button"
+    variant="outline"
+    className="h-10"
+    onClick={() => {
+      setPrefillError("");
+
+      const price = Number(quote.price);
+      if (details?.currency !== "USD" || !Number.isFinite(price) || price <= 0) {
+        setPrefillError("This quote needs a USD price to fill the purchase form.");
+        return;
+      }
+
+      const form = purchaseQuantityRef.current?.form;
+      const hasDraft = form && Array.from(new FormData(form).values())
+        .some((value) => String(value).trim() !== "");
+
+      if (hasDraft && !window.confirm("Replace your current purchase draft?")) return;
+
+      setPurchaseTicker(quote.symbol);
+      setPurchasePrice(String(quote.price));
+      setQuoteEstimate({
+        symbol: quote.symbol,
+        price: quote.price,
+        currency: details?.currency,
+        asOf: quote.asOf,
+        stale: quote.stale,
+        lookedUpAt: quote.lookedUpAt,
+      });
+      setPurchaseVersion((version) => version + 1);
+      setPurchaseOpen(true);
+      purchaseQuantityRef.current?.focus();
+      document.getElementById("portfolio-heading")?.scrollIntoView({ behavior: "smooth" });
+    }}
+  >
+    Buy this stock
+  </Button>
+)}
+
+{prefillError && <p role="alert">{prefillError}</p>}
+
                     {/* Stack statistics on narrow screens so long ranges can fit. */}
                     {details && (
                       <dl className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-2">

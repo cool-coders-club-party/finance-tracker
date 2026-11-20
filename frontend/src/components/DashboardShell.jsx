@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { StaggeredMenu } from "./StaggeredMenu";
 import Grainient from "./Grainient";
+import { Button } from "./ui/button";
 
 const NAV_ITEMS = [
   { label: "Dashboard", link: "/" },
@@ -57,7 +58,7 @@ export default function DashboardShell({ children }) {
            position="right"
            colors={["rgba(20, 28, 40, 0.56)", "rgba(32, 42, 56, 0.42)"]}
            items={NAV_ITEMS}
-           logoUrl="/poca-logo.png"
+           logoVideoUrl="/SpinningPocaTransparent.webm"
            menuButtonColor="#f8fafc"
            openMenuButtonColor="#f8fafc"
            accentColor="#f1cbfc"
@@ -84,7 +85,7 @@ export default function DashboardShell({ children }) {
           <div className="space-y-6 p-2 sm:p-6">
             {session && <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
               <span>{session.user.email}</span>
-              <button type="button" onClick={() => logout()} className="rounded-lg border border-input px-4 py-2">Sign out</button>
+              <Button type="button" variant="outline" className="h-10" onClick={() => logout()}>Sign out</Button>
             </div>}
             {children}
           </div>
