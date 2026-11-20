@@ -39,6 +39,10 @@ export default function SignIn() {
     }
   }
 
+  if (status === 'loading') {
+    return <p role="status" className="p-8">Checking your session…</p>;
+  }
+
   // if already signed in, be redirected away form this page.
   if (status === 'authenticated') {
     return <Navigate to={destination} replace />;

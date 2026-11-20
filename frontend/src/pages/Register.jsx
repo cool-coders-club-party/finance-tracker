@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { register } from '../api/auth.js';
 import { registrationErrorMessage } from '../lib/authMessages.js';
 import { validateRegistration } from '../lib/validation.js';
-import { FormField } from '..components/FormField';
+import FormField from '../components/FormField';
 
 export default function Register() {
   const navigate = useNavigate();

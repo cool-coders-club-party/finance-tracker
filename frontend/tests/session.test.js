@@ -104,3 +104,45 @@ test('listeners are told when the session starts and clears, until they unsubscr
   startSession(tokens(2));
   assert.equal(calls, 2); // no longer listening
 });
+
+const REFRESH_KEY = 'finance-tracker:refresh-token';
+
+test('restoreSession does nothing when there is no stored refresh token', async (t) => {
+  const fetchMock = t.mock.method(globalThis, 'fetch');
+  await restoreSession();
+  assert.equal(fetchMock.mock.callCount(), 0);
+  assert.equal(getUser(), null);
+});
+
+test('restoreSession signs the user back in from a stored refresh token', async (t) => {
+  localStorage.setItem(REFRESH_KEY, 'refresh-1');
+  t.mock.method(globalThis, 'fetch', async () => Response.json(tokens(2)));
+  await restoreSession();
+  assert.deepEqual(getUser(), { id: 'u1', email: 'a@b.com' });
+  assert.equal(getAccessToken(), 'access-2');
+  assert.equal(getRefreshToken(), 'refresh-2');
+});
+
+test('restoreSession ends signed out, without throwing, if the token is rejected', async (t) => {
+  localStorage.setItem(REFRESH_KEY, 'stale');
+  t.mock.method(globalThis, 'fetch', async () =>
+    Response.json({ message: 'Invalid refresh token' }, { status: 401 }));
+  await restoreSession();
+  assert.equal(getUser(), null);
+  assert.equal(getRefreshToken(), null);
+});
+
+test('restoreSession keeps the stored token on a network failure and does not throw', async (t) => {
+  localStorage.setItem(REFRESH_KEY, 'refresh-1');
+  t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+  await restoreSession();
+  assert.equal(getUser(), null);
+  assert.equal(getRefreshToken(), 'refresh-1');
+});
+
+test('two restoreSession calls at once send a single request', async (t) => {
+  localStorage.setItem(REFRESH_KEY, 'refresh-1');
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => Response.json(tokens(2)));
+  await Promise.all([restoreSession(), restoreSession()]);
+  assert.equal(fetchMock.mock.callCount(), 1);
+});
