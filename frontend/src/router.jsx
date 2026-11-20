@@ -1,6 +1,4 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-//import Login from "./pages/Login";
-//import RequireAuth from "./components/RequireAuth";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import TransactionHistory from "./pages/TransactionHistory";
@@ -8,7 +6,6 @@ import Portfolio from "./pages/Portfolio";
 import SignIn from "./pages/SignIn";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
-//import LogoutButton from "./components/LogoutButton";
 
 
 const router = createBrowserRouter([
