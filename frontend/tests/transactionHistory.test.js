@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { test, afterEach } from 'node:test';
-import { acceptLogin, logout } from '../src/lib/authSession.js';
+import { startSession, clearSession } from '../src/lib/session.js';
+import './helpers/localStorage.js';
 import { deleteTransaction, getTransactionHistory, restoreTransaction } from '../src/api/transactions.js';
 
 function login() {
-  acceptLogin({ accessToken: 'owner-token', tokenType: 'Bearer', expiresIn: 900, id: 'owner', email: 'owner@example.com' });
+  startSession({ accessToken: 'owner-token', refreshToken: 'owner-refresh', tokenType: 'Bearer', expiresIn: 900, id: 'owner', email: 'owner@example.com' });
 }
-afterEach(() => logout());
+afterEach(() => clearSession());
 
 test('history sends pagination and all filters without caller-provided ownership', async (t) => {
   login();

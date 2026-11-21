@@ -14,7 +14,7 @@ import TradeHistory from "../components/TradeHistory";
 // Use the shared layout for the market ranking cards.
 import MarketRankingCard from "../components/MarketRankingCard";
 import { Button } from "../components/ui/button";
-import useAuth from "../hooks/useAuth";
+import { useAuth } from "../context/useAuth.js";
 import { formatMoney, valuationReason } from "../lib/valuation.js";
 
 const rankingCaptureDate = new Intl.DateTimeFormat("en-IE", {
@@ -65,8 +65,8 @@ function formatPrice(value) {
  * @return {import("react").ReactElement} The portfolio and market exploration page.
  */
 export default function Portfolio() {
-  const { status: authStatus, session } = useAuth();
-  const userId = authStatus === "ready" ? session?.user.id : undefined;
+  const { status: authStatus, user } = useAuth();
+  const userId = authStatus === "authenticated" ? user?.id : undefined;
   const location = useLocation();
   const [tickerInput, setTickerInput] = useState("");
 
@@ -513,7 +513,7 @@ export default function Portfolio() {
                 <p className="text-sm text-white/60">Checking your session…</p>
               )}
 
-              {authStatus === "ready" && !userId && (
+              {authStatus === "anonymous" && (
                 <Link
                   to="/login"
                   state={{ from: location.pathname + location.search }}
