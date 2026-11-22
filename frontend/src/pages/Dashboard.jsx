@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
 import DashboardShell from "@/components/DashboardShell";
 import { Wallet, Receipt, Landmark } from "lucide-react"
-import SpendingByCurrency from "../components/transactions/SpendingByCurrency";
+import CategoryBreakdown from "../components/transactions/CategoryBreakdown.jsx";
 import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
@@ -77,7 +77,20 @@ function TransactionOverview({ userId }) {
           <StatCard title="Total Expenses" icon={Receipt} available value={summary.expenses} formatter={formatter.format} />
           <StatCard title="Net Income" icon={Landmark} available value={summary.netIncome} formatter={formatter.format} />
         </div>
-        <SpendingByCurrency summary={summary} />
+        <CategoryBreakdown
+          title="Spending by category"
+          breakdown={summary.spendingByCategory}
+          total={summary.expenses}
+          currency={summary.currency}
+          emptyMessage="No expenses recorded yet."
+        />
+        <CategoryBreakdown
+          title="Income by category"
+          breakdown={summary.incomeByCategory}
+          total={summary.income}
+          currency={summary.currency}
+          emptyMessage="No income recorded yet."
+        />
       </>}
     </>
   );
