@@ -8,6 +8,7 @@ import ie.universityofgalway.finance.transactions.entity.TransactionType;
 import ie.universityofgalway.finance.transactions.exception.InvalidTransactionHistoryQueryException;
 import ie.universityofgalway.finance.transactions.repository.TransactionRepository;
 import ie.universityofgalway.finance.transactions.repository.TransactionSpecifications;
+import ie.universityofgalway.finance.transactions.rest.dto.CategoryIncomeResponseDto;
 import ie.universityofgalway.finance.transactions.rest.dto.CategorySpendingResponseDto;
 import ie.universityofgalway.finance.transactions.rest.dto.TransactionSummaryResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -32,15 +33,16 @@ public class TransactionSummaryService {
 
     /**
      * Calculates converted income, expenses and net income for one owner.
-     * Unrounded amounts accumulate per expense category. Categories and income are rounded
-     * to two decimals using HALF_EVEN; expenses sum the rounded categories so visible totals
-     * reconcile. Net income is rounded income minus those expenses, not an account balance.
+     * Unrounded converted amounts accumulate separately per income and expense category.
+     * Each category is rounded to two decimals using HALF_EVEN, then its rounded amount
+     * contributes to the corresponding total so both breakdowns reconcile.
+     * Net income is total income minus total expenses, not an account balance.
      *
-     * @param userId authenticated owner UUID
+     * @param userId         authenticated owner UUID
      * @param targetCurrency currency of every returned monetary total
-     * @param from optional inclusive first day
-     * @param to optional inclusive last day
-     * @return totals and category spending; zero totals and no categories when nothing matches
+     * @param from           optional inclusive first day
+     * @param to             optional inclusive last day
+     * @return totals and both category breakdowns; zero totals and empty lists when nothing matches
      * @throws InvalidTransactionHistoryQueryException if from follows to
      * @throws ie.universityofgalway.finance.transactions.exception.ExchangeRateUnavailableException if a required rate is unavailable
      */
@@ -81,13 +83,18 @@ public class TransactionSummaryService {
     }
 
     private static final class SummaryTotals {
-        private BigDecimal income = BigDecimal.ZERO;
         private final Map<TransactionCategory, BigDecimal> expensesByCategory =
+                new EnumMap<>(TransactionCategory.class);
+        private final Map<TransactionCategory, BigDecimal> incomesByCategory =
                 new EnumMap<>(TransactionCategory.class);
 
         void record(Transaction transaction, BigDecimal convertedAmount) {
             if (transaction.getTransactionType().equals(TransactionType.INCOME)) {
-                income = income.add(convertedAmount);
+                incomesByCategory.merge(
+                        transaction.getTransactionCategory(),
+                        convertedAmount,
+                        BigDecimal::add
+                );
             } else {
                 expensesByCategory.merge(
                         transaction.getTransactionCategory(),
@@ -98,21 +105,50 @@ public class TransactionSummaryService {
         }
 
         TransactionSummaryResponseDto toResponse(TransactionCurrency currency) {
-            List<CategorySpendingResponseDto> categories = roundedCategorySpending();
-            BigDecimal totalIncome = round(income);
+            List<CategorySpendingResponseDto> categories = getRoundedCategorySpending();
+            List<CategoryIncomeResponseDto> incomes = getRoundedCategoryIncomes();
+            BigDecimal totalIncome = incomes.stream()
+                    .map(CategoryIncomeResponseDto::amount)
+                    .reduce(round(BigDecimal.ZERO), BigDecimal::add);
             BigDecimal totalExpenses = categories.stream()
                     .map(CategorySpendingResponseDto::amount)
                     .reduce(round(BigDecimal.ZERO), BigDecimal::add);
             return new TransactionSummaryResponseDto(
-                    currency, totalIncome, totalExpenses, totalIncome.subtract(totalExpenses), categories
+                    currency,
+                    totalIncome,
+                    totalExpenses,
+                    totalIncome.subtract(totalExpenses),
+                    categories,
+                    incomes
             );
         }
 
-        private List<CategorySpendingResponseDto> roundedCategorySpending() {
-            List<CategorySpendingResponseDto> categories = new ArrayList<>();
-            expensesByCategory.forEach((category, amount) ->
-                    categories.add(new CategorySpendingResponseDto(category, round(amount))));
-            return categories;
+        private List<CategoryIncomeResponseDto> getRoundedCategoryIncomes() {
+            List<CategoryIncomeResponseDto> incomeCategories = new ArrayList<>();
+            incomesByCategory.forEach(
+                    (category, amount) ->
+                            incomeCategories.add(
+                                    new CategoryIncomeResponseDto(
+                                            category,
+                                            round(amount)
+                                    )
+                            )
+            );
+            return incomeCategories;
+        }
+
+        private List<CategorySpendingResponseDto> getRoundedCategorySpending() {
+            List<CategorySpendingResponseDto> expensesCategories = new ArrayList<>();
+            expensesByCategory.forEach(
+                    (category, amount) ->
+                            expensesCategories.add(
+                                    new CategorySpendingResponseDto(
+                                            category,
+                                            round(amount)
+                                    )
+                            )
+            );
+            return expensesCategories;
         }
 
         private static BigDecimal round(BigDecimal amount) {

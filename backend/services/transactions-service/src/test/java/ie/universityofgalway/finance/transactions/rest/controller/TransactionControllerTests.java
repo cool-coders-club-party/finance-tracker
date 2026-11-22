@@ -141,7 +141,7 @@ class TransactionControllerTests {
         //given
         var amount = new BigDecimal("9.50");
         given(summaries.getTransactionSummary(USER_ID, EUR, DAY, DAY)).willReturn(new TransactionSummaryResponseDto(
-                EUR, BigDecimal.ZERO, amount, amount.negate(), List.of(new CategorySpendingResponseDto(GROCERIES, amount))));
+                EUR, BigDecimal.ZERO, amount, amount.negate(), List.of(new CategorySpendingResponseDto(GROCERIES, amount)), List.of()));
         //when
         var result = mvc.perform(get(API + "/summary").with(jwt().jwt(token -> token.subject(USER_ID.toString()))).param("userId", "999").param("currency", "EUR")
                 .param("from", DAY.toString()).param("to", DAY.toString()));
@@ -149,7 +149,8 @@ class TransactionControllerTests {
         result.andExpect(status().isOk()).andExpect(jsonPath("$.currency").value("EUR"))
                 .andExpect(jsonPath("$.netIncome").value(-9.5))
                 .andExpect(jsonPath("$.spendingByCategory[0].category").value("GROCERIES"))
-                .andExpect(jsonPath("$.spendingByCategory[0].amount").value(9.5));
+                .andExpect(jsonPath("$.spendingByCategory[0].amount").value(9.5))
+                .andExpect(jsonPath("$.incomeByCategory").isEmpty());
     }
 
     @ParameterizedTest
