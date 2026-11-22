@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import AuthLayout from '../components/AuthLayout';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { register } from '../api/auth.js';
 import { registrationErrorMessage } from '../lib/authMessages.js';
 import { validateRegistration } from '../lib/validation.js';
 import FormField from '../components/FormField';
+import ErrorTooltip from '@/components/ErrorTooltip';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -36,34 +37,28 @@ export default function Register() {
       setPending(false);
     }
   }
-
-  return (
-    <main className="grid min-h-screen place-items-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Create account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
-            {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
-            <FormField id="email" label="Email" type="email" autoComplete="email"
-              value={email} onChange={setEmail} error={errors.email} disabled={pending} />
-            <FormField id="password" label="Password (8 to 72 characters)" type="password"
-              autoComplete="new-password" value={password} onChange={setPassword}
-              error={errors.password} disabled={pending} />
-            <FormField id="confirmation" label="Confirm password" type="password"
-              autoComplete="new-password" value={confirmation} onChange={setConfirmation}
-              error={errors.confirmation} disabled={pending} />
-            <Button type="submit" className="min-h-11 w-full" disabled={pending}>
-              {pending ? 'Creating account…' : 'Create account'}
-            </Button>
-          </form>
-          <p className="mt-5 text-sm">
-            Already have an account?{' '}
-            <Link to="/login" className="underline underline-offset-4">Sign in</Link>
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    return (
+    <AuthLayout heading="Welcome to Póca!" title="Create account">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <FormField id="email" label="Email" type="email" autoComplete="email"
+          value={email} onChange={setEmail} error={errors.email} disabled={pending} />
+        <FormField id="password" label="Password (8 to 72 characters)" type="password"
+          autoComplete="new-password" value={password} onChange={setPassword}
+          error={errors.password} disabled={pending} />
+        <FormField id="confirmation" label="Confirm password" type="password"
+          autoComplete="new-password" value={confirmation} onChange={setConfirmation}
+          error={errors.confirmation} disabled={pending} />
+        <div className="relative">
+          <Button type="submit" className="min-h-11 w-full" disabled={pending}>
+            {pending ? 'Creating account…' : 'Create account'}
+          </Button>
+          {serverError && <ErrorTooltip id="form-error">{serverError}</ErrorTooltip>}
+        </div>
+      </form>
+      <p className="mt-5 text-sm">
+        Already have an account?{' '}
+        <Link to="/login" className="underline underline-offset-4">Sign in</Link>
+      </p>
+    </AuthLayout>
   );
 }

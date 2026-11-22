@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
+import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
+import ErrorTooltip from '../components/ErrorTooltip';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { useAuth } from '../context/useAuth.js';
 import { loginErrorMessage } from '../lib/authMessages.js';
 import { safeRedirectPath } from '../lib/redirect.js';
@@ -47,34 +48,28 @@ export default function SignIn() {
   if (status === 'authenticated') {
     return <Navigate to={destination} replace />;
   }
-
-  return (
-    <main className="grid min-h-screen place-items-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
-            {location.state?.registered && (
-              <p role="status" className="text-sm">Account created. Sign in to continue.</p>
-            )}
-            {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
-            <FormField id="email" label="Email" type="email" autoComplete="username"
-              value={email} onChange={setEmail} error={errors.email} disabled={pending} />
-            <FormField id="password" label="Password" type="password"
-              autoComplete="current-password" value={password} onChange={setPassword}
-              error={errors.password} disabled={pending} />
-            <Button type="submit" className="min-h-11 w-full" disabled={pending}>
-              {pending ? 'Signing in…' : 'Sign in'}
-            </Button>
-          </form>
-          <p className="mt-5 text-sm">
-            New here?{' '}
-            <Link to="/register" className="underline underline-offset-4">Create an account</Link>
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    return (
+    <AuthLayout heading="Welcome back to Póca!" title="Sign in">
+      <form onSubmit={handleSubmit} noValidate className="space-y-7">
+        {location.state?.registered && (
+          <p role="status" className="text-sm">Account created. Sign in to continue.</p>
+        )}
+        <FormField id="email" label="Email" type="email" autoComplete="username"
+          value={email} onChange={setEmail} error={errors.email} disabled={pending} />
+        <FormField id="password" label="Password" type="password"
+          autoComplete="current-password" value={password} onChange={setPassword}
+          error={errors.password} disabled={pending} />
+        <div className="relative">
+          <Button type="submit" className="min-h-11 w-full" disabled={pending}>
+            {pending ? 'Signing in…' : 'Sign in'}
+          </Button>
+          {serverError && <ErrorTooltip id="form-error">{serverError}</ErrorTooltip>}
+        </div>
+      </form>
+      <p className="mt-10 text-sm">
+        New here?{' '}
+        <Link to="/register" className="underline underline-offset-4">Create an account</Link>
+      </p>
+    </AuthLayout>
   );
 }
