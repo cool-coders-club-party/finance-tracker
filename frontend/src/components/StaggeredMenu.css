@@ -351,6 +351,10 @@
 }
 
 @media (max-width: 640px) {
+  .sm-logo {
+    display: none;
+  }
+
   .staggered-menu-panel {
     width: 100%;
     left: 0;
