@@ -22,7 +22,9 @@ import ie.universityofgalway.finance.reporting.application.usecase.GenerateFinan
 import ie.universityofgalway.finance.reporting.domain.model.FinancialReport;
 import ie.universityofgalway.finance.reporting.api.csv.FinancialReportCsvWriter;
 
+// Handling web requests.
 @RestController
+// Shared URL prefix.
 @RequestMapping("/api/reports")
 public class FinancialReportController {
 
@@ -35,28 +37,31 @@ public class FinancialReportController {
         this.generateFinancialReport = generateFinancialReport;
         this.csvWriter = csvWriter;
     }
-
+    // Map this method to GET /api/reports/export and declare that it returns a CSV.
     @GetMapping(value = "/export", produces = "text/csv")
     public ResponseEntity<byte[]> export(
+            // Provide JWT.
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam
+            // Parse as dates.
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-
+        // Reject range date where the start is after the end.
         if (from.isAfter(to)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "from must be on or before to");
         }
-
+        // Convert to UUID, which is used by the application. generateFinancialReport
+        // asks the app use case to collect the report data.
         UUID userId = UUID.fromString(jwt.getSubject());
         FinancialReport report = generateFinancialReport.generate(
                 userId, from, to, jwt.getTokenValue());
-
+        // Convert report into CSV bytes.
         byte[] csv = csvWriter.write(report);
         String filename = "financial-summary-" + from + "-to-" + to + ".csv";
-
+        // Create a HTTP 200 response, set the CSV content type and an attachment header with the filename, put CSV bytes in response body.
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(
