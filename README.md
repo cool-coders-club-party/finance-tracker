@@ -28,6 +28,22 @@ Redis and a `JWT_SECRET` shared with the Users service; follow the
 
 Read the [microservices architecture note](docs/architecture-microservices.md), [Clean Architecture diagram](docs/clean-architecture.md), and [system architecture diagrams](docs/architecture-diagrams.md) before adding a feature. The original setup history remains in [the team brief](docs/team-brief-1-initializing-and-backend.md).
 
+## Users
+
+The Users service runs on port **8081** and handles registration, login and
+session tokens. Passwords are hashed with BCrypt and users are stored in
+PostgreSQL through Spring Data JPA. Login returns a short-lived JWT access
+token (15 minutes, HS256) and a rotating refresh token (7 days), which is
+stored only as a SHA-256 hash. Logging out revokes the refresh token.
+
+The other services verify access tokens themselves with the shared
+`JWT_SECRET` and identify the caller from the token's `sub` claim, so they
+never call the Users service. The service follows Clean Architecture, with
+dependencies pointing inward from `api` to `application` to `domain`.
+
+See the [Users documentation](docs/api/users-service.md) for API endpoints, token
+design, local setup and the demonstration checklist.
+
 ## Transactions
 
 The Transactions service runs on port **8082** and manages each authenticated user's
@@ -59,6 +75,18 @@ Market-data does not require a persistent database.
 
 See the [Market Data documentation](docs/api/market-data.md)
 for API endpoints, local setup, provider configuration and testing.
+
+## Reporting
+
+The Reporting service runs on port **8086** and combines transaction history and
+current portfolio holdings into a UTF-8 CSV. Send a bearer JWT to
+`GET /api/reports/export?from=YYYY-MM-DD&to=YYYY-MM-DD`. The date range is
+inclusive, and transactions are ordered oldest first. Holdings with a positive
+quantity are included regardless of the transaction date range.
+
+See the [Reporting CSV export guide](backend/services/reporting-service/docs/reporting.md)
+for the file layout and column definitions. To generate the service's JavaDoc,
+run `sh ./mvnw -pl services/reporting-service javadoc:javadoc` from `backend`.
 
 ## Continuous Integration and Deployment
 

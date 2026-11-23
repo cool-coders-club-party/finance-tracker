@@ -10,6 +10,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * JPA implementation of the {@link PortfolioRepository} port.
+ *
+ * <p>Stores portfolios through a Spring Data repository and translates between the domain
+ * {@link Portfolio} and the database-facing {@link PortfolioEntity}, so the rest of the
+ * application never sees JPA types.</p>
+ */
 @Component
 public class PortfolioRepositoryAdapter implements PortfolioRepository {
 
@@ -29,6 +36,13 @@ public class PortfolioRepositoryAdapter implements PortfolioRepository {
         return jpa.findByUserId(userId).stream().map(this::toDomain).toList();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>For an existing portfolio only the name is updated; the owner never changes.</p>
+     *
+     * @throws PortfolioNotFoundException if the portfolio has an id but no longer exists
+     */
     @Override
     public Portfolio save(Portfolio portfolio) {
         PortfolioEntity entity = portfolio.getId() == null

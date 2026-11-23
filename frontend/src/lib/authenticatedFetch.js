@@ -1,3 +1,15 @@
+/*
+ * fetch() for endpoints that need a login.
+ *
+ * Adds the access token to every request. If the token is missing or expired it
+ * refreshes first, and if the server answers 401 it refreshes and retries once.
+ * If that still fails the session is cleared and the caller gets an
+ * AuthApiError. The Transactions, Portfolio and Reports API modules use this
+ * instead of calling fetch directly, so token handling lives in one place.
+ *
+ * Exports: authenticatedFetch(url, options)
+ */
+
 import { AuthApiError } from '../api/auth.js';
 import { getAccessToken, refreshSession, clearSession } from './session.js';
 

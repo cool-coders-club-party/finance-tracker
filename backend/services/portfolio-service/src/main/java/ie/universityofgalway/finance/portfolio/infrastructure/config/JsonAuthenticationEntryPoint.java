@@ -11,7 +11,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Returns 401 responses in the same {code, message} shape as GlobalExceptionHandler.
+ * Writes the response when a request has no valid access token: missing, malformed,
+ * badly signed or expired.
+ *
+ * <p>Returns {@code 401 Unauthorized} with a {@code WWW-Authenticate: Bearer} header and the
+ * JSON body {@code {"code": "UNAUTHORIZED", "message": ...}}, so clients get JSON instead of
+ * Spring's default empty response. Note that this uses {@code code} where
+ * {@link ie.universityofgalway.finance.portfolio.api.dto.ErrorResponse} uses {@code error}.</p>
+ *
+ * <p>Registered in {@link SecurityConfig}.</p>
  */
 public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
 

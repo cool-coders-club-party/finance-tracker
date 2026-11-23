@@ -11,12 +11,25 @@ import ie.universityofgalway.finance.reporting.domain.model.FinancialReport;
 import ie.universityofgalway.finance.reporting.domain.model.ReportInvestment;
 import ie.universityofgalway.finance.reporting.domain.model.ReportTransaction;
 
+/**
+ * Encodes financial reports as UTF-8 CSV downloads.
+ */
 @Component
 public class FinancialReportCsvWriter {
 
     private static final DateTimeFormatter DATE_TIME_FORMAT =
             DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
+    /**
+     * Writes a report heading followed by the transaction and investment sections.
+     *
+     * <p>Both sections keep their headers when empty. Rows follow the order supplied
+     * by the report. All cells are quoted and embedded quotes are doubled. Amounts
+     * use plain decimal notation and timestamps use ISO local date-time format.</p>
+     *
+     * @param report report data to export
+     * @return the complete CSV encoded as UTF-8 bytes
+     */
     public byte[] write(FinancialReport report) {
         StringBuilder csv = new StringBuilder();
 

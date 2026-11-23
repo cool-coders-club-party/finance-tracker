@@ -8,6 +8,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
+/**
+ * Calculates profit and loss for one stock by replaying its trades in date order.
+ *
+ * <p>Uses the average-cost method: each buy updates a weighted average price per share, and
+ * each sale's profit is its price minus that average at the time of the sale. A sale doesn't
+ * change the average.</p>
+ *
+ * <p>Pure domain logic with no Spring or database code: static methods only, and no instances.
+ * Averages keep 4 decimal places; money values are rounded half-up to 2.</p>
+ */
 public final class PerformanceCalculator {
 
     private static final int AVG_SCALE = 4;
@@ -17,7 +27,13 @@ public final class PerformanceCalculator {
 
     private PerformanceCalculator() {}
 
-    /** Shares still held after all trades. Lets the service decide whether a price is needed. */
+    /**
+     * Counts the shares still held after all the given trades. Lets the service decide whether
+     * a current price is needed before calling {@link #calculate}.
+     *
+     * @param tradesOldestFirst all trades for one ticker; order doesn't affect the result
+     * @return buys minus sales
+     */
     public static BigDecimal netQuantity(List<Trade> tradesOldestFirst) {
         BigDecimal qty = BigDecimal.ZERO;
         for (Trade t : tradesOldestFirst) {
@@ -27,8 +43,16 @@ public final class PerformanceCalculator {
     }
 
     /**
-     * @param tradesOldestFirst all trades for ONE ticker, oldest first
-     * @param currentPrice      may be null only if the position is closed
+     * Replays one stock's trades and calculates its profit and loss.
+     *
+     * @param ticker            the stock symbol, copied into the result
+     * @param tradesOldestFirst all trades for ONE ticker, oldest first; the order matters,
+     *                          because each sale is costed at the average price at that moment
+     * @param currentPrice      latest market price; may be {@code null} only if the position is closed
+     * @return the result; a closed position has a {@code null} current price, zero unrealised
+     *         figures and its final realised profit or loss
+     * @throws IllegalStateException    if the history sells more shares than were held at the time
+     * @throws IllegalArgumentException if the position is open and {@code currentPrice} is {@code null}
      */
     public static HoldingPerformance calculate(String ticker,
                                                List<Trade> tradesOldestFirst,

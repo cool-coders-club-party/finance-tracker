@@ -1,3 +1,19 @@
+/*
+ * The session store: tracks who is signed in.
+ *
+ * Keeps the access token and user in memory, and the refresh token in
+ * localStorage so a page reload can sign the user back in quietly. It is plain
+ * JavaScript with no React, so the API helpers can use it too. AuthProvider
+ * mirrors it into React state through subscribe().
+ *
+ * Exports:
+ *   startSession / clearSession: begin or end a session locally
+ *   getAccessToken / getUser / getRefreshToken: read the current state
+ *   refreshSession:              swap the refresh token for new tokens (one request shared by every caller)
+ *   restoreSession:              on app start, try to resume a stored session
+ *   endSession:                  sign out: clear locally, then revoke on the server
+ *   subscribe:                   be told whenever the session changes
+ */
 import { refresh as requestRefresh, logout as requestLogout, AuthApiError } from '../api/auth.js';
 
 // Where the refresh token lives between page loads

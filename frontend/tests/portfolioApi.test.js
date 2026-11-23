@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { test, afterEach } from "node:test";
 import { startSession, clearSession } from "../src/lib/session.js";
 import "./helpers/localStorage.js";
-import { buy, createPortfolio, getHoldings, getPortfolios, getTrades, getValuation, sell } from "../src/api/portfolio.js";
+import { buy, createPortfolio, getHoldings, getPerformance, getPortfolios, getTrades, getValuation, sell } from "../src/api/portfolio.js";
 
 afterEach(() => clearSession());
 function login() {
@@ -136,4 +136,16 @@ test("backend error messages and codes are surfaced to the user", async (t) => {
   t.mock.restoreAll();
   t.mock.method(globalThis, "fetch", async () => new Response("", { status: 500 }));
   await assert.rejects(buy(5, "AAPL", 1), /Portfolio request failed \(500\)/);
+});
+
+test("performance endpoint returns an array and rejects other shapes", async (t) => {
+  login();
+  t.mock.method(globalThis, "fetch", async (url) => {
+    assert.equal(url, "/portfolio-api/api/portfolios/5/performance");
+    return Response.json([{ ticker: "AAPL", realizedPnl: 5.1 }]);
+  });
+  assert.equal((await getPerformance(5)).length, 1);
+  t.mock.restoreAll();
+  t.mock.method(globalThis, "fetch", async () => Response.json({ not: "a list" }));
+  await assert.rejects(getPerformance(5), /unexpected response/);
 });

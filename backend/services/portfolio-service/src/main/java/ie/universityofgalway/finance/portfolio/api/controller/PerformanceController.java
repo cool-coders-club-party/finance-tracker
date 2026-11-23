@@ -11,6 +11,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST endpoint for profit and loss per stock: {@code GET /api/portfolios/{id}/performance}.
+ *
+ * <p>The figures are rebuilt from trade history by {@link PerformanceService}. The caller's
+ * user id always comes from their access token.</p>
+ */
 @RestController
 @RequestMapping("/api/portfolios")
 public class PerformanceController {
@@ -21,6 +27,15 @@ public class PerformanceController {
         this.performanceService = performanceService;
     }
 
+    /**
+     * Returns profit and loss for every stock ever traded in the portfolio, sorted by ticker.
+     *
+     * @param id  the portfolio id
+     * @param jwt the caller's validated access token; its subject is the user id
+     * @return one entry per stock, including closed positions (zero shares) with their realised profit
+     * @throws ie.universityofgalway.finance.portfolio.domain.exception.PortfolioNotFoundException
+     *         if the portfolio doesn't exist or isn't the caller's (404)
+     */
     @GetMapping("/{id}/performance")
     public List<HoldingPerformanceResponse> performance(@PathVariable Long id,
                                                         @AuthenticationPrincipal Jwt jwt) {
