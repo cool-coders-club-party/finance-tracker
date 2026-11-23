@@ -61,6 +61,24 @@ See the [Transactions documentation](docs/api/transactions.md) for local setup,
 authentication, API examples, currency behaviour, implementation structure,
 database migrations and testing.
 
+## Portfolio
+
+The Portfolio service runs on port **8083** and records each authenticated user's
+portfolios, holdings and trades in PostgreSQL. Users can buy shares at the current
+market price, record purchases made earlier at the price they actually paid, and
+sell. Holdings are valued with quotes from the Market Data service; if any holding
+can't be priced, portfolio totals are reported as unavailable rather than as a
+partial sum. Profit and loss per stock is calculated by replaying trade history,
+including profit already realised from sales.
+
+Ownership comes from the user's JWT, and another user's portfolio is reported as
+not found. These endpoints power the Portfolio page and the dashboard's portfolio
+summary, and the Reporting service reads holdings for its CSV export.
+
+See the [Portfolio documentation](docs/api/portfolio.md) for API endpoints, design
+decisions, local setup and the demonstration checklist. To generate the service's
+JavaDoc, run `sh ./mvnw -pl services/portfolio-service javadoc:javadoc` from `backend`.
+
 ## Market Data
 
 The market-data service provides stock quotes, price history and
