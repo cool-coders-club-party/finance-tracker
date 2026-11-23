@@ -17,10 +17,25 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Configures the Reporting service as a stateless OAuth2 resource server
+ * that authenticates requests using bearer JWTs.
+ */
 @Configuration
 public class SecurityConfig {
 
-    // Disable CSRF (Since we explicitly attach bearer-tokens), Don't create server-side login sessions, leave Options and Health Checks open, Require Authentication for everything else.
+    /**
+     * Defines the HTTP authentication rules for the service.
+     *
+     * <p>Authentication uses bearer tokens instead of HTTP sessions, so CSRF
+     * protection is disabled. The chain permits unauthenticated {@code OPTIONS}
+     * requests and access to {@code /actuator/health} and {@code /actuator/info}.
+     * All other requests require authentication.</p>
+     *
+     * @param http Spring Security builder for the filter chain
+     * @return the configured stateless filter chain
+     * @throws Exception if the filter chain cannot be built
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -32,7 +47,13 @@ public class SecurityConfig {
                         oauth.jwt(Customizer.withDefaults())).build();
     }
 
-    // JWT Decoder, read the secret, configure NimbusJWTDecoder and return the decoder.
+    /**
+     * Creates the decoder that verifies HS256-signed access tokens.
+     *
+     * @param secret shared signing secret from the {@code jwt.secret} property
+     * @return the decoder configured to verify tokens with the shared secret
+     * @throws IllegalStateException if the secret is shorter than 32 bytes in UTF-8
+     */
     @Bean
     JwtDecoder jwtDecoder(@Value("${jwt.secret}") String secret) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);

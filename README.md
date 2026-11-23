@@ -60,6 +60,18 @@ Market-data does not require a persistent database.
 See the [Market Data documentation](docs/api/market-data.md)
 for API endpoints, local setup, provider configuration and testing.
 
+## Reporting
+
+The Reporting service runs on port **8086** and combines transaction history and
+current portfolio holdings into a UTF-8 CSV. Send a bearer JWT to
+`GET /api/reports/export?from=YYYY-MM-DD&to=YYYY-MM-DD`. The date range is
+inclusive, and transactions are ordered oldest first. Holdings with a positive
+quantity are included regardless of the transaction date range.
+
+See the [Reporting CSV export guide](backend/services/reporting-service/docs/reporting.md)
+for the file layout and column definitions. To generate the service's JavaDoc,
+run `sh ./mvnw -pl services/reporting-service javadoc:javadoc` from `backend`.
+
 ## Continuous Integration and Deployment
 
 GitHub Actions runs the `Poca CI` workflow to check and build

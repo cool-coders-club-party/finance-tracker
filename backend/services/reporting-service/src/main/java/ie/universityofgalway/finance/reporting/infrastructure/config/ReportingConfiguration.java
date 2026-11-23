@@ -7,9 +7,19 @@ import ie.universityofgalway.finance.reporting.application.port.PortfolioReportP
 import ie.universityofgalway.finance.reporting.application.port.TransactionReportPort;
 import ie.universityofgalway.finance.reporting.application.usecase.GenerateFinancialReport;
 
+/**
+ * Wires the report generation use case with the service's data adapters.
+ */
 @Configuration
 public class ReportingConfiguration {
-    // Receives transaction and portfolio ports. Spring supplies their implementation (API adapters).
+
+    /**
+     * Registers the use case that assembles financial reports.
+     *
+     * @param transactionReportPort Spring-managed transaction data source
+     * @param portfolioReportPort Spring-managed portfolio data source
+     * @return the report generator configured with both data sources
+     */
     @Bean
     GenerateFinancialReport generateFinancialReport(
             TransactionReportPort transactionReportPort,

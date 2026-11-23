@@ -22,46 +22,62 @@ import ie.universityofgalway.finance.reporting.application.usecase.GenerateFinan
 import ie.universityofgalway.finance.reporting.domain.model.FinancialReport;
 import ie.universityofgalway.finance.reporting.api.csv.FinancialReportCsvWriter;
 
-// Handling web requests.
+/**
+ * Exposes the authenticated financial report CSV export.
+ */
 @RestController
-// Shared URL prefix.
 @RequestMapping("/api/reports")
 public class FinancialReportController {
 
     private final GenerateFinancialReport generateFinancialReport;
     private final FinancialReportCsvWriter csvWriter;
 
+    /**
+     * Creates the controller with its report generator and CSV writer.
+     *
+     * @param generateFinancialReport use case that assembles the report data
+     * @param csvWriter writer that encodes the report as CSV
+     */
     public FinancialReportController(
             GenerateFinancialReport generateFinancialReport,
             FinancialReportCsvWriter csvWriter) {
         this.generateFinancialReport = generateFinancialReport;
         this.csvWriter = csvWriter;
     }
-    // Map this method to GET /api/reports/export and declare that it returns a CSV.
+
+    /**
+     * Downloads a financial report from {@code GET /api/reports/export}.
+     *
+     * <p>The date range applies to transactions. The investment section contains
+     * the caller's current holdings with a positive quantity.</p>
+     *
+     * @param jwt authenticated caller's JWT, with the user ID as its subject
+     * @param from first transaction date to include, in ISO date format
+     * @param to last transaction date to include, in ISO date format
+     * @return HTTP 200 with a UTF-8 CSV attachment named for the requested date range
+     * @throws ResponseStatusException with HTTP 400 if {@code from} is after {@code to}
+     * @throws IllegalArgumentException if the JWT subject cannot be parsed as a UUID
+     */
     @GetMapping(value = "/export", produces = "text/csv")
     public ResponseEntity<byte[]> export(
-            // Provide JWT.
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam
-            // Parse as dates.
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        // Reject range date where the start is after the end.
         if (from.isAfter(to)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "from must be on or before to");
         }
-        // Convert to UUID, which is used by the application. generateFinancialReport
-        // asks the app use case to collect the report data.
+
         UUID userId = UUID.fromString(jwt.getSubject());
         FinancialReport report = generateFinancialReport.generate(
                 userId, from, to, jwt.getTokenValue());
-        // Convert report into CSV bytes.
+
         byte[] csv = csvWriter.write(report);
         String filename = "financial-summary-" + from + "-to-" + to + ".csv";
-        // Create a HTTP 200 response, set the CSV content type and an attachment header with the filename, put CSV bytes in response body.
+
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(
