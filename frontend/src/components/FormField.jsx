@@ -1,3 +1,11 @@
+/*
+ * One labelled text input, used by the login and registration forms.
+ *
+ * Wires the label to the input, passes the typed value up through onChange, and
+ * shows a validation message in an ErrorTooltip under the field. Keeping it in
+ * one component means every form field looks and behaves the same.
+ */
+
 import ErrorTooltip from './ErrorTooltip';
 
 /**

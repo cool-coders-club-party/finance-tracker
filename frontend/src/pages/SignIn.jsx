@@ -9,6 +9,12 @@ import { loginErrorMessage } from '../lib/authMessages.js';
 import { safeRedirectPath } from '../lib/redirect.js';
 import { validateLogin } from '../lib/validation.js';
 
+/**
+ * The login page. Validates the form, calls signIn, and sends the user to the
+ * page they originally wanted (or home). Signed-in users are redirected away.
+ *
+ * @return {import("react").ReactElement} the login form inside AuthLayout.
+ */
 export default function SignIn() {
   const { status, signIn } = useAuth();
   const location = useLocation();

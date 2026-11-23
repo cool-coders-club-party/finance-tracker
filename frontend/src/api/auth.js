@@ -11,6 +11,14 @@ export class AuthApiError extends Error {
   }
 }
 
+/**
+ * Sends one request to the users service and returns the parsed body.
+ *
+ * @param {string} path endpoint under /api/auth, such as "/login".
+ * @param {RequestInit} options fetch options (method, headers, body).
+ * @return {Promise<object|null>} the JSON body, or null for a 204 response.
+ * @throws {AuthApiError} status 0 if the network failed, otherwise the HTTP status.
+ */
 async function send(path, options) {
   let response;
   try {
@@ -32,6 +40,13 @@ async function send(path, options) {
   return body;
 }
 
+/**
+ * Sends a JSON POST request. Used by every endpoint that takes a body.
+ *
+ * @param {string} path endpoint under /api/auth.
+ * @param {object} payload object to send as the JSON body.
+ * @return {Promise<object|null>} the parsed response body.
+ */
 function postJson(path, payload) {
   return send(path, {
     method: 'POST',

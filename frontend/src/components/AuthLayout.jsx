@@ -1,3 +1,10 @@
+/*
+ * The page frame shared by login and registration: animated background, video
+ * panel, typed heading and a glass card for the form. The pages supply only the
+ * form, so the look is defined once. The styling classes live in index.css
+ * (the login-* rules).
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import Grainient from './Grainient';
 import TextType from './TextType';
