@@ -14,6 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+/**
+ * Verifies that the stub Spring profile routes quote requests through the configured cache.
+ */
 @SpringBootTest
 @ActiveProfiles("stub")
 class CacheConfigurationTest {

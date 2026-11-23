@@ -1,6 +1,7 @@
-import { acceptLogin, logout } from '../src/lib/authSession.js';
-beforeEach(() => acceptLogin({ accessToken: 'test-token', tokenType: 'Bearer', expiresIn: 900, id: 'test-user', email: 'test@example.com' }));
-afterEach(() => logout());
+import { startSession, clearSession } from '../src/lib/session.js';
+import './helpers/localStorage.js';
+beforeEach(() => startSession({ accessToken: 'test-token', refreshToken: 'test-refresh', tokenType: 'Bearer', expiresIn: 900, id: 'test-user', email: 'test@example.com' }));
+afterEach(() => clearSession());
 import assert from 'node:assert/strict';
 import { test, beforeEach, afterEach } from 'node:test';
 import { categoriesForType, categoryAfterTypeChange, formatEnumLabel, validateMetadata } from '../src/lib/transactionMetadata.js';

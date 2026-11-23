@@ -18,6 +18,11 @@ import java.util.List;
 import static org.mapstruct.InjectionStrategy.CONSTRUCTOR;
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
+/**
+ * Maps API DTOs and persistence entities without exposing lifecycle fields for mutation.
+ * Creation leaves ownership assignment to the service; updates ignore null fields and
+ * preserve the ID, owner, creation timestamp and active flag.
+ */
 @Mapper(
         componentModel = SPRING,
         injectionStrategy = CONSTRUCTOR,

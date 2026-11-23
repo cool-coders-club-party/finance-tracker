@@ -10,6 +10,9 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Verifies snapshot ordering, validation and continued availability without automatic expiry.
+ */
 class TopStocksServiceTest {
     private static final String SNAPSHOT = """
             {

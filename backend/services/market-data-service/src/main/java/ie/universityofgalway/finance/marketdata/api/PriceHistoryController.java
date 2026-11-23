@@ -15,15 +15,31 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Exposes daily closing-price history through the /api/quotes endpoints.
+ *
+ * <p>Missing data produces HTTP 404; provider unavailability produces HTTP 503.</p>
+ */
 @RestController
 @RequestMapping("/api/quotes")
 public class PriceHistoryController {
     private final PriceHistoryService historyService;
 
+    /**
+     * Creates the controller with its application service.
+     *
+     * @param historyService service used to retrieve daily closing-price history
+     */
     public PriceHistoryController(PriceHistoryService historyService) {
         this.historyService = historyService;
     }
 
+    /**
+     * Returns the available daily closing prices for the requested ticker.
+     *
+     * @param symbol ticker from the URL; normalised by the application service
+     * @return HTTP 200 with history points, or HTTP 404 with a problem detail when history is absent
+     */
     @GetMapping("/{symbol}/history")
     public ResponseEntity<Object> getHistory(@PathVariable String symbol) {
         Optional<List<PricePoint>> result = historyService.getHistory(symbol);
@@ -41,6 +57,12 @@ public class PriceHistoryController {
         return ResponseEntity.ok(PriceHistoryResponse.from(result.get()));
     }
 
+    /**
+     * Converts a failed history lookup into a service-unavailable response.
+     *
+     * @param exception domain failure carrying a client-safe message
+     * @return HTTP 503 with a problem detail
+     */
     @ExceptionHandler(MarketDataUnavailableException.class)
     public ResponseEntity<ProblemDetail> handleUnavailable(
             MarketDataUnavailableException exception

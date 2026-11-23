@@ -23,8 +23,11 @@ function initialValues(transaction) {
 // Both create and edit use the same metadata-driven fields and validation.
 export default function TransactionForm({ metadata, transaction = null, onSaved, cancelTo = "/transactions" }) {
   const id = useId();
+  //current input
   const [values, setValues] = useState(() => initialValues(transaction));
+  //overall and field-specific errors
   const [feedback, setFeedback] = useState({ message: '', details: {} });
+  //whether a save is underway
   const [isSaving, setIsSaving] = useState(false);
   const pendingRequest = useRef(null);
   useEffect(() => () => pendingRequest.current?.abort(), []);
@@ -34,6 +37,8 @@ export default function TransactionForm({ metadata, transaction = null, onSaved,
 
   const currencyIsValid = metadata.currencies.includes(values.currency);
 
+  //copies the current form values and changes the field identified by name
+  //this functionality allows to avoid writing a separate change handler for every input
   function updateField(event) {
     const { name, value } = event.target;
     setFeedback({ message: '', details: {} });
@@ -51,6 +56,7 @@ export default function TransactionForm({ metadata, transaction = null, onSaved,
     if (!pairIsValid || !currencyIsValid || pendingRequest.current) return;
     const original = initialValues(transaction);
     const editable = ['transactionType', 'transactionCategory', 'amount', 'currency', 'description'];
+    //creates the request body. Creating: includes all editable fields. Editing: includes only changed fields.
     const payload = Object.fromEntries(editable
       .filter((key) => !transaction || values[key] !== original[key])
       .map((key) => [key, values[key]]));
@@ -70,6 +76,9 @@ export default function TransactionForm({ metadata, transaction = null, onSaved,
     setIsSaving(true);
     setFeedback({ message: '', details: {} });
     try {
+      //saves through the api helper and notifies the parent after success
+      //the form handles input and submission; the parent decides where to navigate afterward
+      //if saving fails, setFeedback() displays errors while leaving values untouched.
       const saved = await saveTransaction(payload, transaction?.id, controller.signal);
       if (!controller.signal.aborted) {
         onSaved(saved);

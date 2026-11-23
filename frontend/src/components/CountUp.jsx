@@ -13,13 +13,25 @@ const UNITS = [
 ];
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
+/**
+ * Clamps animation progress to the inclusive zero-to-one interval.
+ */
 const clamp01 = value => Math.min(1, Math.max(0, value));
+/**
+ * Interpolates a smooth zero-to-one transition between two progress thresholds.
+ */
 const smooth = (edge0, edge1, value) => {
   const t = clamp01((value - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);
 };
+/**
+ * Wraps a digit offset into zero through nine, including negative offsets.
+ */
 const mod10 = value => ((value % 10) + 10) % 10;
 
+/**
+ * Builds a damped spring easing whose endpoint settles exactly at one.
+ */
 const makeSpring = overshoot => {
   const log = Math.log(Math.min(0.5, Math.max(0.001, overshoot)));
   const zeta = -log / Math.sqrt(Math.PI * Math.PI + log * log);
@@ -38,6 +50,9 @@ const EASINGS = {
   spring: makeSpring(0.06)
 };
 
+/**
+ * Infers fractional digits from the number's string representation.
+ */
 const getDecimalPlaces = num => {
   const str = num.toString();
 
@@ -52,8 +67,14 @@ const getDecimalPlaces = num => {
   return 0;
 };
 
+/**
+ * Selects the largest compact display unit near the value's magnitude.
+ */
 const unitFor = value => UNITS.find(([size]) => Math.abs(value) >= size * 0.9995) || [1, ''];
 
+/**
+ * Chooses a compact divisor, suffix and fractional precision for a value.
+ */
 const scaleFor = (value, compact, decimals, places) => {
   if (!compact) return { size: 1, label: '', digits: places };
   const [size, label] = unitFor(value);
@@ -61,14 +82,23 @@ const scaleFor = (value, compact, decimals, places) => {
   return { size, label, digits };
 };
 
+/**
+ * Separates a scaled, rounded magnitude into sign, integer and fractional text.
+ */
 const splitNumber = (value, digits, size) => {
   const fixed = (Math.abs(value) / size).toFixed(digits);
   const [int, frac = ''] = fixed.split('.');
   return { negative: value < 0 && Number(fixed) !== 0, int, frac };
 };
 
+/**
+ * Inserts an optional thousands separator into an integer string.
+ */
 const group = (int, separator) => (separator ? int.replace(/\B(?=(\d{3})+(?!\d))/g, separator) : int);
 
+/**
+ * Builds digit columns, separator slots and signed travel distances for a rolling transition.
+ */
 const buildRoll = (a, b, spin, { compact, decimals, places, separator }) => {
   const { size, label, digits } = scaleFor(b, compact, decimals, places);
   const pa = splitNumber(a, digits, size);
@@ -111,6 +141,33 @@ const buildRoll = (a, b, spin, { compact, decimals, places, separator }) => {
   return { slots, columns, label };
 };
 
+/**
+ * Animates a number as interpolated text or rolling digit columns.
+ * Uses the final value immediately when reduced motion is preferred and stops active
+ * animation controls on cleanup. Rolling mode exposes the final text to screen readers.
+ *
+ * @param {object} props numeric display and animation options.
+ * @param {number} props.to target value, or starting value when direction is down.
+ * @param {number} [props.from=0] starting value, or target value when direction is down.
+ * @param {"up"|"down"} [props.direction="up"] selects which endpoint is the target.
+ * @param {number} [props.delay=0] delay before the initial animation, in seconds.
+ * @param {number} [props.duration=2] animation duration in seconds.
+ * @param {string} [props.className] classes for the outer span.
+ * @param {object} [props.style] inline styles for the outer span.
+ * @param {boolean} [props.startWhen=true] allows playback once the visibility trigger is satisfied.
+ * @param {string} [props.separator] thousands separator; empty disables grouping.
+ * @param {string} [props.prefix] text before the formatted number.
+ * @param {string} [props.suffix] text after the formatted number.
+ * @param {"count"|"roll"} [props.mode="count"] interpolated text or rolling columns.
+ * @param {"linear"|"easeOut"|"expo"|"spring"} [props.easing="easeOut"] animation easing.
+ * @param {number} [props.decimals] explicit fractional digits; otherwise inferred.
+ * @param {"standard"|"compact"} [props.format="standard"] plain values or K/M/B/T units.
+ * @param {"view"|"load"} [props.trigger="view"] starts on first visibility or immediately after mount.
+ * @param {boolean} [props.replayOnHover=false] allows a completed animation to replay on pointer entry.
+ * @param {function(): void} [props.onStart] called when playback begins.
+ * @param {function(): void} [props.onEnd] called when playback finishes.
+ * @return {import("react").ReactElement} The animated numeric display.
+ */
 export default function CountUp({
   to,
   from = 0,
@@ -200,6 +257,7 @@ export default function CountUp({
     }));
   }, [active, startWhen, endValue]);
 
+  // Drive DOM updates per frame; cleanup stops the active animation when playback changes.
   useEffect(() => {
     if (!play) return undefined;
     const live = latestRef.current;
@@ -330,6 +388,9 @@ export default function CountUp({
     };
   }, [play, uid]);
 
+  /**
+   * Replays a completed count or spins settled rolling digits when hover replay is enabled.
+   */
   const replay = () => {
     if (!replayOnHover || runningRef.current || !startedRef.current) return;
     setPlay(previous =>

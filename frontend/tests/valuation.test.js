@@ -1,3 +1,6 @@
+/**
+ * Protects valuation display rules: missing values remain unavailable and amounts retain explicit currencies.
+ */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { formatMoney, valuationReason } from "../src/lib/valuation.js";

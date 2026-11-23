@@ -25,7 +25,10 @@ public class TransactionsApiAdapter implements TransactionReportPort {
     public TransactionsApiAdapter(RestClient.Builder restClientBuilder, @Value("${reporting.clients.transactions-base-url}") String baseUrl) {
         this.restClient = restClientBuilder.baseUrl(baseUrl).build();
     }
-
+    // Start with page 0, set requested page size to 100 transactions.
+    // Send requests for transactions with necessary data/information.
+    // Create a ReportTransaction using that data.
+    // Reads totalPages, advances the page number, and continue till we have requested all pages.
     @Override
     public List<ReportTransaction> getTransactions(
             LocalDate from,

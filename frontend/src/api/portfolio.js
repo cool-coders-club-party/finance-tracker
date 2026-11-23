@@ -1,8 +1,20 @@
-import { authenticatedFetch } from "../lib/authSession.js";
+import { authenticatedFetch } from '../lib/authenticatedFetch.js';
 
 const BASE = "/portfolio-api/api/portfolios";
 
-// One place for transport and error handling, shared by reads and writes.
+/**
+ * Sends an authenticated Portfolio request and parses its optional JSON body.
+ * Preserves AbortError and attaches backend status/code to HTTP errors. Session
+ * restoration and expiry checks are handled by authenticatedFetch.
+ *
+ * @param {string} path path relative to the portfolios endpoint.
+ * @param {object} [options] request settings.
+ * @param {string} [options.method="GET"] HTTP method.
+ * @param {object} [options.body] payload to serialise as JSON.
+ * @param {AbortSignal} [options.signal] optional cancellation signal.
+ * @return {Promise<object|Array|null>} Parsed JSON, or null for an empty response body.
+ * @throws {Error} if transport, authentication, HTTP status or JSON parsing fails.
+ */
 async function request(path, { method = "GET", body, signal } = {}) {
   const headers = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -48,6 +60,14 @@ async function request(path, { method = "GET", body, signal } = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+/**
+ * Requests a list endpoint and rejects unexpected response shapes.
+ *
+ * @param {string} path relative endpoint path.
+ * @param {AbortSignal} [signal] optional cancellation signal.
+ * @return {Promise<Array>} The returned list.
+ * @throws {Error} if the request fails or the response is not an array.
+ */
 async function getList(path, signal) {
   const data = await request(path, { signal });
   // Reject an unexpected response instead of crashing while rendering rows.
@@ -55,25 +75,62 @@ async function getList(path, signal) {
   return data;
 }
 
+/**
+ * Builds a portfolio resource path with the identifier encoded as one path segment.
+ *
+ * @param {number|string} portfolioId portfolio identifier.
+ * @param {string} suffix internal endpoint name, such as holdings or valuation.
+ * @return {string} The relative resource path.
+ */
 const portfolioPath = (portfolioId, suffix) => `/${encodeURIComponent(portfolioId)}/${suffix}`;
 
 // --- Reads ---
 
-// Discover the available portfolios instead of hard-coding portfolio ID 1.
+/**
+ * Lists the authenticated user's portfolios without assuming a fixed identifier.
+ *
+ * @param {AbortSignal} [signal] optional cancellation signal.
+ * @return {Promise<Array>} The user's portfolios.
+ * @throws {Error} if the request fails or the response is not an array.
+ */
 export function getPortfolios(signal) {
   return getList("", signal);
 }
 
-// Request the holdings belonging to one portfolio.
+/**
+ * Retrieves saved holdings, including their purchase costs for one portfolio.
+ *
+ * @param {number|string} portfolioId portfolio identifier.
+ * @param {AbortSignal} [signal] optional cancellation signal.
+ * @return {Promise<Array>} The holdings returned by the backend.
+ * @throws {Error} if the request fails or the response is not an array.
+ */
 export function getHoldings(portfolioId, signal) {
   return getList(portfolioPath(portfolioId, "holdings"), signal);
 }
 
-// Every buy and sell recorded against the portfolio.
+/**
+ * Retrieves recorded buy and sell trades for one portfolio.
+ *
+ * @param {number|string} portfolioId portfolio identifier.
+ * @param {AbortSignal} [signal] optional cancellation signal.
+ * @return {Promise<Array>} The trades returned by the backend.
+ * @throws {Error} if the request fails or the response is not an array.
+ */
 export function getTrades(portfolioId, signal) {
   return getList(portfolioPath(portfolioId, "trades"), signal);
 }
 
+/**
+ * Retrieves saved holdings alongside market quotes and valuation availability.
+ * Null totals, missing currencies and stale-price metadata are preserved for honest display.
+ * Validation checks the holdings array and complete flag rather than every nested field.
+ *
+ * @param {number|string} portfolioId portfolio identifier.
+ * @param {AbortSignal} [signal] optional cancellation signal.
+ * @return {Promise<object>} Holding valuations and portfolio totals, which may be null when incomplete.
+ * @throws {Error} if the request fails or the expected response structure is absent.
+ */
 export async function getValuation(portfolioId, signal) {
   const data = await request(portfolioPath(portfolioId, "valuation"), { signal });
   if (!data || !Array.isArray(data.holdings) || typeof data.complete !== "boolean") {
@@ -84,12 +141,30 @@ export async function getValuation(portfolioId, signal) {
 
 // --- Writes ---
 
+/**
+ * Creates a portfolio for the authenticated user.
+ *
+ * @param {string} name portfolio display name; validation is enforced by the backend.
+ * @return {Promise<object|null>} The created portfolio response.
+ * @throws {Error} if the backend rejects the request or the service is unreachable.
+ */
 export function createPortfolio(name) {
   return request("", { method: "POST", body: { name } });
 }
 
-// Without price/executedAt the backend buys at the current market price.
-// With both, it records a purchase made earlier at the price actually paid.
+/**
+ * Buys shares at the market price, or records an earlier purchase when price and executedAt are supplied.
+ * Both historical fields must be supplied together; the backend enforces this rule.
+ *
+ * @param {number|string} portfolioId portfolio receiving the shares.
+ * @param {string} ticker stock symbol.
+ * @param {number} quantity positive share quantity.
+ * @param {object} [options] optional historical execution details.
+ * @param {number} [options.price] price per share actually paid.
+ * @param {string} [options.executedAt] ISO timestamp of the earlier purchase.
+ * @return {Promise<object|null>} The backend purchase result.
+ * @throws {Error} if purchase validation, ownership checks or the request fails.
+ */
 export function buy(portfolioId, ticker, quantity, { price, executedAt } = {}) {
   const body = { ticker, quantity };
   if (price !== undefined) body.price = price;
@@ -98,6 +173,15 @@ export function buy(portfolioId, ticker, quantity, { price, executedAt } = {}) {
   return request(portfolioPath(portfolioId, "buy"), { method: "POST", body });
 }
 
+/**
+ * Sells shares from the portfolio at the price obtained by the backend.
+ *
+ * @param {number|string} portfolioId portfolio containing the holding.
+ * @param {string} ticker stock symbol.
+ * @param {number} quantity positive share quantity, no greater than the holding.
+ * @return {Promise<object|null>} The backend sale result.
+ * @throws {Error} if validation, ownership, available shares or the request prevents the sale.
+ */
 export function sell(portfolioId, ticker, quantity) {
   return request(portfolioPath(portfolioId, "sell"), {
     method: "POST",

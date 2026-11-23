@@ -17,6 +17,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Verifies magnitude-based ranking, partial provider failures and freshness/retry windows using a controlled
+ * clock.
+ */
 class StockMoversServiceTest {
     private static final Instant NOW = Instant.parse("2026-11-10T16:00:00Z");
     private final QuoteService quoteService = mock(QuoteService.class);

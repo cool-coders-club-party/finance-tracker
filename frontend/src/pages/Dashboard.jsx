@@ -1,18 +1,21 @@
-import useAuth from '../hooks/useAuth';
+import { useAuth } from '../context/useAuth.js';
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import StatCard from "@/components/StatCard";
 import DashboardShell from "@/components/DashboardShell";
 import { Wallet, Receipt, Landmark } from "lucide-react"
-import SpendingByCurrency from "../components/transactions/SpendingByCurrency";
+import CategoryBreakdown from "../components/transactions/CategoryBreakdown.jsx";
 import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
 import FinancialReportExport from '../components/FinancialReportExport';
 import StrokeText from '../components/StrokeText';
+import { Button } from '../components/ui/button';
 
 function TransactionOverview({ userId }) {
   const metadata = useTransactionMetadata();
+  //gives each user a separate browser-stored display-currency preference
+  //one account's selection should not automatically become another account's preference.
   const preferenceKey = `finance-tracker:transaction-currency:${userId}`;
   const [preferred, setPreferred] = useState(() => {
     try { return localStorage.getItem(preferenceKey); } catch { return null; }
@@ -25,6 +28,7 @@ function TransactionOverview({ userId }) {
   useEffect(() => {
     if (!currency) return;
     const controller = new AbortController();
+    //fetches a new summary when the user,currency, or retry counter changes.
     getTransactionSummary(currency, controller.signal).then(
       (summary) => {
         if (!controller.signal.aborted) setResult({ currency, attempt, summary });
@@ -62,8 +66,8 @@ function TransactionOverview({ userId }) {
           <p className="text-sm text-muted-foreground">All-time totals use transaction-date exchange rates.</p>
           {error ? <div role="alert" className="space-y-2">
             <p>{error}</p>
-            <button type="button" className="rounded-lg border border-input px-4 py-2"
-              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</button>
+            <Button type="button" variant="outline" className="h-10"
+              onClick={metadata.error ? metadata.retry : () => setAttempt((value) => value + 1)}>Retry</Button>
           </div> : !summary && <p role="status">Loading transaction summary…</p>}
         </CardContent>
       </Card>
@@ -73,14 +77,32 @@ function TransactionOverview({ userId }) {
           <StatCard title="Total Expenses" icon={Receipt} available value={summary.expenses} formatter={formatter.format} />
           <StatCard title="Net Income" icon={Landmark} available value={summary.netIncome} formatter={formatter.format} />
         </div>
-        <SpendingByCurrency summary={summary} />
+        <CategoryBreakdown
+          title="Spending by category"
+          breakdown={summary.spendingByCategory}
+          total={summary.expenses}
+          currency={summary.currency}
+          emptyMessage="No expenses recorded yet."
+        />
+        <CategoryBreakdown
+          title="Income by category"
+          breakdown={summary.incomeByCategory}
+          total={summary.income}
+          currency={summary.currency}
+          emptyMessage="No income recorded yet."
+        />
       </>}
     </>
   );
 }
 
+/**
+ * Renders the authenticated dashboard inside the shared shell, including its animated heading.
+ *
+ * @return {import("react").ReactElement} The dashboard page.
+ */
 function Dashboard() {
-  const { session } = useAuth();
+  const { user } = useAuth();
   return (
       <DashboardShell>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -100,7 +122,7 @@ function Dashboard() {
           </h1>
         </div>
 
-        <TransactionOverview key={session.user.id} userId={session.user.id} />
+        <TransactionOverview key={user.id} userId={user.id} />
         <FinancialReportExport />
       </DashboardShell>
     );

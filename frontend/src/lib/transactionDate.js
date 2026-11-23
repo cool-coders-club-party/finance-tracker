@@ -17,7 +17,11 @@ export function occurredAtForDate(date, original, now = new Date()) {
       || date > current.slice(0, 10)) {
     throw new Error('Choose a valid transaction date on or before today.');
   }
+  //omits occurredAt from an update when the date has not changed.
+  //preserves the exact existing timestamp, including fractional seconds.
   if (original && date === transactionDate(original)) return undefined;
+  //Combines the selected date with the original time, or current time for creation. Prevents a future timestamp.
+  //Users edit the calendar date without needing a time field, while the db still receives a complete timestamp.
   const candidate = `${date}T${(original || current).split('T')[1]}`;
   // Moving a past transaction to today must not create a future time.
   return candidate > current ? current : candidate;

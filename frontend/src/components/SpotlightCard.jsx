@@ -26,8 +26,14 @@ const SHAPES = ['circle', 'beam'];
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
+/**
+ * Constrains a visual setting to the supplied minimum and maximum.
+ */
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+/**
+ * Builds gradient colour stops from a colour and clamped softness value.
+ */
 const falloff = (color, softness) => {
   const soft = clamp(softness, 0, 1);
   const core = (1 - soft) ** 1.5 * 0.85;
@@ -47,17 +53,42 @@ const falloff = (color, softness) => {
 const CARD =
   'glass relative isolate overflow-hidden rounded-3xl p-8 [background-color:var(--spotlight-card-surface)] [box-shadow:var(--spotlight-card-shadow)]';
 
+/**
+ * Wraps content in a card with a pointer- and keyboard-focus-following light.
+ * Non-ambient animation sleeps when settled, supports reduced motion and removes observers,
+ * event listeners and pending frames on unmount. Extra props are forwarded to the root div.
+ *
+ * @param {object} props card content and visual settings.
+ * @param {import("react").ReactNode} props.children card content.
+ * @param {string} [props.className] additional root classes.
+ * @param {object} [props.style] inline styles and CSS variable overrides.
+ * @param {string} [props.spotlightColor] light colour; defaults to the theme palette.
+ * @param {number} [props.intensity=0.15] fill intensity, clamped to zero through one.
+ * @param {number} [props.spotlightSize=240] light size in pixels, with a minimum of 20.
+ * @param {number} [props.softness=0.7] light falloff softness, clamped to zero through one.
+ * @param {"circle"|"beam"} [props.shape="circle"] spotlight geometry.
+ * @param {number} [props.borderGlow=0.6] border intensity, clamped to zero through one.
+ * @param {number} [props.proximity=80] activation distance beyond the card edge in pixels.
+ * @param {number} [props.smoothing=0.3] follow smoothing; zero follows immediately.
+ * @param {boolean} [props.ambient=false] enables a drifting idle light while visible.
+ * @param {boolean} [props.flare=true] brightens the light during pointer press.
+ * @param {number} [props.grain=0] noise-overlay opacity, clamped to zero through one.
+ * @param {"dark"|"light"} [props.theme="dark"] base card and light palette.
+ * @return {import("react").ReactElement} The decorated card.
+ */
 const SpotlightCard = ({
   children,
   className = '',
   style,
+  as: Component = 'div',
+  unstyled = false,
   spotlightColor,
   intensity = 0.15,
   spotlightSize = 240,
   softness = 0.7,
   shape = 'circle',
   borderGlow = 0.6,
-  proximity = 80,
+  proximity = 0,
   smoothing = 0.3,
   ambient = false,
   flare = true,
@@ -142,6 +173,7 @@ const SpotlightCard = ({
       noise.style.opacity = String(state.presence * s.grain);
     };
 
+    // Integrate pointer/focus targets using frame time, then sleep once the light settles.
     const tick = now => {
       raf = 0;
       if (!alive) return;
@@ -190,6 +222,7 @@ const SpotlightCard = ({
       if (!settled || (s.ambient && state.visible && !reduce)) raf = requestAnimationFrame(tick);
     };
 
+    // Schedule at most one animation frame; user input can wake a sleeping card.
     const wake = () => {
       if (raf || !alive) return;
       last = performance.now();
@@ -267,9 +300,9 @@ const SpotlightCard = ({
   }, []);
 
   return (
-    <div
+    <Component
       ref={rootRef}
-      className={`${CARD}${className ? ` ${className}` : ''}`}
+      className={`${unstyled ? 'relative isolate' : CARD}${className ? ` ${className}` : ''}`}
       style={{
         '--spotlight-card-surface': palette.surface,
         '--spotlight-card-border': palette.border,
@@ -299,7 +332,7 @@ const SpotlightCard = ({
         className="pointer-events-none absolute inset-0 z-[1] rounded-[inherit] p-px opacity-0 [-webkit-mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] [-webkit-mask-composite:xor] [mask:linear-gradient(#000_0_0)_content-box_exclude,linear-gradient(#000_0_0)]"
         aria-hidden="true"
       />
-    </div>
+    </Component>
   );
 };
 

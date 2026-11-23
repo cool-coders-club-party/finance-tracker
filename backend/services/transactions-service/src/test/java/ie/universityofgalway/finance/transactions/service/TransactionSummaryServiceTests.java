@@ -8,6 +8,7 @@ import ie.universityofgalway.finance.transactions.exception.ExchangeRateUnavaila
 import ie.universityofgalway.finance.transactions.exception.InvalidTransactionHistoryQueryException;
 import ie.universityofgalway.finance.transactions.repository.TransactionRepository;
 import ie.universityofgalway.finance.transactions.rest.dto.CategorySpendingResponseDto;
+import ie.universityofgalway.finance.transactions.rest.dto.CategoryIncomeResponseDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,8 @@ class TransactionSummaryServiceTests {
                 new CategorySpendingResponseDto(DINING, new BigDecimal("0.90")));
         assertThat(summary.expenses()).isEqualByComparingTo("2.72");
         assertThat(summary.income()).isEqualByComparingTo("10.00");
+        assertThat(summary.incomeByCategory()).containsExactly(
+                new CategoryIncomeResponseDto(SALARY, new BigDecimal("10.00")));
         assertThat(summary.netIncome()).isEqualByComparingTo("7.28");
         assertThat(first.getAmount()).isEqualByComparingTo("1.00");
         assertThat(first.getCurrency()).isEqualTo(USD);
@@ -86,6 +89,7 @@ class TransactionSummaryServiceTests {
         assertThat(List.of(summary.income(), summary.expenses(), summary.netIncome()))
                 .containsOnly(new BigDecimal("0.00"));
         assertThat(summary.spendingByCategory()).isEmpty();
+        assertThat(summary.incomeByCategory()).isEmpty();
         then(rates).shouldHaveNoInteractions();
     }
 
@@ -110,6 +114,145 @@ class TransactionSummaryServiceTests {
         given(rates.getRate(USD, EUR, DAY)).willThrow(new ExchangeRateUnavailableException("Rate unavailable"));
         //when
         Throwable error = catchThrowable(() -> service.getTransactionSummary(USER_ID, EUR, null, null));
+        //then
+        assertThat(error).isInstanceOf(ExchangeRateUnavailableException.class);
+    }
+
+    @Test
+    @DisplayName("Income uses each transaction's historical rate and rounds after grouping by category")
+    void givenIncomeOnDifferentDates_whenSummarized_thenConvertedCategoriesReconcile() {
+        //given
+        var first = groceries();
+        first.setTransactionType(INCOME);
+        first.setTransactionCategory(SALARY);
+        first.setAmount(new BigDecimal("1.00"));
+        var second = groceries();
+        second.setTransactionType(INCOME);
+        second.setTransactionCategory(SALARY);
+        second.setAmount(new BigDecimal("1.00"));
+        second.setOccurredAt(DAY.plusDays(1).atStartOfDay());
+        var freelance = groceries();
+        freelance.setTransactionType(INCOME);
+        freelance.setTransactionCategory(FREELANCE);
+        freelance.setCurrency(GBP);
+        freelance.setAmount(new BigDecimal("1.00"));
+        given(repository.findAll(ArgumentMatchers.<Specification<Transaction>>any()))
+                .willReturn(List.of(first, second, freelance));
+        given(rates.getRate(USD, EUR, DAY))
+                .willReturn(new ExchangeRate(USD, EUR, DAY, new BigDecimal("0.905")));
+        given(rates.getRate(USD, EUR, DAY.plusDays(1)))
+                .willReturn(new ExchangeRate(USD, EUR, DAY.plusDays(1), new BigDecimal("0.915")));
+        given(rates.getRate(GBP, EUR, DAY))
+                .willReturn(new ExchangeRate(GBP, EUR, DAY, new BigDecimal("1.005")));
+
+        //when
+        var summary = service.getTransactionSummary(USER_ID, EUR, null, null);
+
+        //then
+        assertThat(summary.incomeByCategory()).containsExactlyInAnyOrder(
+                new CategoryIncomeResponseDto(SALARY, new BigDecimal("1.82")),
+                new CategoryIncomeResponseDto(FREELANCE, new BigDecimal("1.00")));
+        assertThat(summary.income()).isEqualByComparingTo("2.82");
+        assertThat(summary.netIncome()).isEqualByComparingTo("2.82");
+        assertThat(summary.expenses()).isEqualByComparingTo("0.00");
+        assertThat(summary.spendingByCategory()).isEmpty();
+        assertThat(first.getAmount()).isEqualByComparingTo("1.00");
+        assertThat(first.getCurrency()).isEqualTo(USD);
+        then(rates).should().getRate(USD, EUR, DAY);
+        then(rates).should().getRate(USD, EUR, DAY.plusDays(1));
+        then(rates).should().getRate(GBP, EUR, DAY);
+    }
+
+    @Test
+    @DisplayName("Total income sums rounded categories instead of rounding the combined raw income")
+    void givenHalfCentIncomeInSeparateCategories_whenSummarized_thenTotalMatchesVisibleCategories() {
+        //given
+        var salary = groceries();
+        salary.setTransactionType(INCOME);
+        salary.setTransactionCategory(SALARY);
+        salary.setAmount(new BigDecimal("1.00"));
+        var freelance = groceries();
+        freelance.setTransactionType(INCOME);
+        freelance.setTransactionCategory(FREELANCE);
+        freelance.setAmount(new BigDecimal("1.00"));
+        given(repository.findAll(ArgumentMatchers.<Specification<Transaction>>any()))
+                .willReturn(List.of(salary, freelance));
+        given(rates.getRate(USD, EUR, DAY))
+                .willReturn(new ExchangeRate(USD, EUR, DAY, new BigDecimal("1.005")));
+
+        //when
+        var summary = service.getTransactionSummary(USER_ID, EUR, null, null);
+
+        //then
+        assertThat(summary.incomeByCategory()).containsExactlyInAnyOrder(
+                new CategoryIncomeResponseDto(SALARY, new BigDecimal("1.00")),
+                new CategoryIncomeResponseDto(FREELANCE, new BigDecimal("1.00")));
+        assertThat(summary.income()).isEqualByComparingTo("2.00");
+        assertThat(summary.netIncome()).isEqualByComparingTo("2.00");
+    }
+
+    @Test
+    @DisplayName("A shared category keeps income and expenses in separate breakdowns")
+    void givenIncomeAndExpenseGifts_whenSummarized_thenBreakdownsRemainSeparate() {
+        //given
+        var income = groceries();
+        income.setTransactionType(INCOME);
+        income.setTransactionCategory(GIFT);
+        income.setAmount(new BigDecimal("20.00"));
+        var expense = groceries();
+        expense.setTransactionCategory(GIFT);
+        expense.setAmount(new BigDecimal("5.00"));
+        given(repository.findAll(ArgumentMatchers.<Specification<Transaction>>any()))
+                .willReturn(List.of(income, expense));
+        given(rates.getRate(USD, USD, DAY))
+                .willReturn(new ExchangeRate(USD, USD, DAY, BigDecimal.ONE));
+
+        //when
+        var summary = service.getTransactionSummary(USER_ID, USD, null, null);
+
+        //then
+        assertThat(summary.incomeByCategory()).containsExactly(
+                new CategoryIncomeResponseDto(GIFT, new BigDecimal("20.00")));
+        assertThat(summary.spendingByCategory()).containsExactly(
+                new CategorySpendingResponseDto(GIFT, new BigDecimal("5.00")));
+        assertThat(summary.income()).isEqualByComparingTo("20.00");
+        assertThat(summary.expenses()).isEqualByComparingTo("5.00");
+        assertThat(summary.netIncome()).isEqualByComparingTo("15.00");
+    }
+
+    @Test
+    @DisplayName("Expense-only results have no income categories")
+    void givenOnlyExpenses_whenSummarized_thenIncomeBreakdownIsEmpty() {
+        //given
+        given(repository.findAll(ArgumentMatchers.<Specification<Transaction>>any()))
+                .willReturn(List.of(groceries()));
+        given(rates.getRate(USD, USD, DAY))
+                .willReturn(new ExchangeRate(USD, USD, DAY, BigDecimal.ONE));
+
+        //when
+        var summary = service.getTransactionSummary(USER_ID, USD, null, null);
+
+        //then
+        assertThat(summary.incomeByCategory()).isEmpty();
+        assertThat(summary.income()).isEqualByComparingTo("0.00");
+        assertThat(summary.expenses()).isEqualByComparingTo("10.50");
+        assertThat(summary.netIncome()).isEqualByComparingTo("-10.50");
+    }
+
+    @Test
+    @DisplayName("An unavailable income rate prevents returning an incomplete summary")
+    void givenIncomeWithUnavailableRate_whenSummarized_thenErrorPropagates() {
+        //given
+        var salary = groceries();
+        salary.setTransactionType(INCOME);
+        salary.setTransactionCategory(SALARY);
+        given(repository.findAll(ArgumentMatchers.<Specification<Transaction>>any()))
+                .willReturn(List.of(salary));
+        given(rates.getRate(USD, EUR, DAY)).willThrow(new ExchangeRateUnavailableException("Rate unavailable"));
+
+        //when
+        Throwable error = catchThrowable(() -> service.getTransactionSummary(USER_ID, EUR, null, null));
+
         //then
         assertThat(error).isInstanceOf(ExchangeRateUnavailableException.class);
     }

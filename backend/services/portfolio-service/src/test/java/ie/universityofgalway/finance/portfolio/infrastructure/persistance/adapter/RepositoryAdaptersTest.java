@@ -19,6 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
+/**
+ * Verifies repository mappings, ownership, updates, trade ordering and preservation of known or missing
+ * holding currencies.
+ */
 @DataJpaTest
 @Import({PortfolioRepositoryAdapter.class, HoldingRepositoryAdapter.class, TradeRepositoryAdapter.class})
 class RepositoryAdaptersTest {

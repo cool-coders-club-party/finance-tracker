@@ -1,4 +1,4 @@
-import { authenticatedFetch } from '../lib/authSession.js';
+import { authenticatedFetch } from '../lib/authenticatedFetch.js';
 
 export async function downloadFinancialReport({ from, to, signal }) {
   const params = new URLSearchParams({ from, to }); // Builds query string and encodes dates.

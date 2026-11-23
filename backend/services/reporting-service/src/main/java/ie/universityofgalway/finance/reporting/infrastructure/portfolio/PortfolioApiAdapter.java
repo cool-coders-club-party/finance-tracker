@@ -14,13 +14,15 @@ import ie.universityofgalway.finance.reporting.domain.model.ReportInvestment;
 
 @Component
 public class PortfolioApiAdapter implements PortfolioReportPort {
-
+    // Connect Adapter to the PortfolioReportPort. Build a Rest client using portfolio service's base URL from configuration.
     private final RestClient restClient;
 
     public PortfolioApiAdapter(RestClient.Builder restClientBuilder, @Value("${reporting.clients.portfolio-base-url}") String baseUrl) {
         this.restClient = restClientBuilder.baseUrl(baseUrl).build();
     }
-
+    // Send an authenticated GET/api/portfolios, deserialized into PortfolioResponse.
+    // Then send authenticated GET/api/portfolios/{id}/performance for each portfolio.
+    // Create report investment for eaach holding in the responses, selecting necessary data.
     @Override
     public List<ReportInvestment> getPortfolioPositions(String accessToken) {
         PortfolioResponse[] portfolios = restClient.get()

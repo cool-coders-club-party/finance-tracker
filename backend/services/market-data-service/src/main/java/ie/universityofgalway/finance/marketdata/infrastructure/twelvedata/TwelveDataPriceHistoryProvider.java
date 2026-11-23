@@ -18,12 +18,22 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Retrieves one calendar month of daily closing prices from Twelve Data in the local profile.
+ */
 @Component
 @Profile("local")
 public class TwelveDataPriceHistoryProvider implements PriceHistoryProvider {
     private final RestClient restClient;
     private final Clock clock;
 
+    /**
+     * Builds an authenticated history client with an injectable date source.
+     *
+     * @param builder builder for the provider HTTP client
+     * @param properties Twelve Data endpoint and API key
+     * @param clock clock defining today and the start of the month-long query window
+     */
     public TwelveDataPriceHistoryProvider(
             RestClient.Builder builder,
             TwelveDataProperties properties,
@@ -37,6 +47,14 @@ public class TwelveDataPriceHistoryProvider implements PriceHistoryProvider {
         this.clock = clock;
     }
 
+    /**
+     * Requests daily closes from one month before today through today and sorts them oldest first.
+     *
+     * @param symbol normalised ticker sent to the time-series endpoint
+     * @return daily points, or an empty optional for HTTP 404 or an empty values list
+     * @throws MarketDataUnavailableException if the request fails or the response contains invalid dates,
+     *     prices or structure
+     */
     @Override
     public Optional<List<PricePoint>> findDailyHistory(String symbol) {
         // Request one calendar month of daily prices.

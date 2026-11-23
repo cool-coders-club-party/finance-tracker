@@ -13,14 +13,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Builds reusable query conditions; creating a specification does not execute SQL.
+ * Spring Data supplies the entity root and Criteria API objects when applying it.
+ * Every filter includes ownership; null optional filters impose no restriction.
+ */
 public final class TransactionSpecifications {
 
     private TransactionSpecifications() {
     }
 
+    /**
+     * Builds an AND-combined filter for the owner's active transactions.
+     *
+     * @param userId authenticated owner UUID
+     * @param type optional transaction type
+     * @param category optional category
+     * @param from optional inclusive first calendar day
+     * @param to optional inclusive last calendar day
+     * @return conditions to apply when the repository executes a query
+     */
     public static Specification<Transaction> forHistory(
             UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to) {
-        // root = transaction row
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = buildFilterPredicates(userId, type, category, from, to, root, criteriaBuilder);
 
@@ -30,9 +44,18 @@ public final class TransactionSpecifications {
         };
     }
 
+    /**
+     * Builds an AND-combined filter for the owner's inactive transactions.
+     *
+     * @param userId authenticated owner UUID
+     * @param type optional transaction type
+     * @param category optional category
+     * @param from optional inclusive first calendar day
+     * @param to optional inclusive last calendar day
+     * @return conditions to apply when the repository executes a query
+     */
     public static Specification<Transaction> forSoftDeleted(
             UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to) {
-        // root = transaction row
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = buildFilterPredicates(userId, type, category, from, to, root, criteriaBuilder);
 
@@ -42,6 +65,11 @@ public final class TransactionSpecifications {
         };
     }
 
+    /**
+     * Builds conditions, not database results. The lower date boundary is inclusive;
+     * the upper boundary is the exclusive start of the following day, including all
+     * times on the requested final day without assuming timestamp precision.
+     */
     private static List<Predicate> buildFilterPredicates(UUID userId, TransactionType type, TransactionCategory category, LocalDate from, LocalDate to, Root<Transaction> root, CriteriaBuilder criteriaBuilder) {
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(criteriaBuilder.equal(root.get("userId"), userId));

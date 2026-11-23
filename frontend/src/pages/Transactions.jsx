@@ -70,7 +70,7 @@ function TransactionEditor({ transactionId }) {
             </h1>
             <p className="text-sm text-foreground/90">Record your income and expenses with the right category.</p>
           </div>
-          <Button asChild variant="outline" className="h-10 border-border/70 bg-background/35">
+          <Button asChild className="h-10">
             <Link to={returnTo}><ArrowLeft aria-hidden="true" />Back to transactions</Link>
           </Button>
         </header>
