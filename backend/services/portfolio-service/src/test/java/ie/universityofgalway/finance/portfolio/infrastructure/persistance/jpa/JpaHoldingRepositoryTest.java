@@ -1,9 +1,7 @@
 package ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa;
 
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.HoldingEntity;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.PortfolioEntity;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaHoldingRepository;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaPortfolioRepository;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.HoldingEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.PortfolioEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
