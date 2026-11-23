@@ -274,23 +274,12 @@ export default function RecordPurchaseForm({
           {!isEarlier && !estimate && (
             <span className="text-xs text-white/75">look up the stock to see an estimate</span>
           )}
-          <Button
-            type="submit"
-            disabled={isSaving || typeof onSave !== "function"}
-            aria-describedby={typeof onSave !== "function" ? "purchase-save-status" : undefined}
-            className="h-11 px-4"
-          >
-            {isSaving ? "Saving…" : isEarlier ? "Record purchase" : "Buy shares"}
-          </Button>
         </div>
 
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="min-h-11 rounded-lg bg-[#b8dc89] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-        >
+        {/* One submit button, using the shared Button styling. */}
+        <Button type="submit" disabled={isSaving} className="h-11 px-4">
           {isSaving ? "Saving…" : isEarlier ? "Record purchase" : "Buy shares"}
-        </button>
+        </Button>
       </div>
     </form>
   );
