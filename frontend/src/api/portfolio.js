@@ -122,6 +122,20 @@ export function getTrades(portfolioId, signal) {
 }
 
 /**
+ * Retrieves profit and loss per stock, replayed from trade history. Includes closed
+ * positions, which carry the realised profit from past sales.
+ *
+ * @param {number|string} portfolioId portfolio identifier.
+ * @param {AbortSignal} [signal] optional cancellation signal.
+ * @return {Promise<Array>} One entry per stock ever traded, sorted by ticker.
+ * @throws {Error} if the request fails (including 503 when a current price is unavailable)
+ *         or the response is not an array.
+ */
+export function getPerformance(portfolioId, signal) {
+  return getList(portfolioPath(portfolioId, "performance"), signal);
+}
+
+/**
  * Retrieves saved holdings alongside market quotes and valuation availability.
  * Null totals, missing currencies and stale-price metadata are preserved for honest display.
  * Validation checks the holdings array and complete flag rather than every nested field.

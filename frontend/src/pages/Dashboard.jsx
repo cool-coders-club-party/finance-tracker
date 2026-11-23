@@ -9,6 +9,7 @@ import useTransactionMetadata from '../hooks/useTransactionMetadata';
 import { currencyLabel } from '../lib/money';
 import { getTransactionSummary } from "../api/transactions";
 import FinancialReportExport from '../components/FinancialReportExport';
+import PortfolioSummary from '../components/portfolio/PortfolioSummary.jsx';
 import StrokeText from '../components/StrokeText';
 import { Button } from '../components/ui/button';
 
@@ -123,6 +124,7 @@ function Dashboard() {
         </div>
 
         <TransactionOverview key={user.id} userId={user.id} />
+        <PortfolioSummary key={user.id} />
         <FinancialReportExport />
       </DashboardShell>
     );
