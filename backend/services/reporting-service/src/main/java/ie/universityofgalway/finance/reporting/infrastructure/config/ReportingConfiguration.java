@@ -9,7 +9,7 @@ import ie.universityofgalway.finance.reporting.application.usecase.GenerateFinan
 
 @Configuration
 public class ReportingConfiguration {
-
+    // Receives transaction and portfolio ports. Spring supplies their implementation (API adapters).
     @Bean
     GenerateFinancialReport generateFinancialReport(
             TransactionReportPort transactionReportPort,

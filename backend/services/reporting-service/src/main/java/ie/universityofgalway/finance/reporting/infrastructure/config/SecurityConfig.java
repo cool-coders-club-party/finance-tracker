@@ -32,6 +32,7 @@ public class SecurityConfig {
                         oauth.jwt(Customizer.withDefaults())).build();
     }
 
+    // JWT Decoder, read the secret, configure NimbusJWTDecoder and return the decoder.
     @Bean
     JwtDecoder jwtDecoder(@Value("${jwt.secret}") String secret) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);

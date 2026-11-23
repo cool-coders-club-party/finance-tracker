@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 const fieldClass =
   'min-h-11 w-full rounded-lg border border-input bg-background/70 px-3 text-sm text-foreground';
-
+// Hold chosen dates, whether request is pending, has an error, or if a success notice should show.
 export default function FinancialReportExport() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-
+  // If before is after to.
   const invalidRange = from && to && from > to;
-
+    // Stops the browsers normal form submission, clearing old messages, validating dates, marks request as pending.
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -26,7 +26,10 @@ export default function FinancialReportExport() {
     }
 
     setPending(true);
-
+    // Create temp browser URL for returned CSV data.
+    // Create and clicks a temp link with the filename, later removes the link and releases the temp URL.
+    // If anything fails, display the error. The finally block clears the pending state whether it succeeded or failed.
+    // JSX renders the date inputs, validation & status messages, & a button that's disabled while the request is pending or dates are invalid.
     try {
       const { blob, filename } = await downloadFinancialReport({ from, to });
       const url = window.URL.createObjectURL(blob);
