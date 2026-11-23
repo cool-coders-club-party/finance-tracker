@@ -1,6 +1,7 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa;
 
 import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.PortfolioEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaPortfolioRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
