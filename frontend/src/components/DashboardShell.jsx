@@ -69,6 +69,17 @@ export default function DashboardShell({children}) {
                 accentColor="#f1cbfc"
                 displaySocials={false}
                 isFixed
+                footer={user && (
+                    <>
+                        <div className="text-sm">
+                            <p className="text-muted-foreground">Signed in as</p>
+                            <p className="break-words font-medium">{user.email}</p>
+                        </div>
+                        <Button type="button" variant="outline" className="h-10 w-full" onClick={() => logout()}>
+                            Sign out
+                        </Button>
+                    </>
+                )}
             />
             <div className="dark relative isolate min-h-svh w-full overflow-hidden text-foreground [color-scheme:dark]">
                 <div
@@ -88,11 +99,6 @@ export default function DashboardShell({children}) {
                 </div>
                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-8 pt-24 md:px-8 md:pb-12 md:pt-28">
                     <div className="space-y-6 p-2 sm:p-6">
-                        {user && <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
-                            <span>{user.email}</span>
-                            <Button type="button" variant="outline" className="h-10" onClick={() => logout()}>Sign
-                                out</Button>
-                        </div>}
                         {children}
                     </div>
                 </div>
