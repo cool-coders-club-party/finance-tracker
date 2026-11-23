@@ -10,6 +10,7 @@ export const StaggeredMenu = ({
   colors = ['#B497CF', '#5227FF'],
   items = [],
   socialItems = [],
+  footer = null,
   displaySocials = true,
   displayItemNumbering = true,
   className,
@@ -449,6 +450,7 @@ export const StaggeredMenu = ({
               </ul>
             </div>
           )}
+          {footer && <div className="sm-panel-footer">{footer}</div>}
         </div>
       </aside>
     </div>
