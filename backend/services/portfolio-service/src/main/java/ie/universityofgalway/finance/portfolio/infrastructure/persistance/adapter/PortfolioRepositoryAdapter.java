@@ -1,10 +1,10 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.adapter;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.adapter;
 
 import ie.universityofgalway.finance.portfolio.application.port.PortfolioRepository;
 import ie.universityofgalway.finance.portfolio.domain.exception.PortfolioNotFoundException;
 import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.PortfolioEntity;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaPortfolioRepository;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.PortfolioEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa.JpaPortfolioRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
