@@ -11,6 +11,13 @@ import org.springframework.stereotype.Component;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * JPA implementation of the {@link TradeRepository} port.
+ *
+ * <p>In the database a trade belongs to a holding rather than directly to a portfolio, so
+ * saving looks up the holding by portfolio and ticker, and loading reads the portfolio id and
+ * ticker back through it. Translates between the domain {@link Trade} and {@link TradeEntity}.</p>
+ */
 @Component
 public class TradeRepositoryAdapter implements TradeRepository {
 

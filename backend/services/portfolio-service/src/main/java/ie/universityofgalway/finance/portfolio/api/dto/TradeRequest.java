@@ -8,8 +8,20 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-// Validation annotations run BEFORE this ever reaches the controller body -
-// Spring rejects an invalid request with a 400 automatically.
+/**
+ * Request body for {@code POST /api/portfolios/{id}/buy} and {@code /sell}.
+ *
+ * <p>Validation annotations run before the controller body; Spring rejects an invalid request
+ * with {@code 400 VALIDATION_ERROR} automatically. Rules that involve more than one field (send
+ * both {@code price} and {@code executedAt}, or neither) are checked in
+ * {@link ie.universityofgalway.finance.portfolio.application.service.PortfolioService}.</p>
+ *
+ * @param ticker     stock symbol, 1-5 letters in any case
+ * @param quantity   number of shares, greater than zero; fractional shares are allowed
+ * @param price      buys only, optional: price per share actually paid, for recording an earlier purchase
+ * @param executedAt buys only, optional: when that earlier purchase happened (ISO-8601, e.g.
+ *                   {@code 2026-11-17T14:32:00Z})
+ */
 public record TradeRequest(
 
         @NotBlank
@@ -26,7 +38,13 @@ public record TradeRequest(
 
         Instant executedAt
 ) {
-    // Keeps simple "trade at market" callers (and tests) short.
+    /**
+     * Creates a request to trade at the market price, with no price or time.
+     * Keeps simple callers and tests short.
+     *
+     * @param ticker   stock symbol
+     * @param quantity number of shares
+     */
     public TradeRequest(String ticker, BigDecimal quantity) {
         this(ticker, quantity, null, null);
     }

@@ -2,6 +2,13 @@ package ie.universityofgalway.finance.portfolio.infrastructure.persistence.entit
 
 import jakarta.persistence.*;
 
+/**
+ * Database row in the {@code portfolios} table.
+ *
+ * <p>Only used inside the infrastructure layer; {@code PortfolioRepositoryAdapter} converts it
+ * to and from the domain {@link ie.universityofgalway.finance.portfolio.domain.model.Portfolio}.
+ * The table is created and updated by Hibernate ({@code ddl-auto: update}).</p>
+ */
 @Entity
 @Table(name = "portfolios")
 public class PortfolioEntity {
@@ -16,10 +23,17 @@ public class PortfolioEntity {
     @Column(nullable = false)
     private String name;
 
+    /** Required by JPA; not for application code. */
     protected PortfolioEntity() {
         // JPA
     }
 
+    /**
+     * Creates a new, unsaved row; the database assigns the id.
+     *
+     * @param userId the owner's user id
+     * @param name   the display name
+     */
     public PortfolioEntity(String userId, String name) {
         this.userId = userId;
         this.name = name;
