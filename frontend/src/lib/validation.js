@@ -1,3 +1,16 @@
+/*
+ * Client-side form checks for the login and registration pages.
+ *
+ * Each validate* function returns an error message, or an empty string when the
+ * value is fine. The two form-level functions return an object of messages keyed
+ * by field name, empty when nothing is wrong. The rules mirror the server's
+ * (valid email, password of 8 to 72 characters) so users get instant feedback,
+ * but the server still checks everything again.
+ *
+ * Exports: validateEmail, validateNewPassword, validateConfirmation,
+ *          validateRegistration, validateLogin, PASSWORD_MIN, PASSWORD_MAX
+ */
+
 // A string of the form text@moreText.something is considered valid
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

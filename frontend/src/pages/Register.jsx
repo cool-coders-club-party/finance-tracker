@@ -8,6 +8,13 @@ import { validateRegistration } from '../lib/validation.js';
 import FormField from '../components/FormField';
 import ErrorTooltip from '@/components/ErrorTooltip';
 
+/**
+ * The registration page. Validates the form, creates the account, then sends
+ * the user to the login page with their email prefilled. Registration returns
+ * no tokens, so signing in is a separate step.
+ *
+ * @return {import("react").ReactElement} the registration form inside AuthLayout.
+ */
 export default function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

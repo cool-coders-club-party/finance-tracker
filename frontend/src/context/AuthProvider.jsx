@@ -3,6 +3,18 @@ import { login } from '../api/auth.js';
 import { startSession, endSession, getUser, getRefreshToken, restoreSession, subscribe } from '../lib/session.js';
 import { AuthContext } from './AuthContext.js';
 
+/**
+ * Holds the signed-in user for the whole app and shares it through context.
+ * The real session lives in lib/session.js; this component mirrors it into
+ * React state so pages re-render when it changes.
+ *
+ * `status` is "loading" while a stored session is being restored on startup,
+ * then "authenticated" or "anonymous".
+ *
+ * @param {object} props component props.
+ * @param {import("react").ReactNode} props.children the app, rendered inside the provider.
+ * @return {import("react").ReactElement} the provider wrapping its children.
+ */
 export function AuthProvider({ children }) {
   // React's own copy of the current user. Changing it re-renders the components that use it.
   const [user, setUser] = useState(getUser());
@@ -25,11 +37,21 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, []);
 
+  // 
+
+  /**
+   * Logs in, then stores the tokens. A wrong password throws an AuthApiError,
+   * which the login page catches and turns into a message.
+   */
   async function signIn(email, password) {
     const tokens = await login(email, password); // throws AuthApiError on failure
     startSession(tokens);                         // notifies, so `user` updates
   }
 
+  /**
+   * Clears the session locally straight away; revoking the token on the server
+   * happens in the background and its failure is ignored.
+   */
   function logout() {
     endSession();
   }

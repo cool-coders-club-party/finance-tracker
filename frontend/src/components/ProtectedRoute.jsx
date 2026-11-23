@@ -1,3 +1,13 @@
+/*
+ * Route guard for pages that need a login.
+ *
+ * Used in router.jsx as a layout route: the protected pages are its children.
+ * It waits while a stored session is being restored, redirects anonymous
+ * visitors to /login (remembering where they were going), and otherwise shows
+ * the page. This only controls what the browser shows. The real protection is
+ * that every backend service checks the access token itself.
+ */
+
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth.js';
 

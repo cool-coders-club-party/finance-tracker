@@ -28,6 +28,22 @@ Redis and a `JWT_SECRET` shared with the Users service; follow the
 
 Read the [microservices architecture note](docs/architecture-microservices.md), [Clean Architecture diagram](docs/clean-architecture.md), and [system architecture diagrams](docs/architecture-diagrams.md) before adding a feature. The original setup history remains in [the team brief](docs/team-brief-1-initializing-and-backend.md).
 
+## Users
+
+The Users service runs on port **8081** and handles registration, login and
+session tokens. Passwords are hashed with BCrypt and users are stored in
+PostgreSQL through Spring Data JPA. Login returns a short-lived JWT access
+token (15 minutes, HS256) and a rotating refresh token (7 days), which is
+stored only as a SHA-256 hash. Logging out revokes the refresh token.
+
+The other services verify access tokens themselves with the shared
+`JWT_SECRET` and identify the caller from the token's `sub` claim, so they
+never call the Users service. The service follows Clean Architecture, with
+dependencies pointing inward from `api` to `application` to `domain`.
+
+See the [Users documentation](docs/api/users-service.md) for API endpoints, token
+design, local setup and the demonstration checklist.
+
 ## Transactions
 
 The Transactions service runs on port **8082** and manages each authenticated user's
