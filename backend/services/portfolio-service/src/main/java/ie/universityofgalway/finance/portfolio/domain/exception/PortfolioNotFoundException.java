@@ -14,7 +14,7 @@ public class PortfolioNotFoundException extends RuntimeException {
      * @param portfolioId the id that was requested
      */
     public PortfolioNotFoundException(Long portfolioId) {
-        super("Portfolio of ID: " +portfolioId +"not found");
+        super("Portfolio of ID: " +portfolioId +" not found");
         this.portfolioId = portfolioId;
     }
 
