@@ -3,6 +3,13 @@ package ie.universityofgalway.finance.portfolio.domain.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/**
+ * One buy or sell of a stock in a portfolio.
+ *
+ * <p>Created by {@link Holding#buy} and {@link Holding#sell}, so a trade always matches the
+ * change it made to its holding. Immutable, and never edited or deleted once saved: the trade
+ * history is what performance is calculated from.</p>
+ */
 public class Trade {
 
     private final Long id;
@@ -13,6 +20,15 @@ public class Trade {
     private final BigDecimal price;
     private final Instant executedAt;
 
+    /**
+     * @param id          the trade id, or {@code null} if not yet saved
+     * @param portfolioId the portfolio the trade belongs to
+     * @param ticker      the stock symbol, upper case
+     * @param type        {@link TradeType#BUY} or {@link TradeType#SELL}
+     * @param quantity    number of shares traded, greater than zero
+     * @param price       price per share
+     * @param executedAt  when the trade happened
+     */
     public Trade(Long id, Long portfolioId, String ticker, TradeType type,
                  BigDecimal quantity, BigDecimal price, Instant executedAt) {
         this.id = id;

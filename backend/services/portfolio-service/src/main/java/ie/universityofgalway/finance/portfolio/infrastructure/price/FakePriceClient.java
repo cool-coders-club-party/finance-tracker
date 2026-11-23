@@ -12,12 +12,15 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Temporary stand-in for the real market-data provider.
+ * {@link PriceClient} with fixed USD prices, for running without market-data-service.
  *
- * Nothing else in the codebase depends on this class directly - callers only
- * depend on the PriceClient interface, so swapping in the real provider later
- * is just a matter of adding a new @Component implementation and removing
- * (or re-scoping) this one. No service or controller code needs to change.
+ * <p>Active only when {@code price-client.type=fake} (the shipped configuration uses
+ * {@code market-data}), and never under the {@code prod} profile. Only {@code AAPL} and
+ * {@code MSFT} have prices; any other ticker is treated as unknown.</p>
+ *
+ * <p>Nothing else depends on this class directly - callers only depend on the
+ * {@link PriceClient} interface, so the real and fake clients can be swapped by configuration
+ * without changing any service or controller code.</p>
  */
 @Component
 @Profile("!prod") // guards against this ever being wired into a real environment
@@ -38,7 +41,12 @@ public class FakePriceClient implements PriceClient {
         return price;
     }
 
-    // Buying needs quote metadata (currency) as well as the price.
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Always returns a fresh USD quote timestamped now. Buying needs the currency as well
+     * as the price.</p>
+     */
     @Override
     public MarketQuote getQuote(String ticker) {
         return new MarketQuote(ticker.toUpperCase(), getPrice(ticker), "USD", Instant.now(), false);
