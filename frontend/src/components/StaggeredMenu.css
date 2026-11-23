@@ -301,6 +301,15 @@
   text-align: left;
 }
 
+.sm-panel-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .staggered-menu-panel .sm-socials-list .sm-socials-link {
   opacity: 1;
   transition: opacity 0.3s ease;
