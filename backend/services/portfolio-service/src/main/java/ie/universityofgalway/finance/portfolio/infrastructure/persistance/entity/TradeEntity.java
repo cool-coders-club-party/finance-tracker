@@ -1,4 +1,4 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity;
 
 import ie.universityofgalway.finance.portfolio.domain.model.TradeType;
 import jakarta.persistence.*;

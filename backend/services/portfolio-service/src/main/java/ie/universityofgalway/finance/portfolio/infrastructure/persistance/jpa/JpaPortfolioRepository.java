@@ -1,6 +1,6 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa;
 
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.PortfolioEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.PortfolioEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,10 +1,10 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.adapter;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.adapter;
 
 import ie.universityofgalway.finance.portfolio.application.port.HoldingRepository;
 import ie.universityofgalway.finance.portfolio.domain.model.Holding;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.HoldingEntity;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaHoldingRepository;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaPortfolioRepository;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.HoldingEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa.JpaHoldingRepository;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa.JpaPortfolioRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
