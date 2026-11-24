@@ -1,12 +1,8 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity;
 
-import ie.universityofgalway.finance.portfolio.domain.model.Portfolio;
-import ie.universityofgalway.finance.portfolio.domain.model.Trade;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * JPA row for a portfolio holding, unique by portfolio and ticker.

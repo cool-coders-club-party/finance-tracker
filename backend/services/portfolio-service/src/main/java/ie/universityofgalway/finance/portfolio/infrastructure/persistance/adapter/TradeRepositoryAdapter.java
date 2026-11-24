@@ -1,14 +1,13 @@
-package ie.universityofgalway.finance.portfolio.infrastructure.persistence.adapter;
+package ie.universityofgalway.finance.portfolio.infrastructure.persistance.adapter;
 
 import ie.universityofgalway.finance.portfolio.application.port.TradeRepository;
 import ie.universityofgalway.finance.portfolio.domain.model.Trade;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.HoldingEntity;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.entity.TradeEntity;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaHoldingRepository;
-import ie.universityofgalway.finance.portfolio.infrastructure.persistence.jpa.JpaTradeRepository;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.HoldingEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.entity.TradeEntity;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa.JpaHoldingRepository;
+import ie.universityofgalway.finance.portfolio.infrastructure.persistance.jpa.JpaTradeRepository;
 import org.springframework.stereotype.Component;
 
-import java.util.Comparator;
 import java.util.List;
 
 /**
